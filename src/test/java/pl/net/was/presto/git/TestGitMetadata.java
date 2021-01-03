@@ -19,18 +19,13 @@ import io.prestosql.spi.connector.ConnectorTableMetadata;
 import io.prestosql.spi.connector.SchemaNotFoundException;
 import io.prestosql.spi.connector.SchemaTableName;
 import io.prestosql.spi.connector.TableNotFoundException;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,20 +52,7 @@ public class TestGitMetadata
         commitsTableHandle = new GitTableHandle("default", "commits");
 
         String url = "fake.example";
-        File localPath;
-        try {
-            localPath = GitRecordSet.ensureDir(url);
-        }
-        catch (IOException ignored) {
-            return;
-        }
-        if (localPath.exists()) {
-            Files.walk(localPath.toPath())
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        }
-        Git.init().setDirectory(localPath).call();
+        TestGitClient.setupRepo(URI.create(url));
 
         GitConfig config = new GitConfig();
         config.setMetadata(new URI(url));
@@ -96,19 +78,20 @@ public class TestGitMetadata
     public void testGetColumnHandles()
     {
         // known table
-        assertEquals(metadata.getColumnHandles(SESSION, commitsTableHandle), Map.of(
-                "one", new GitColumnHandle("one", createUnboundedVarcharType(), 0),
-                "1", new GitColumnHandle("1", createUnboundedVarcharType(), 1)));
+        assertEquals(
+                metadata.getColumnHandles(SESSION, commitsTableHandle),
+                Map.of(
+                        "object_id", new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                        "author_name", new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
+                        "author_email", new GitColumnHandle("author_email", createUnboundedVarcharType(), 2),
+                        "committer_name", new GitColumnHandle("committer_name", createUnboundedVarcharType(), 3),
+                        "committer_email", new GitColumnHandle("committer_email", createUnboundedVarcharType(), 4),
+                        "message", new GitColumnHandle("message", createUnboundedVarcharType(), 5),
+                        "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 6)));
 
         // unknown table
         try {
             metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown"));
-            fail("Expected getColumnHandle of unknown table to throw a TableNotFoundException");
-        }
-        catch (SchemaNotFoundException expected) {
-        }
-        try {
-            metadata.getColumnHandles(SESSION, new GitTableHandle("csv", "unknown"));
             fail("Expected getColumnHandle of unknown table to throw a TableNotFoundException");
         }
         catch (TableNotFoundException expected) {
@@ -121,12 +104,16 @@ public class TestGitMetadata
         // known table
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(SESSION, commitsTableHandle);
         assertEquals(tableMetadata.getTable().getSchemaName(), "default");
-        assertEquals(tableMetadata.getColumns(), List.of(
-                new ColumnMetadata("object_id", createUnboundedVarcharType()),
-                new ColumnMetadata("author", createUnboundedVarcharType()),
-                new ColumnMetadata("committer", createUnboundedVarcharType()),
-                new ColumnMetadata("message", createUnboundedVarcharType()),
-                new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(3))));
+        assertEquals(
+                tableMetadata.getColumns(),
+                List.of(
+                        new ColumnMetadata("object_id", createUnboundedVarcharType()),
+                        new ColumnMetadata("author_name", createUnboundedVarcharType()),
+                        new ColumnMetadata("author_email", createUnboundedVarcharType()),
+                        new ColumnMetadata("committer_name", createUnboundedVarcharType()),
+                        new ColumnMetadata("committer_email", createUnboundedVarcharType()),
+                        new ColumnMetadata("message", createUnboundedVarcharType()),
+                        new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null
         assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown")));
@@ -138,16 +125,28 @@ public class TestGitMetadata
     public void testListTables()
     {
         // all schemas
-        assertEquals(Set.copyOf(metadata.listTables(SESSION, Optional.empty())), Set.of("default.commits", "default.branches"));
+        assertEquals(
+                Set.copyOf(metadata.listTables(SESSION, Optional.empty())),
+                Set.of(
+                        new SchemaTableName("default", "commits"),
+                        new SchemaTableName("default", "branches"),
+                        new SchemaTableName("default", "tags")));
 
         // unknown schema
-        assertEquals(Set.copyOf(metadata.listTables(SESSION, Optional.of("unknown"))), Set.of("default.commits", "default.branches"));
+        try {
+            metadata.listTables(SESSION, Optional.of("unknown"));
+            fail("Expected listTables of unknown schema to throw a SchemaNotFoundException");
+        }
+        catch (SchemaNotFoundException expected) {
+        }
     }
 
     @Test
     public void getColumnMetadata()
     {
-        assertEquals(metadata.getColumnMetadata(SESSION, commitsTableHandle, new GitColumnHandle("text", createUnboundedVarcharType(), 0)),
+        assertEquals(
+                metadata.getColumnMetadata(SESSION, commitsTableHandle,
+                        new GitColumnHandle("text", createUnboundedVarcharType(), 0)),
                 new ColumnMetadata("text", createUnboundedVarcharType()));
 
         // example connector assumes that the table handle and column handle are

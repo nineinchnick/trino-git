@@ -55,8 +55,8 @@ public class BranchesRecordCursor
         try {
             branches = repo.branchList().setListMode(ListBranchCommand.ListMode.ALL).call().iterator();
         }
-        catch (GitAPIException e) {
-            e.printStackTrace();
+        catch (GitAPIException ignored) {
+            //pass
         }
     }
 
@@ -87,6 +87,7 @@ public class BranchesRecordCursor
         }
         Ref branch = branches.next();
         fields = List.of(
+                branch.getObjectId().getName(),
                 branch.getName());
 
         return true;

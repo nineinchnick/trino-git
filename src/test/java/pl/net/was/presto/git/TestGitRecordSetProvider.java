@@ -16,18 +16,12 @@ package pl.net.was.presto.git;
 import com.google.common.collect.ImmutableMap;
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,22 +37,9 @@ public class TestGitRecordSetProvider
 
     @BeforeMethod
     public void setUp()
-            throws IOException, GitAPIException, URISyntaxException
+            throws IOException, GitAPIException
     {
-        File localPath;
-        try {
-            localPath = GitRecordSet.ensureDir(uri.toString());
-        }
-        catch (IOException ignored) {
-            return;
-        }
-        if (localPath.exists()) {
-            Files.walk(localPath.toPath())
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        }
-        Git.init().setDirectory(localPath).call();
+        TestGitClient.setupRepo(uri);
     }
 
     @Test
@@ -68,11 +49,11 @@ public class TestGitRecordSetProvider
         RecordSet recordSet = recordSetProvider.getRecordSet(
                 GitTransactionHandle.INSTANCE,
                 SESSION,
-                new GitSplit("test", uri),
-                new GitTableHandle("test", "test"),
+                new GitSplit("commits", uri),
+                new GitTableHandle("default", "commits"),
                 List.of(
-                        new GitColumnHandle("text", createUnboundedVarcharType(), 0),
-                        new GitColumnHandle("value", createUnboundedVarcharType(), 1)));
+                        new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                        new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
         assertNotNull(recordSet, "recordSet is null");
 
         RecordCursor cursor = recordSet.cursor();
@@ -83,8 +64,8 @@ public class TestGitRecordSetProvider
             data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
         }
         assertEquals(data, ImmutableMap.<String, String>builder()
-                .put("two", "2")
-                .put("three", "3")
+                .put("080dfdf0aac7d302dc31d57f62942bb6533944f7", "test")
+                .put("c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "test")
                 .build());
     }
 }

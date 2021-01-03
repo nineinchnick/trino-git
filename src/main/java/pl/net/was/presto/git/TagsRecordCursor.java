@@ -20,12 +20,8 @@ import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.lib.Ref;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 
@@ -36,18 +32,17 @@ import static io.prestosql.spi.type.BooleanType.BOOLEAN;
 import static io.prestosql.spi.type.DoubleType.DOUBLE;
 import static io.prestosql.spi.type.VarcharType.createUnboundedVarcharType;
 
-public class CommitsRecordCursor
+public class TagsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
     private final int[] fieldToColumnIndex;
 
-    private Iterator<RevCommit> commits;
+    private Iterator<Ref> tags;
 
     private List<String> fields;
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
 
@@ -57,10 +52,10 @@ public class CommitsRecordCursor
         }
 
         try {
-            commits = repo.log().all().call().iterator();
+            tags = repo.tagList().call().iterator();
         }
-        catch (GitAPIException | IOException ignore) {
-            // pass
+        catch (GitAPIException ignored) {
+            //pass
         }
     }
 
@@ -86,19 +81,13 @@ public class CommitsRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
-        if (commits == null || !commits.hasNext()) {
+        if (!tags.hasNext()) {
             return false;
         }
-
-        RevCommit commit = commits.next();
+        Ref tag = tags.next();
         fields = List.of(
-                commit.getName(),
-                commit.getAuthorIdent().getName(),
-                commit.getAuthorIdent().getEmailAddress(),
-                commit.getCommitterIdent().getName(),
-                commit.getCommitterIdent().getEmailAddress(),
-                commit.getFullMessage(),
-                Instant.ofEpochSecond(commit.getCommitTime()).atZone(ZoneId.of("GMT")).format(formatter));
+                tag.getObjectId().getName(),
+                tag.getName());
 
         return true;
     }

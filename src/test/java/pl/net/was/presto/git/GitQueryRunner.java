@@ -69,9 +69,14 @@ public final class GitQueryRunner
     {
         Logging.initialize();
 
+        String url = "/tmp/test-repo";
+        if (args.length > 0) {
+            url = args[0];
+        }
+
         DistributedQueryRunner queryRunner = createGitQueryRunner(
                 Map.of("http-server.http.port", "8080"),
-                Map.of());
+                Map.of("metadata-uri", url));
 
         Logger log = Logger.get(GitQueryRunner.class);
         log.info("======== SERVER STARTED ========");

@@ -93,8 +93,12 @@ public class GitRecordSet
     {
         Map<String, Class<?>> map = Map.of(
                 "commits", CommitsRecordCursor.class,
-                "branches", BranchesRecordCursor.class);
+                "branches", BranchesRecordCursor.class,
+                "tags", TagsRecordCursor.class);
         Class<?> clazz = map.get(tableName);
+        if (clazz == null) {
+            return null;
+        }
         Constructor<?> ctr;
         try {
             ctr = clazz.getConstructor(List.class, Git.class);

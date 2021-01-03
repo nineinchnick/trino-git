@@ -28,6 +28,22 @@ import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
+    private final Map<String, List<GitColumn>> columns = Map.of(
+            "commits", List.of(
+                    new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("author_name", VarcharType.VARCHAR),
+                    new GitColumn("author_email", VarcharType.VARCHAR),
+                    new GitColumn("committer_name", VarcharType.VARCHAR),
+                    new GitColumn("committer_email", VarcharType.VARCHAR),
+                    new GitColumn("message", VarcharType.VARCHAR),
+                    new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
+            "branches", List.of(
+                    new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("name", VarcharType.VARCHAR)),
+            "tags", List.of(
+                    new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("name", VarcharType.VARCHAR)));
+
     @Inject
     public GitClient(GitConfig config)
     {
@@ -43,7 +59,7 @@ public class GitClient
     {
         requireNonNull(schema, "schema is null");
 
-        return Stream.of("commits", "branches").collect(Collectors.toSet());
+        return Stream.of("commits", "branches", "tags").collect(Collectors.toSet());
     }
 
     public GitTable getTable(String schema, String tableName)
@@ -51,15 +67,10 @@ public class GitClient
         requireNonNull(schema, "schema is null");
         requireNonNull(tableName, "tableName is null");
 
-        Map<String, List<GitColumn>> columns = Map.of(
-                "commits", List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR),
-                    new GitColumn("author", VarcharType.VARCHAR),
-                    new GitColumn("committer", VarcharType.VARCHAR),
-                    new GitColumn("message", VarcharType.VARCHAR),
-                    new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
-                "branches", List.of(
-                    new GitColumn("name", VarcharType.VARCHAR)));
-        return new GitTable(tableName, columns.get(tableName));
+        List<GitColumn> selected = columns.get(tableName);
+        if (selected == null) {
+            return null;
+        }
+        return new GitTable(tableName, selected);
     }
 }

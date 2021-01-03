@@ -22,6 +22,7 @@ import io.prestosql.spi.connector.ConnectorSession;
 import io.prestosql.spi.connector.ConnectorTableHandle;
 import io.prestosql.spi.connector.ConnectorTableMetadata;
 import io.prestosql.spi.connector.ConnectorTableProperties;
+import io.prestosql.spi.connector.SchemaNotFoundException;
 import io.prestosql.spi.connector.SchemaTableName;
 import io.prestosql.spi.connector.SchemaTablePrefix;
 import io.prestosql.spi.connector.TableNotFoundException;
@@ -81,6 +82,9 @@ public class GitMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> optionalSchemaName)
     {
+        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName)) {
+            throw new SchemaNotFoundException(optionalSchemaName.get());
+        }
         Set<String> schemaNames = optionalSchemaName.map(Set::of)
                 .orElseGet(() -> Set.copyOf(gitClient.getSchemaNames()));
 
