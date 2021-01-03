@@ -82,7 +82,7 @@ public class GitMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> optionalSchemaName)
     {
-        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName)) {
+        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.get())) {
             throw new SchemaNotFoundException(optionalSchemaName.get());
         }
         Set<String> schemaNames = optionalSchemaName.map(Set::of)

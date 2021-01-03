@@ -35,3 +35,23 @@ Copy jar files in target directory to use git connector in your Trino cluster.
 ```
 cp -p target/*.jar ${PLUGIN_DIRECTORY}/git/
 ```
+
+# Deploy
+
+An example command to run the Trino server with the git plugin and catalog enabled:
+
+```bash
+src=$(git rev-parse --show-toplevel)
+docker run \
+  -v $src/target/trino-git-0.1-SNAPSHOT:/usr/lib/presto/plugin/git \
+  -v $src/catalog:/usr/lib/presto/default/etc/catalog \
+  -p 8080:8080 \
+  --name presto \
+  -d \
+  prestosql/presto
+```
+
+Connect to that server using:
+```bash
+docker run -it --rm --link presto prestosql/presto presto --server presto:8080 --catalog git --schema default
+```
