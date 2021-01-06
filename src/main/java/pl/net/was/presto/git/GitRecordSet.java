@@ -92,9 +92,11 @@ public class GitRecordSet
     public RecordCursor cursor()
     {
         Map<String, Class<?>> map = Map.of(
-                "commits", CommitsRecordCursor.class,
                 "branches", BranchesRecordCursor.class,
-                "tags", TagsRecordCursor.class);
+                "commits", CommitsRecordCursor.class,
+                //"objects", ObjectsRecordCursor.class,
+                "tags", TagsRecordCursor.class,
+                "trees", TreesRecordCursor.class);
         Class<?> clazz = map.get(tableName);
         if (clazz == null) {
             return null;

@@ -13,7 +13,6 @@
  */
 package pl.net.was.presto.git;
 
-import com.google.common.base.Strings;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.prestosql.spi.connector.RecordCursor;
@@ -23,37 +22,62 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static io.prestosql.spi.type.BigintType.BIGINT;
-import static io.prestosql.spi.type.BooleanType.BOOLEAN;
-import static io.prestosql.spi.type.DoubleType.DOUBLE;
-import static io.prestosql.spi.type.VarcharType.createUnboundedVarcharType;
 
 public class CommitsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
-    private final int[] fieldToColumnIndex;
+    private final Map<Integer, Function<RevCommit, Integer>> intFieldGetters = new HashMap<>();
+    private final Map<Integer, Function<RevCommit, String>> strFieldGetters = new HashMap<>();
+    private final Map<Integer, Function<RevCommit, Object>> objFieldGetters = new HashMap<>();
 
     private Iterator<RevCommit> commits;
 
-    private List<String> fields;
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private RevCommit commit;
 
     public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
 
-        fieldToColumnIndex = new int[columnHandles.size()];
+        Map<String, Integer> nameToIndex = new HashMap<>();
         for (int i = 0; i < columnHandles.size(); i++) {
-            fieldToColumnIndex[i] = columnHandles.get(i).getOrdinalPosition();
+            nameToIndex.put(columnHandles.get(i).getColumnName(), i);
+        }
+
+        if (nameToIndex.containsKey("commit_time")) {
+            intFieldGetters.put(nameToIndex.get("commit_time"), RevCommit::getCommitTime);
+        }
+
+        Map<String, Function<RevCommit, String>> getters = Map.of(
+                "object_id", RevCommit::getName,
+                "author_name", c -> c.getAuthorIdent().getName(),
+                "author_email", c -> c.getAuthorIdent().getEmailAddress(),
+                "committer_name", c -> c.getCommitterIdent().getName(),
+                "committer_email", c -> c.getCommitterIdent().getEmailAddress(),
+                "message", RevCommit::getFullMessage,
+                "tree_id", c -> c.getTree().getName());
+
+        for (Map.Entry<String, Function<RevCommit, String>> entry : getters.entrySet()) {
+            String k = entry.getKey();
+            if (nameToIndex.containsKey(k)) {
+                strFieldGetters.put(nameToIndex.get(k), entry.getValue());
+            }
+        }
+
+        if (nameToIndex.containsKey("parents")) {
+            objFieldGetters.put(
+                    nameToIndex.get("parents"),
+                    c -> Stream.of(c.getParents())
+                            .map(RevCommit::getName)
+                            .toArray(String[]::new));
         }
 
         try {
@@ -90,72 +114,48 @@ public class CommitsRecordCursor
             return false;
         }
 
-        RevCommit commit = commits.next();
-        fields = List.of(
-                commit.getName(),
-                commit.getAuthorIdent().getName(),
-                commit.getAuthorIdent().getEmailAddress(),
-                commit.getCommitterIdent().getName(),
-                commit.getCommitterIdent().getEmailAddress(),
-                commit.getFullMessage(),
-                Instant.ofEpochSecond(commit.getCommitTime()).atZone(ZoneId.of("GMT")).format(formatter));
+        commit = commits.next();
 
         return true;
-    }
-
-    private String getFieldValue(int field)
-    {
-        checkState(fields != null, "Cursor has not been advanced yet");
-
-        int columnIndex = fieldToColumnIndex[field];
-        return fields.get(columnIndex);
     }
 
     @Override
     public boolean getBoolean(int field)
     {
-        checkFieldType(field, BOOLEAN);
-        return Boolean.parseBoolean(getFieldValue(field));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public long getLong(int field)
     {
-        checkFieldType(field, BIGINT);
-        return Long.parseLong(getFieldValue(field));
+        checkArgument(intFieldGetters.containsKey(field), "Invalid field index");
+        return intFieldGetters.get(field).apply(commit);
     }
 
     @Override
     public double getDouble(int field)
     {
-        checkFieldType(field, DOUBLE);
-        return Double.parseDouble(getFieldValue(field));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Slice getSlice(int field)
     {
-        checkFieldType(field, createUnboundedVarcharType());
-        return Slices.utf8Slice(getFieldValue(field));
+        checkArgument(strFieldGetters.containsKey(field), "Invalid field index");
+        return Slices.utf8Slice(strFieldGetters.get(field).apply(commit));
     }
 
     @Override
     public Object getObject(int field)
     {
-        throw new UnsupportedOperationException();
+        checkArgument(objFieldGetters.containsKey(field), "Invalid field index");
+        return objFieldGetters.get(field).apply(commit);
     }
 
     @Override
     public boolean isNull(int field)
     {
-        checkArgument(field < columnHandles.size(), "Invalid field index");
-        return Strings.isNullOrEmpty(getFieldValue(field));
-    }
-
-    private void checkFieldType(int field, Type expected)
-    {
-        Type actual = getType(field);
-        checkArgument(actual.equals(expected), "Expected field %s to be type %s but is %s", field, expected, actual);
+        return false;
     }
 
     @Override

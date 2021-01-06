@@ -13,7 +13,6 @@
  */
 package pl.net.was.presto.git;
 
-import com.google.common.base.Strings;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.prestosql.spi.connector.RecordCursor;
@@ -28,10 +27,6 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static io.prestosql.spi.type.BigintType.BIGINT;
-import static io.prestosql.spi.type.BooleanType.BOOLEAN;
-import static io.prestosql.spi.type.DoubleType.DOUBLE;
-import static io.prestosql.spi.type.VarcharType.createUnboundedVarcharType;
 
 public class BranchesRecordCursor
         implements RecordCursor
@@ -104,28 +99,24 @@ public class BranchesRecordCursor
     @Override
     public boolean getBoolean(int field)
     {
-        checkFieldType(field, BOOLEAN);
-        return Boolean.parseBoolean(getFieldValue(field));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public long getLong(int field)
     {
-        checkFieldType(field, BIGINT);
-        return Long.parseLong(getFieldValue(field));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double getDouble(int field)
     {
-        checkFieldType(field, DOUBLE);
-        return Double.parseDouble(getFieldValue(field));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Slice getSlice(int field)
     {
-        checkFieldType(field, createUnboundedVarcharType());
         return Slices.utf8Slice(getFieldValue(field));
     }
 
@@ -138,14 +129,7 @@ public class BranchesRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        checkArgument(field < columnHandles.size(), "Invalid field index");
-        return Strings.isNullOrEmpty(getFieldValue(field));
-    }
-
-    private void checkFieldType(int field, Type expected)
-    {
-        Type actual = getType(field);
-        checkArgument(actual.equals(expected), "Expected field %s to be type %s but is %s", field, expected, actual);
+        return false;
     }
 
     @Override

@@ -19,6 +19,7 @@ import io.prestosql.spi.connector.ConnectorTableMetadata;
 import io.prestosql.spi.connector.SchemaNotFoundException;
 import io.prestosql.spi.connector.SchemaTableName;
 import io.prestosql.spi.connector.TableNotFoundException;
+import io.prestosql.spi.type.ArrayType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -87,7 +88,9 @@ public class TestGitMetadata
                         "committer_name", new GitColumnHandle("committer_name", createUnboundedVarcharType(), 3),
                         "committer_email", new GitColumnHandle("committer_email", createUnboundedVarcharType(), 4),
                         "message", new GitColumnHandle("message", createUnboundedVarcharType(), 5),
-                        "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 6)));
+                        "parents", new GitColumnHandle("parents", new ArrayType(createUnboundedVarcharType()), 6),
+                        "tree_id", new GitColumnHandle("tree_id", createUnboundedVarcharType(), 7),
+                        "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
 
         // unknown table
         try {
@@ -113,6 +116,8 @@ public class TestGitMetadata
                         new ColumnMetadata("committer_name", createUnboundedVarcharType()),
                         new ColumnMetadata("committer_email", createUnboundedVarcharType()),
                         new ColumnMetadata("message", createUnboundedVarcharType()),
+                        new ColumnMetadata("parents", new ArrayType(createUnboundedVarcharType())),
+                        new ColumnMetadata("tree_id", createUnboundedVarcharType()),
                         new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null

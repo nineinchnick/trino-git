@@ -36,21 +36,8 @@ public class TestGitSplit
             throws URISyntaxException
     {
         URI testURI = new URI("url.invalid");
-        // http split with default port
         GitSplit httpSplit = new GitSplit("tableName", testURI);
         assertTrue(httpSplit.isRemotelyAccessible());
-
-        // http split with custom port
-        httpSplit = new GitSplit("tableName", testURI);
-        assertTrue(httpSplit.isRemotelyAccessible());
-
-        // http split with default port
-        GitSplit httpsSplit = new GitSplit("tableName", testURI);
-        assertTrue(httpsSplit.isRemotelyAccessible());
-
-        // http split with custom port
-        httpsSplit = new GitSplit("tableName", testURI);
-        assertTrue(httpsSplit.isRemotelyAccessible());
     }
 
     @Test
