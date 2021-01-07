@@ -69,13 +69,13 @@ public final class GitQueryRunner
     {
         Logging.initialize();
 
-        String url = "/tmp/test-repo";
+        String url = "https://github.com/nineinchnick/trino-git.git";
         if (args.length > 0) {
             url = args[0];
         }
 
         DistributedQueryRunner queryRunner = createGitQueryRunner(
-                Map.of("http-server.http.port", "8080"),
+                Map.of("http-server.http.port", "8081"),
                 Map.of("metadata-uri", url));
 
         Logger log = Logger.get(GitQueryRunner.class);

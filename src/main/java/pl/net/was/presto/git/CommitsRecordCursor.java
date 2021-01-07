@@ -15,8 +15,13 @@ package pl.net.was.presto.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.prestosql.spi.block.Block;
+import io.prestosql.spi.block.BlockBuilder;
 import io.prestosql.spi.connector.RecordCursor;
+import io.prestosql.spi.type.DateTimeEncoding;
 import io.prestosql.spi.type.Type;
+import io.prestosql.spi.type.TypeUtils;
+import io.prestosql.spi.type.VarcharType;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -27,7 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -35,7 +39,7 @@ public class CommitsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
-    private final Map<Integer, Function<RevCommit, Integer>> intFieldGetters = new HashMap<>();
+    private final Map<Integer, Function<RevCommit, Long>> longFieldGetters = new HashMap<>();
     private final Map<Integer, Function<RevCommit, String>> strFieldGetters = new HashMap<>();
     private final Map<Integer, Function<RevCommit, Object>> objFieldGetters = new HashMap<>();
 
@@ -53,7 +57,9 @@ public class CommitsRecordCursor
         }
 
         if (nameToIndex.containsKey("commit_time")) {
-            intFieldGetters.put(nameToIndex.get("commit_time"), RevCommit::getCommitTime);
+            longFieldGetters.put(
+                    nameToIndex.get("commit_time"),
+                    c -> DateTimeEncoding.packDateTimeWithZone(c.getCommitTime() * 1000L, c.getCommitterIdent().getTimeZoneOffset()));
         }
 
         Map<String, Function<RevCommit, String>> getters = Map.of(
@@ -73,11 +79,7 @@ public class CommitsRecordCursor
         }
 
         if (nameToIndex.containsKey("parents")) {
-            objFieldGetters.put(
-                    nameToIndex.get("parents"),
-                    c -> Stream.of(c.getParents())
-                            .map(RevCommit::getName)
-                            .toArray(String[]::new));
+            objFieldGetters.put(nameToIndex.get("parents"), CommitsRecordCursor::getParents);
         }
 
         try {
@@ -86,6 +88,17 @@ public class CommitsRecordCursor
         catch (GitAPIException | IOException ignore) {
             // pass
         }
+    }
+
+    public static Block getParents(RevCommit c)
+    {
+        Type elementType = VarcharType.VARCHAR;
+        RevCommit[] parents = c.getParents();
+        BlockBuilder builder = elementType.createBlockBuilder(null, parents.length);
+        for (RevCommit p : parents) {
+            TypeUtils.writeNativeValue(elementType, builder, p.getName());
+        }
+        return builder.build();
     }
 
     @Override
@@ -128,8 +141,8 @@ public class CommitsRecordCursor
     @Override
     public long getLong(int field)
     {
-        checkArgument(intFieldGetters.containsKey(field), "Invalid field index");
-        return intFieldGetters.get(field).apply(commit);
+        checkArgument(longFieldGetters.containsKey(field), "Invalid field index");
+        return longFieldGetters.get(field).apply(commit);
     }
 
     @Override

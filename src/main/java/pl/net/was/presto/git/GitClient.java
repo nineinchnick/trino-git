@@ -83,7 +83,7 @@ public class GitClient
     {
         requireNonNull(schema, "schema is null");
 
-        return Stream.of("commits", "branches", "tags").collect(Collectors.toSet());
+        return columns.keySet();
     }
 
     public GitTable getTable(String schema, String tableName)

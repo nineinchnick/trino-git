@@ -19,6 +19,7 @@ import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
@@ -103,7 +104,15 @@ public class TreesRecordCursor
             }
         }
 
-        commits = new RevWalk(repo.getRepository()).iterator();
+        RevWalk revWalk = new RevWalk(repo.getRepository());
+        try {
+            Ref head = repo.getRepository().findRef("HEAD");
+            revWalk.markStart( revWalk.parseCommit( head.getObjectId() ));
+        }
+        catch (IOException ignored) {
+            // pass
+        }
+        commits = revWalk.iterator();
     }
 
     private String getFileMode(FileMode fileMode)
@@ -137,16 +146,22 @@ public class TreesRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
-        if (commits == null || !commits.hasNext()) {
+        if (commits == null) {
             return false;
         }
 
         try {
             if (treeWalk == null || !treeWalk.next()) {
+                if (!commits.hasNext()) {
+                    return false;
+                }
                 commit = commits.next();
                 treeWalk = new TreeWalk(repo.getRepository());
                 treeWalk.addTree(commit.getTree());
                 treeWalk.setRecursive(true);
+                if (!treeWalk.next()) {
+                    return false;
+                }
             }
         }
         catch (IOException ignores) {

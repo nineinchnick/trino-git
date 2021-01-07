@@ -15,12 +15,16 @@ package pl.net.was.presto.git;
 
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
+import io.prestosql.spi.type.ArrayType;
+import io.prestosql.spi.type.TimestampWithTimeZoneType;
+import io.prestosql.spi.type.VarcharType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,21 +72,22 @@ public class TestGitRecordSet
     {
         RecordSet recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
-                new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
+                new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
+                new GitColumnHandle("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
         RecordCursor cursor = recordSet.cursor();
 
         assertEquals(cursor.getType(0), createUnboundedVarcharType());
         assertEquals(cursor.getType(1), createUnboundedVarcharType());
 
-        Map<String, String> data = new LinkedHashMap<>();
+        Map<String, List<Object>> data = new LinkedHashMap<>();
         while (cursor.advanceNextPosition()) {
-            assertFalse(cursor.isNull(0));
-            assertFalse(cursor.isNull(1));
-            data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            data.put(cursor.getSlice(0).toStringUtf8(), List.of(
+                    cursor.getSlice(1).toStringUtf8(),
+                    cursor.getLong(2)));
         }
         assertEquals(data, Map.of(
-                "080dfdf0aac7d302dc31d57f62942bb6533944f7", "test",
-                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "test"));
+                "080dfdf0aac7d302dc31d57f62942bb6533944f7", List.of("test", 6475355394048000L),
+                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of("test", 6475355394048000L)));
     }
 
     @Test
@@ -123,5 +128,27 @@ public class TestGitRecordSet
             data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
         }
         assertEquals(data, Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", "refs/tags/tag_for_testing"));
+    }
+
+    @Test
+    public void testTreesCursorSimple()
+    {
+        RecordSet recordSet = new GitRecordSet(new GitSplit("trees", uri), List.of(
+                new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
+                new GitColumnHandle("object_id", createUnboundedVarcharType(), 1)));
+        RecordCursor cursor = recordSet.cursor();
+
+        assertEquals(cursor.getType(0), createUnboundedVarcharType());
+        assertEquals(cursor.getType(1), createUnboundedVarcharType());
+
+        Map<String, String> data = new LinkedHashMap<>();
+        while (cursor.advanceNextPosition()) {
+            assertFalse(cursor.isNull(0));
+            assertFalse(cursor.isNull(1));
+            data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+        }
+        assertEquals(data, Map.of(
+                "080dfdf0aac7d302dc31d57f62942bb6533944f7", "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef"));
     }
 }
