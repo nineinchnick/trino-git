@@ -107,7 +107,7 @@ public class TreesRecordCursor
         RevWalk revWalk = new RevWalk(repo.getRepository());
         try {
             Ref head = repo.getRepository().findRef("HEAD");
-            revWalk.markStart( revWalk.parseCommit( head.getObjectId() ));
+            revWalk.markStart(revWalk.parseCommit(head.getObjectId()));
         }
         catch (IOException ignored) {
             // pass

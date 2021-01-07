@@ -15,16 +15,13 @@ package pl.net.was.presto.git;
 
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
-import io.prestosql.spi.type.ArrayType;
 import io.prestosql.spi.type.TimestampWithTimeZoneType;
-import io.prestosql.spi.type.VarcharType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
