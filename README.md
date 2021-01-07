@@ -2,21 +2,22 @@ Trino git Connector
 ===================
 
 [![Build Status](https://github.com/nineinchnick/trino-git/workflows/CI/badge.svg)](https://github.com/nineinchnick/trino-git/actions?query=workflow%3ACI+event%3Apush+branch%3Amaster)
+
 This is a [Trino](http://trino.io/) connector to access git repos. Please keep in mind that this is not production ready and it was created for tests.
 
 # Query
-You need to specify file type by schema name and use absolute path.
+
 ```sql
 select
   *
 from
- git.commits."file:///tmp/repo"
+ git.default.commits
 ;
 
 select
   *
 from
- git.commits."https://github.com/trinodb/trino.git"
+ git.default.trees
 ;
 ```
 
@@ -48,10 +49,10 @@ docker run \
   -p 8080:8080 \
   --name presto \
   -d \
-  prestosql/presto
+  prestosql/presto:348
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link presto prestosql/presto presto --server presto:8080 --catalog git --schema default
+docker run -it --rm --link presto prestosql/presto:348 presto --server presto:8080 --catalog git --schema default
 ```
