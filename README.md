@@ -83,3 +83,9 @@ Connect to that server using:
 ```bash
 docker run -it --rm --link presto prestosql/presto:348 presto --server presto:8080 --catalog git --schema default
 ```
+
+# References
+
+If you're looking to analize the structure or contents of a Git repo, [gitbase](https://github.com/src-d/gitbase) could be more suitable for such task. It could even work with Trino, since Trino has a [MySQL connector](https://trino.io/docs/current/connector/mysql.html).
+
+This effort is inspired by [Acha](https://github.com/someteam/acha), to be able to calculate this in SQL.
