@@ -1,3 +1,0 @@
-This file is totally unnecessary.
-
-And also it has multiple lines, wow!
