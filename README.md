@@ -5,23 +5,50 @@ Trino git Connector
 
 This is a [Trino](http://trino.io/) connector to access git repos. Please keep in mind that this is not production ready and it was created for tests.
 
-# Query
+# Usage
+
+Copy jar files in the target directory to the plugins directory on every node in your Trino cluster.
+Create a `git.properties` file in your Trino catalog directory and point to a remote repo. You can also use a path to a local repo if it's available on every worker node.
+
+```
+connector.name=git
+metadata-uri=https://github.com/nineinchnick/trino-git.git
+```
+
+After reloading Trino, you should be able to connect to the `git` catalog and see the following tables in the `default` schema:
+* `branches`
+* `commits` - all commits from every branch, with author, committer, message and commit time
+* `diff_stats` - any files modified, deleted or renamed in every commit, with number of added and/or deleted lines
+* `objects` - every file contents
+* `tags`
+* `trees` - all files in every commit, with file mode and attributes
+
+To see who has commits with only deleted lines:
 
 ```sql
-select
-  *
-from
- git.default.commits
-;
+SELECT
+	c.committer_name,
+	COUNT(c.object_id) as commits
+FROM
+	diff_stats s
+JOIN commits c ON
+	c.object_id = s.commit_id
+GROUP BY
+	c.object_id,
+	c.committer_name
+HAVING
+	SUM(s.added_lines) = 0;
+```
 
-select
-  *
-from
- git.default.trees
-;
+Should return:
+```
+committer_name|commits|
+--------------|-------|
+Jan Waś       |      1|
 ```
 
 # Build
+
 Run all the unit test classes.
 ```
 mvn test
