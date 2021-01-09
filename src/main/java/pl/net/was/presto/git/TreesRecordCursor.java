@@ -25,6 +25,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -83,8 +84,10 @@ public class TreesRecordCursor
 
         RevWalk revWalk = new RevWalk(repo.getRepository());
         try {
-            Ref head = repo.getRepository().findRef("HEAD");
-            revWalk.markStart(revWalk.parseCommit(head.getObjectId()));
+            Collection<Ref> allRefs = repo.getRepository().getRefDatabase().getRefs();
+            for (Ref ref : allRefs) {
+                revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+            }
         }
         catch (IOException ignored) {
             // pass
