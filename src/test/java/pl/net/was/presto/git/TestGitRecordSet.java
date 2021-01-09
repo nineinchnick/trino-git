@@ -13,11 +13,13 @@
  */
 package pl.net.was.presto.git;
 
+import io.prestosql.spi.block.VariableWidthBlock;
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
 import io.prestosql.spi.type.TimestampWithTimeZoneType;
+import io.prestosql.spi.type.VarbinaryType;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -34,7 +36,7 @@ public class TestGitRecordSet
 {
     private static final URI uri = URI.create("fake.invalid");
 
-    @BeforeMethod
+    @BeforeSuite
     public void setUp()
             throws IOException, GitAPIException
     {
@@ -147,5 +149,33 @@ public class TestGitRecordSet
         assertEquals(data, Map.of(
                 "080dfdf0aac7d302dc31d57f62942bb6533944f7", "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
                 "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef"));
+    }
+
+    @Test
+    public void testObjectsCursorSimple()
+    {
+        RecordSet recordSet = new GitRecordSet(new GitSplit("objects", uri), List.of(
+                new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                new GitColumnHandle("contents", VarbinaryType.VARBINARY, 1)));
+        RecordCursor cursor = recordSet.cursor();
+
+        assertEquals(cursor.getType(0), createUnboundedVarcharType());
+        assertEquals(cursor.getType(1), VarbinaryType.VARBINARY);
+
+        Map<String, String> data = new LinkedHashMap<>();
+        while (cursor.advanceNextPosition()) {
+            assertFalse(cursor.isNull(0));
+            assertFalse(cursor.isNull(1));
+            String objectId = cursor.getSlice(0).toStringUtf8();
+            VariableWidthBlock block = (VariableWidthBlock) cursor.getObject(1);
+            String contents = "";
+            if (block.getPositionCount() != 0) {
+                contents = block.getSlice(0, 0, block.getSliceLength(0)).toStringUtf8();
+            }
+            data.put(objectId, contents);
+        }
+        assertEquals(data, Map.of(
+                "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef", "Hello, world!",
+                "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", ""));
     }
 }

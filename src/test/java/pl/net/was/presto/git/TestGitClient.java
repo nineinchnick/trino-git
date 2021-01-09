@@ -98,5 +98,8 @@ public class TestGitClient
                 .setName("tag_for_testing")
                 .setTagger(author)
                 .call();
+
+        // ensure all loose objects are packed
+        git.gc().call();
     }
 }

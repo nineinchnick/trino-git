@@ -79,7 +79,7 @@ public class GitRecordSet
                 // pass
             }
         }
-        // TODO pull?
+        // TODO fetch?
     }
 
     @Override
@@ -94,7 +94,7 @@ public class GitRecordSet
         Map<String, Class<?>> map = Map.of(
                 "branches", BranchesRecordCursor.class,
                 "commits", CommitsRecordCursor.class,
-                //"objects", ObjectsRecordCursor.class,
+                "objects", ObjectsRecordCursor.class,
                 "tags", TagsRecordCursor.class,
                 "trees", TreesRecordCursor.class);
         Class<?> clazz = map.get(tableName);

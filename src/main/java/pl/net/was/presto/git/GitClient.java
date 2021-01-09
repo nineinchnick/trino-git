@@ -16,6 +16,7 @@ package pl.net.was.presto.git;
 import io.prestosql.spi.type.ArrayType;
 import io.prestosql.spi.type.IntegerType;
 import io.prestosql.spi.type.TimestampWithTimeZoneType;
+import io.prestosql.spi.type.VarbinaryType;
 import io.prestosql.spi.type.VarcharType;
 
 import javax.inject.Inject;
@@ -54,7 +55,10 @@ public class GitClient
                     new GitColumn("file_name", VarcharType.VARCHAR),
                     new GitColumn("path_name", VarcharType.VARCHAR),
                     new GitColumn("attributes", VarcharType.VARCHAR),
-                    new GitColumn("depth", IntegerType.INTEGER)));
+                    new GitColumn("depth", IntegerType.INTEGER)),
+            "objects", List.of(
+                    new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("contents", VarbinaryType.VARBINARY)));
     /*
     TODO implement this:
             "changes", List.of(
@@ -63,9 +67,6 @@ public class GitClient
                     new GitColumn("path_name", VarcharType.VARCHAR),
                     new GitColumn("insertions", IntegerType.INTEGER),
                     new GitColumn("deletions", IntegerType.INTEGER))
-            "objects", List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR),
-                    new GitColumn("contents", VarbinaryType.VARBINARY))
      */
 
     @Inject

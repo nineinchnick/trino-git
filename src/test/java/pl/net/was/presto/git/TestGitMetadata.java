@@ -135,6 +135,7 @@ public class TestGitMetadata
                 Set.of(
                         new SchemaTableName("default", "commits"),
                         new SchemaTableName("default", "branches"),
+                        new SchemaTableName("default", "objects"),
                         new SchemaTableName("default", "tags"),
                         new SchemaTableName("default", "trees")));
 

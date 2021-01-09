@@ -17,7 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class TestGitRecordSetProvider
 {
     private static final URI uri = URI.create("fake.invalid");
 
-    @BeforeMethod
+    @BeforeSuite
     public void setUp()
             throws IOException, GitAPIException
     {
