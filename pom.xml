@@ -5,7 +5,7 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <packaging>presto-plugin</packaging>
 
     <parent>

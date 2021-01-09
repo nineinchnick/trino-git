@@ -71,7 +71,7 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/target/trino-git-0.1-SNAPSHOT:/usr/lib/presto/plugin/git \
+  -v $src/target/trino-git-0.2-SNAPSHOT:/usr/lib/presto/plugin/git \
   -v $src/catalog:/usr/lib/presto/default/etc/catalog \
   -p 8080:8080 \
   --name presto \
