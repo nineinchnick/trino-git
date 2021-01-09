@@ -14,6 +14,7 @@
 package pl.net.was.presto.git;
 
 import io.prestosql.spi.type.ArrayType;
+import io.prestosql.spi.type.BooleanType;
 import io.prestosql.spi.type.IntegerType;
 import io.prestosql.spi.type.TimestampWithTimeZoneType;
 import io.prestosql.spi.type.VarbinaryType;
@@ -34,7 +35,8 @@ public class GitClient
     private final Map<String, List<GitColumn>> columns = Map.of(
             "branches", List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
-                    new GitColumn("name", VarcharType.VARCHAR)),
+                    new GitColumn("name", VarcharType.VARCHAR),
+                    new GitColumn("is_merged", BooleanType.BOOLEAN)),
             "commits", List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("author_name", VarcharType.VARCHAR),

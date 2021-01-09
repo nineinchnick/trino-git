@@ -21,7 +21,10 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,7 +37,11 @@ public class BranchesRecordCursor
     private final List<GitColumnHandle> columnHandles;
     private final int[] fieldToColumnIndex;
 
+    private final RevWalk walk;
+    private RevCommit main;
+
     private Iterator<Ref> branches;
+    private Ref branch;
 
     private List<String> fields;
 
@@ -52,6 +59,15 @@ public class BranchesRecordCursor
         }
         catch (GitAPIException ignored) {
             //pass
+        }
+
+        walk = new RevWalk(repo.getRepository());
+        try {
+            Ref head = repo.getRepository().findRef("HEAD");
+            main = walk.parseCommit(head.getObjectId());
+        }
+        catch (IOException ignored) {
+            // pass
         }
     }
 
@@ -80,7 +96,8 @@ public class BranchesRecordCursor
         if (!branches.hasNext()) {
             return false;
         }
-        Ref branch = branches.next();
+        branch = branches.next();
+
         fields = List.of(
                 branch.getObjectId().getName(),
                 branch.getName());
@@ -99,7 +116,13 @@ public class BranchesRecordCursor
     @Override
     public boolean getBoolean(int field)
     {
-        throw new UnsupportedOperationException();
+        try {
+            RevCommit current = walk.parseCommit(branch.getObjectId());
+            return walk.isMergedInto(current, main);
+        }
+        catch (IOException e) {
+            return false;
+        }
     }
 
     @Override
