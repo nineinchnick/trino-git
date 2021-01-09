@@ -94,6 +94,7 @@ public class GitRecordSet
         Map<String, Class<?>> map = Map.of(
                 "branches", BranchesRecordCursor.class,
                 "commits", CommitsRecordCursor.class,
+                "diff_stats", DiffStatsRecordCursor.class,
                 "objects", ObjectsRecordCursor.class,
                 "tags", TagsRecordCursor.class,
                 "trees", TreesRecordCursor.class);

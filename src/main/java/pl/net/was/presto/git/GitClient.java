@@ -45,6 +45,16 @@ public class GitClient
                     new GitColumn("parents", new ArrayType(VarcharType.VARCHAR)),
                     new GitColumn("tree_id", VarcharType.VARCHAR),
                     new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
+            "diff_stats", List.of(
+                    new GitColumn("commit_id", VarcharType.VARCHAR),
+                    new GitColumn("old_commit_id", VarcharType.VARCHAR),
+                    new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("path_name", VarcharType.VARCHAR),
+                    new GitColumn("old_path_name", VarcharType.VARCHAR),
+                    new GitColumn("change_type", VarcharType.VARCHAR),
+                    new GitColumn("similarity_score", IntegerType.INTEGER),
+                    new GitColumn("added_lines", IntegerType.INTEGER),
+                    new GitColumn("deleted_lines", IntegerType.INTEGER)),
             "tags", List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("name", VarcharType.VARCHAR)),
@@ -61,12 +71,6 @@ public class GitClient
                     new GitColumn("contents", VarbinaryType.VARBINARY)));
     /*
     TODO implement this:
-            "changes", List.of(
-                    new GitColumn("commit_id", VarcharType.VARCHAR),
-                    new GitColumn("file_name", VarcharType.VARCHAR),
-                    new GitColumn("path_name", VarcharType.VARCHAR),
-                    new GitColumn("insertions", IntegerType.INTEGER),
-                    new GitColumn("deletions", IntegerType.INTEGER))
      */
 
     @Inject

@@ -37,13 +37,12 @@ public class TreesRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
-    private final Map<Integer, Function<WrappedTree, Integer>> intFieldGetters = new HashMap<>();
-    private final Map<Integer, Function<WrappedTree, String>> strFieldGetters = new HashMap<>();
+    private final Map<Integer, Function<TreeWalk, Integer>> intFieldGetters = new HashMap<>();
+    private final Map<Integer, Function<TreesRecordCursor, String>> strFieldGetters = new HashMap<>();
 
     private final Git repo;
     private final Iterator<RevCommit> commits;
     private TreeWalk treeWalk;
-
     private RevCommit commit;
 
     private final Map<FileMode, String> fileModeNames = Map.of(
@@ -52,28 +51,6 @@ public class TreesRecordCursor
             FileMode.TREE, "Directory",
             FileMode.SYMLINK, "Symlink",
             FileMode.GITLINK, "Gitlink");
-
-    private static class WrappedTree
-    {
-        private final TreeWalk tree;
-        private final RevCommit commit;
-
-        public WrappedTree(TreeWalk tree, RevCommit commit)
-        {
-            this.tree = tree;
-            this.commit = commit;
-        }
-
-        public TreeWalk getTree()
-        {
-            return tree;
-        }
-
-        public RevCommit getCommit()
-        {
-            return commit;
-        }
-    }
 
     public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
@@ -86,18 +63,18 @@ public class TreesRecordCursor
         }
 
         if (nameToIndex.containsKey("depth")) {
-            intFieldGetters.put(nameToIndex.get("depth"), t -> t.getTree().getDepth());
+            intFieldGetters.put(nameToIndex.get("depth"), TreeWalk::getDepth);
         }
 
-        Map<String, Function<WrappedTree, String>> getters = Map.of(
-                "commit_id", t -> t.getCommit().getName(),
-                "object_type", t -> getFileMode(t.getTree().getFileMode()),
-                "object_id", t -> t.getTree().getObjectId(0).getName(),
-                "file_name", t -> t.getTree().getNameString(),
-                "path_name", t -> t.getTree().getPathString(),
-                "attributes", t -> t.getTree().getAttributes().toString());
+        Map<String, Function<TreesRecordCursor, String>> getters = Map.of(
+                "commit_id", TreesRecordCursor::getCommitId,
+                "object_type", TreesRecordCursor::getObjectType,
+                "object_id", TreesRecordCursor::getObjectId,
+                "file_name", TreesRecordCursor::getFileName,
+                "path_name", TreesRecordCursor::getPathName,
+                "attributes", TreesRecordCursor::getAttributes);
 
-        for (Map.Entry<String, Function<WrappedTree, String>> entry : getters.entrySet()) {
+        for (Map.Entry<String, Function<TreesRecordCursor, String>> entry : getters.entrySet()) {
             String k = entry.getKey();
             if (nameToIndex.containsKey(k)) {
                 strFieldGetters.put(nameToIndex.get(k), entry.getValue());
@@ -181,8 +158,7 @@ public class TreesRecordCursor
     public long getLong(int field)
     {
         checkArgument(intFieldGetters.containsKey(field), "Invalid field index");
-        WrappedTree obj = new WrappedTree(treeWalk, commit);
-        return intFieldGetters.get(field).apply(obj);
+        return intFieldGetters.get(field).apply(treeWalk);
     }
 
     @Override
@@ -195,8 +171,7 @@ public class TreesRecordCursor
     public Slice getSlice(int field)
     {
         checkArgument(strFieldGetters.containsKey(field), "Invalid field index");
-        WrappedTree obj = new WrappedTree(treeWalk, commit);
-        return Slices.utf8Slice(strFieldGetters.get(field).apply(obj));
+        return Slices.utf8Slice(strFieldGetters.get(field).apply(this));
     }
 
     @Override
@@ -214,5 +189,35 @@ public class TreesRecordCursor
     @Override
     public void close()
     {
+    }
+
+    private String getCommitId()
+    {
+        return commit.getName();
+    }
+
+    private String getObjectType()
+    {
+        return getFileMode(treeWalk.getFileMode());
+    }
+
+    private String getObjectId()
+    {
+        return treeWalk.getObjectId(0).getName();
+    }
+
+    private String getFileName()
+    {
+        return treeWalk.getNameString();
+    }
+
+    private String getPathName()
+    {
+        return treeWalk.getPathString();
+    }
+
+    private String getAttributes()
+    {
+        return treeWalk.getAttributes().toString();
     }
 }
