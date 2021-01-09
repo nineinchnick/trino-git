@@ -13,7 +13,6 @@
  */
 package pl.net.was.presto.git;
 
-import io.prestosql.spi.block.VariableWidthBlock;
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.connector.RecordSet;
 import io.prestosql.spi.type.TimestampWithTimeZoneType;
@@ -167,11 +166,7 @@ public class TestGitRecordSet
             assertFalse(cursor.isNull(0));
             assertFalse(cursor.isNull(1));
             String objectId = cursor.getSlice(0).toStringUtf8();
-            VariableWidthBlock block = (VariableWidthBlock) cursor.getObject(1);
-            String contents = "";
-            if (block.getPositionCount() != 0) {
-                contents = block.getSlice(0, 0, block.getSliceLength(0)).toStringUtf8();
-            }
+            String contents = cursor.getSlice(1).toStringUtf8();
             data.put(objectId, contents);
         }
         assertEquals(data, Map.of(

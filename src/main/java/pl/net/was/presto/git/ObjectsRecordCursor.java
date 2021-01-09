@@ -15,10 +15,8 @@ package pl.net.was.presto.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-import io.prestosql.spi.block.BlockBuilder;
 import io.prestosql.spi.connector.RecordCursor;
 import io.prestosql.spi.type.Type;
-import io.prestosql.spi.type.VarbinaryType;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.internal.storage.file.PackFile;
@@ -28,8 +26,11 @@ import org.eclipse.jgit.lib.ObjectLoader;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.eclipse.jgit.lib.Constants.OBJ_BLOB;
@@ -45,11 +46,27 @@ public class ObjectsRecordCursor
     private ObjectId objectId;
     private ObjectLoader loader;
 
-    private List<String> fields;
+    private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
     public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
+
+        Map<String, Integer> nameToIndex = new HashMap<>();
+        for (int i = 0; i < columnHandles.size(); i++) {
+            nameToIndex.put(columnHandles.get(i).getColumnName(), i);
+        }
+
+        Map<String, Function<ObjectsRecordCursor, Slice>> getters = Map.of(
+                "object_id", ObjectsRecordCursor::getObjectId,
+                "contents", ObjectsRecordCursor::getContents);
+
+        for (Map.Entry<String, Function<ObjectsRecordCursor, Slice>> entry : getters.entrySet()) {
+            String k = entry.getKey();
+            if (nameToIndex.containsKey(k)) {
+                strFieldGetters.put(nameToIndex.get(k), entry.getValue());
+            }
+        }
 
         fileRepo = (FileRepository) repo.getRepository();
         Collection<PackFile> packs = fileRepo.getObjectDatabase().getPacks();
@@ -123,17 +140,14 @@ public class ObjectsRecordCursor
     @Override
     public Slice getSlice(int field)
     {
-        return Slices.utf8Slice(objectId.getName());
+        checkArgument(strFieldGetters.containsKey(field), "Invalid field index");
+        return strFieldGetters.get(field).apply(this);
     }
 
     @Override
     public Object getObject(int field)
     {
-        BlockBuilder blockBuilder = VarbinaryType.VARBINARY.createBlockBuilder(null, 15);
-        byte[] bytes = loader.getBytes();
-        Slice slice = Slices.wrappedBuffer(bytes, 0, bytes.length);
-        VarbinaryType.VARBINARY.writeSlice(blockBuilder, slice);
-        return blockBuilder.build();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -145,5 +159,16 @@ public class ObjectsRecordCursor
     @Override
     public void close()
     {
+    }
+
+    private Slice getObjectId()
+    {
+        return Slices.utf8Slice(objectId.getName());
+    }
+
+    private Slice getContents()
+    {
+        byte[] bytes = loader.getBytes();
+        return Slices.wrappedBuffer(bytes, 0, bytes.length);
     }
 }
