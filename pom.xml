@@ -5,13 +5,13 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.2-SNAPSHOT</version>
-    <packaging>presto-plugin</packaging>
+    <version>0.3-SNAPSHOT</version>
+    <packaging>trino-plugin</packaging>
 
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>101</version>
+        <version>105</version>
     </parent>
 
     <licenses>
@@ -32,11 +32,11 @@
         <project.build.targetJdk>11</project.build.targetJdk>
         <air.maven.version>3.3.9</air.maven.version>
 
-        <dep.presto.version>347</dep.presto.version>
-        <dep.airlift.version>201</dep.airlift.version>
+        <dep.trino.version>351</dep.trino.version>
+        <dep.airlift.version>202</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.4.0</dep.errorprone.version>
-        <dep.jackson.version>2.10.5</dep.jackson.version>
+        <dep.jackson.version>2.11.4</dep.jackson.version>
         <dep.testng.version>6.10</dep.testng.version>
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.build.targetJdk>11</project.build.targetJdk>
@@ -76,14 +76,14 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>0.39</version>
+            <version>0.40</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>29.0-jre</version>
+            <version>30.1-jre</version>
         </dependency>
 
         <dependency>
@@ -102,7 +102,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.10.6</version>
+            <version>2.10.9</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -131,10 +131,10 @@
 
         <!-- Presto SPI -->
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-spi</artifactId>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-spi</artifactId>
             <scope>provided</scope>
-            <version>${dep.presto.version}</version>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
@@ -146,24 +146,24 @@
 
         <!-- for testing -->
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-main</artifactId>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-main</artifactId>
             <scope>test</scope>
-            <version>${dep.presto.version}</version>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-testing</artifactId>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-testing</artifactId>
             <scope>test</scope>
-            <version>${dep.presto.version}</version>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-tpch</artifactId>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-tpch</artifactId>
             <scope>test</scope>
-            <version>${dep.presto.version}</version>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
@@ -219,16 +219,21 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>io.prestosql</groupId>
-                <artifactId>presto-maven-plugin</artifactId>
-                <version>6</version>
+                <groupId>io.trino</groupId>
+                <artifactId>trino-maven-plugin</artifactId>
+                <version>10</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <pluginClassName>io.trino.spi.Plugin</pluginClassName>
+                    <spiGroupId>io.trino</spiGroupId>
+                    <spiArtifactId>trino-spi</spiArtifactId>
+                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
+                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -241,7 +246,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.0.2</version>
+                <version>3.1.2</version>
                 <executions>
                     <execution>
                         <id>copy-dependencies</id>
@@ -262,7 +267,7 @@
             <plugin>
               <groupId>com.diffplug.spotless</groupId>
               <artifactId>spotless-maven-plugin</artifactId>
-              <version>2.6.1</version>
+              <version>2.7.0</version>
               <configuration>
                 <java>
                     <!-- optional: limit format enforcement to just the files changed by this feature branch -->
