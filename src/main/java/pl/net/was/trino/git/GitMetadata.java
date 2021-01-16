@@ -22,6 +22,7 @@ import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTableProperties;
+import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.connector.SchemaNotFoundException;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
@@ -40,6 +41,7 @@ public class GitMetadata
         implements ConnectorMetadata
 {
     private final GitClient gitClient;
+    private String catalogName;
 
     @Inject
     public GitMetadata(GitClient gitClient)
@@ -169,5 +171,34 @@ public class GitMetadata
     public ConnectorTableProperties getTableProperties(ConnectorSession session, ConnectorTableHandle table)
     {
         return new ConnectorTableProperties();
+    }
+
+    @Override
+    public List<SchemaTableName> listViews(ConnectorSession session, Optional<String> optionalSchemaName)
+    {
+        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.get())) {
+            throw new SchemaNotFoundException(optionalSchemaName.get());
+        }
+        Set<String> schemaNames = optionalSchemaName.map(Set::of)
+                .orElseGet(() -> Set.copyOf(gitClient.getSchemaNames()));
+
+        ImmutableList.Builder<SchemaTableName> builder = ImmutableList.builder();
+        for (String schemaName : schemaNames) {
+            for (String tableName : gitClient.viewColumns.keySet()) {
+                builder.add(new SchemaTableName(schemaName, tableName));
+            }
+        }
+        return builder.build();
+    }
+
+    @Override
+    public Optional<ConnectorViewDefinition> getView(ConnectorSession session, SchemaTableName viewName)
+    {
+        return Optional.ofNullable(gitClient.getView(catalogName, viewName.getSchemaName(), viewName.getTableName()));
+    }
+
+    public void setCatalogName(String catalogName)
+    {
+        this.catalogName = catalogName;
     }
 }

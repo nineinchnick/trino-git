@@ -13,8 +13,12 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.io.Resources;
+import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.type.ArrayType;
+import io.trino.spi.type.BigintType;
 import io.trino.spi.type.BooleanType;
+import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
 import io.trino.spi.type.VarbinaryType;
@@ -22,12 +26,16 @@ import io.trino.spi.type.VarcharType;
 
 import javax.inject.Inject;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 public class GitClient
@@ -71,9 +79,31 @@ public class GitClient
             "objects", List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("contents", VarbinaryType.VARBINARY)));
-    /*
-    TODO implement this:
-     */
+
+    Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
+            "idents",
+            List.of(
+                    new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId())),
+            "commit_stats",
+            List.of(
+                    new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("author_email", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("committer_name", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("committer_email", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("message", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("parents", new ArrayType(VarcharType.VARCHAR).getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("tree_id", VarcharType.VARCHAR.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS.getTypeId()),
+
+                    new ConnectorViewDefinition.ViewColumn("added_lines", BigintType.BIGINT.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("deleted_lines", BigintType.BIGINT.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("changed_files", BigintType.BIGINT.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("similarity_score", DoubleType.DOUBLE.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("change_types", new ArrayType(VarcharType.VARCHAR).getTypeId())));
 
     @Inject
     public GitClient(GitConfig config)
@@ -103,5 +133,27 @@ public class GitClient
             return null;
         }
         return new GitTable(tableName, selected);
+    }
+
+    public ConnectorViewDefinition getView(String catalog, String schema, String viewName)
+    {
+        if (!viewColumns.containsKey(viewName)) {
+            return null;
+        }
+        String query;
+        try {
+            query = Resources.toString(Resources.getResource(getClass(), format("/sql/%s.sql", viewName)), UTF_8);
+        }
+        catch (IOException e) {
+            return null;
+        }
+        return new ConnectorViewDefinition(
+                query,
+                Optional.of(catalog),
+                Optional.of(schema),
+                viewColumns.get(viewName),
+                Optional.empty(),
+                Optional.empty(),
+                false);
     }
 }

@@ -60,7 +60,7 @@ public class GitRecordSet
         }
         if (!localPath.exists()) {
             try {
-                this.repo = Git.cloneRepository()
+                repo = Git.cloneRepository()
                         .setURI(url)
                         .setDirectory(localPath)
                         .call();
@@ -71,15 +71,15 @@ public class GitRecordSet
         }
         else {
             try {
-                this.repo = new Git(new FileRepositoryBuilder()
+                repo = new Git(new FileRepositoryBuilder()
                         .setGitDir(new File(localPath, ".git"))
                         .build());
+                repo.fetch().setCheckFetchedObjects(true).call();
             }
-            catch (IOException ignored) {
+            catch (GitAPIException | IOException ignored) {
                 // pass
             }
         }
-        // TODO fetch?
     }
 
     @Override
