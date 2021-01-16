@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import io.airlift.log.Level;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.trino.Session;
@@ -67,7 +68,9 @@ public final class GitQueryRunner
     public static void main(String[] args)
             throws Exception
     {
-        Logging.initialize();
+        Logging logging = Logging.initialize();
+        logging.setLevel("io.trino", Level.DEBUG);
+        logging.setLevel("pl.net.was", Level.DEBUG);
 
         String url = "https://github.com/nineinchnick/trino-git.git";
         if (args.length > 0) {
@@ -75,7 +78,8 @@ public final class GitQueryRunner
         }
 
         DistributedQueryRunner queryRunner = createGitQueryRunner(
-                Map.of("http-server.http.port", "8081"),
+                Map.of("http-server.http.port", "8081",
+                        "protocol.v1.alternate-header-name", "Presto"),
                 Map.of("metadata-uri", url));
 
         Logger log = Logger.get(GitQueryRunner.class);

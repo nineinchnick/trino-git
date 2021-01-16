@@ -56,8 +56,9 @@ public class GitConnectorFactory
                     .doNotInitializeLogging()
                     .setRequiredConfigurationProperties(requiredConfig)
                     .initialize();
-
-            return injector.getInstance(GitConnector.class);
+            GitConnector connector = injector.getInstance(GitConnector.class);
+            ((GitMetadata)connector.getMetadata(null)).setCatalogName(catalogName);
+            return connector;
         }
         catch (Exception e) {
             throwIfUnchecked(e);
