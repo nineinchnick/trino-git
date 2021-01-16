@@ -27,17 +27,24 @@ To see who has commits with only deleted lines:
 
 ```sql
 SELECT
-	c.committer_name,
-	COUNT(c.object_id) as commits
+    i.name,
+    i.email,
+    min(c.commit_time) FILTER (WHERE c.added_lines = 0 AND c.deleted_lines != 0) AS first_delete_only_commit_at,
+    count(*) FILTER (WHERE c.added_lines = 0 AND c.deleted_lines != 0) AS delete_only_commit_count,
+    CAST(count(*) FILTER (WHERE c.added_lines = 0 AND c.deleted_lines != 0) AS double) / CAST(COUNT(*) AS double) AS delete_only_commit_ratio
 FROM
-	diff_stats s
-JOIN commits c ON
-	c.object_id = s.commit_id
+    commit_stats c
+JOIN idents i ON
+    c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 GROUP BY
-	c.object_id,
-	c.committer_name
+    i.name,
+    i.email
 HAVING
-	SUM(s.added_lines) = 0;
+    count(*) FILTER (WHERE c.added_lines = 0 AND c.deleted_lines != 0) != 0
+ORDER BY
+    i.name,
+    i.email;
+    
 ```
 
 Should return:

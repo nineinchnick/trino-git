@@ -57,7 +57,7 @@ public class GitConnectorFactory
                     .setRequiredConfigurationProperties(requiredConfig)
                     .initialize();
             GitConnector connector = injector.getInstance(GitConnector.class);
-            ((GitMetadata)connector.getMetadata(null)).setCatalogName(catalogName);
+            ((GitMetadata) connector.getMetadata(null)).setCatalogName(catalogName);
             return connector;
         }
         catch (Exception e) {
