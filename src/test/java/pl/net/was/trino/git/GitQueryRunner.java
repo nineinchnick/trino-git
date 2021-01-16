@@ -69,7 +69,8 @@ public final class GitQueryRunner
             throws Exception
     {
         Logging logging = Logging.initialize();
-        logging.setLevel("io.trino", Level.DEBUG);
+        logging.setLevel("io.trino.plugin", Level.DEBUG);
+        logging.setLevel("io.trino.spi", Level.DEBUG);
         logging.setLevel("pl.net.was", Level.DEBUG);
 
         String url = "https://github.com/nineinchnick/trino-git.git";

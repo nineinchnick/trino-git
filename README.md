@@ -49,9 +49,9 @@ ORDER BY
 
 Should return:
 ```
-committer_name|commits|
---------------|-------|
-Jan Waś       |      1|
+name   |email         |first_delete_only_commit_at|delete_only_commit_count|delete_only_commit_ratio|
+-------|--------------|---------------------------|------------------------|------------------------|
+Jan Was|jan@was.net.pl|        2021-01-09 23:22:28|                       2|     0.08695652173913043|
 ```
 
 # Build
