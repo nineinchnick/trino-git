@@ -18,6 +18,7 @@ import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.trino.Session;
 import io.trino.plugin.tpch.TpchPlugin;
+import io.trino.plugin.memory.MemoryPlugin;
 import io.trino.testing.DistributedQueryRunner;
 
 import java.util.HashMap;
@@ -41,6 +42,9 @@ public final class GitQueryRunner
                 .setExtraProperties(extraProperties)
                 .build();
         try {
+            queryRunner.installPlugin(new MemoryPlugin());
+            queryRunner.createCatalog("memory", "memory");
+
             queryRunner.installPlugin(new TpchPlugin());
             queryRunner.createCatalog("tpch", "tpch");
 

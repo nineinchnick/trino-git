@@ -32,7 +32,7 @@
         <project.build.targetJdk>11</project.build.targetJdk>
         <air.maven.version>3.3.9</air.maven.version>
 
-        <dep.trino.version>351</dep.trino.version>
+        <dep.trino.version>352</dep.trino.version>
         <dep.airlift.version>202</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.4.0</dep.errorprone.version>
@@ -162,6 +162,13 @@
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-tpch</artifactId>
+            <scope>test</scope>
+            <version>${dep.trino.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-memory</artifactId>
             <scope>test</scope>
             <version>${dep.trino.version}</version>
         </dependency>
