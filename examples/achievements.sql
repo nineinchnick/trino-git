@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW memory.DEFAULT.achievements_calendar AS
+CREATE OR REPLACE VIEW memory.default.achievements_calendar AS
 SELECT * FROM (
 -- id, name, description, "month", "day_from", "day_to", "doy", "dow", "minute_from", "minute_to"
 VALUES
@@ -173,7 +173,7 @@ SELECT
   ,NULL;
 
 
-CREATE OR REPLACE VIEW memory.DEFAULT.achievements_changed_lines AS
+CREATE OR REPLACE VIEW memory.default.achievements_changed_lines AS
 SELECT * FROM (
 VALUES
 (
@@ -219,7 +219,7 @@ VALUES
 ) AS t(id, name, description, added_from, added_to, removed_from, removed_to, changed_equal);
 
 
-CREATE OR REPLACE VIEW memory.DEFAULT.achievements_changed_files AS
+CREATE OR REPLACE VIEW memory.default.achievements_changed_files AS
 SELECT * FROM (
 VALUES
 (
@@ -243,7 +243,7 @@ VALUES
 ) AS t(id, name, description, changed_from, changed_to, moved_from, moved_to);
 
 
-CREATE OR REPLACE VIEW memory.DEFAULT.achievements_words AS
+CREATE OR REPLACE VIEW memory.default.achievements_words AS
 SELECT * FROM (
 VALUES
 (
@@ -366,7 +366,7 @@ SELECT
 
 
 
-CREATE OR REPLACE VIEW memory.DEFAULT.achievements_languages AS
+CREATE OR REPLACE VIEW memory.default.achievements_languages AS
 SELECT * FROM (
 VALUES
 (
@@ -719,10 +719,8 @@ VALUES
 */
 
 
-
-
-
-CREATE TABLE memory.DEFAULT.acquired_calendar AS SELECT
+CREATE TABLE memory.default.acquired_calendar AS select
+    a.id,
     a.name,
     a.description,
     i.name AS author_name,
@@ -731,19 +729,21 @@ CREATE TABLE memory.DEFAULT.acquired_calendar AS SELECT
     count(*) AS num_achieved
 FROM commits c
 JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
-JOIN memory.DEFAULT.achievements_calendar a ON
-  MONTH(c.commit_time) IS NOT DISTINCT FROM a.MONTH
+JOIN memory.default.achievements_calendar a ON
+  (a.month IS NULL OR MONTH(c.commit_time) = a.month)
   AND DAY(c.commit_time) BETWEEN COALESCE(a.day_from, 1) AND COALESCE(a.day_to, 31)
-  AND DOY(c.commit_time) IS NOT DISTINCT FROM a.doy
-  AND DOW(c.commit_time) IS NOT DISTINCT FROM a.dow
+  AND (a.doy IS NULL OR DOY(c.commit_time) = a.doy)
+  AND (a.dow IS NULL OR DOW(c.commit_time) = a.dow)
   AND (EXTRACT(HOUR FROM c.commit_time) * 60 + EXTRACT(MINUTE FROM c.commit_time)) BETWEEN COALESCE(a.minute_from, 0) AND COALESCE(a.minute_to, 60 * 24)
 GROUP BY
+    a.id,
     a.name,
     a.description,
     i.name,
     i.email;
 
-CREATE TABLE memory.DEFAULT.acquired_changed_files AS SELECT
+CREATE TABLE memory.default.acquired_changed_files AS SELECT
+    a.id,
     a.name,
     a.description,
     i.name AS author_name,
@@ -759,17 +759,19 @@ JOIN (
   GROUP BY commit_id
 ) s ON s.commit_id = c.object_id
 JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
-JOIN memory.DEFAULT.achievements_changed_files a ON
+JOIN memory.default.achievements_changed_files a ON
   s.renamed BETWEEN COALESCE(a.moved_from, 0) AND COALESCE(a.moved_to, bitwise_right_shift(bitwise_not(0), 1))
   AND s.modified BETWEEN COALESCE(a.changed_from, 0) AND COALESCE(a.changed_to, bitwise_right_shift(bitwise_not(0), 1))
 GROUP BY
+    a.id,
     a.name,
     a.description,
     i.name,
     i.email;
 
 
-CREATE TABLE memory.DEFAULT.acquired_changed_lines AS SELECT
+CREATE TABLE memory.default.acquired_changed_lines AS SELECT
+    a.id,
     a.name,
     a.description,
     i.name AS author_name,
@@ -778,18 +780,20 @@ CREATE TABLE memory.DEFAULT.acquired_changed_lines AS SELECT
     count(*) AS num_achieved
 FROM commit_stats c
 JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
-JOIN memory.DEFAULT.achievements_changed_lines a ON
+JOIN memory.default.achievements_changed_lines a ON
   c.added_lines BETWEEN COALESCE(a.added_from, 0) AND COALESCE(a.added_to, bitwise_right_shift(bitwise_not(0), 1))
   AND c.deleted_lines BETWEEN COALESCE(a.removed_from, 0) AND COALESCE(a.removed_from, bitwise_right_shift(bitwise_not(0), 1))
   AND (NOT changed_equal OR c.added_lines = c.deleted_lines)
 GROUP BY
+    a.id,
     a.name,
     a.description,
     i.name,
     i.email;
 
 
-CREATE TABLE memory.DEFAULT.acquired_languages AS SELECT
+CREATE TABLE memory.default.acquired_languages AS SELECT
+    a.id,
     a.name,
     a.description,
     i.name AS author_name,
@@ -818,16 +822,18 @@ FROM (
   GROUP BY c.commit_time, c.object_id, c.author_email
 ) c
 JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
-JOIN memory.DEFAULT.achievements_languages a ON
+JOIN memory.default.achievements_languages a ON
   arrays_overlap(c.extensions, a.extensions)
 GROUP BY
+    a.id,
     a.name,
     a.description,
     i.name,
     i.email;
 
 
-CREATE TABLE memory.DEFAULT.acquired_words AS SELECT
+CREATE TABLE memory.default.acquired_words AS SELECT
+    a.id,
     a.name,
     a.description,
     i.name AS author_name,
@@ -850,24 +856,38 @@ JOIN (
     TRANSFORM(FILTER(regexp_split(name || ' ' || concat_ws(' ', extra_names), '[^\p{Alphabetic}\p{Digit}]'), x -> x != ''), x -> lower(x)) AS words
   FROM idents
 ) i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
-JOIN memory.DEFAULT.achievements_words a ON
+JOIN memory.default.achievements_words a ON
   arrays_overlap(a.words, c.words)
   AND (NOT include_self OR arrays_overlap(c.words, i.words))
   AND (NOT exclude_self OR NOT arrays_overlap(c.words, i.words))
 GROUP BY
+    a.id,
     a.name,
     a.description,
     i.name,
     i.email;
 
-
-SELECT * FROM memory.DEFAULT.acquired_calendar
-UNION ALL
-SELECT * FROM memory.DEFAULT.acquired_changed_files
-UNION ALL
-SELECT * FROM memory.DEFAULT.acquired_changed_lines
-UNION ALL
-SELECT * FROM memory.DEFAULT.acquired_languages
-UNION ALL
-SELECT * FROM memory.DEFAULT.acquired_words
-ORDER BY author_name, name;
+SELECT a.id, a.name, a.description, COUNT(acq.id)
+FROM (
+  SELECT id, name, description FROM memory.default.achievements_calendar
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_changed_files
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_changed_lines
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_languages
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_words
+) a
+LEFT JOIN (
+  SELECT * FROM memory.default.acquired_calendar
+  UNION ALL
+  SELECT * FROM memory.default.acquired_changed_files
+  UNION ALL
+  SELECT * FROM memory.default.acquired_changed_lines
+  UNION ALL
+  SELECT * FROM memory.default.acquired_languages
+  UNION ALL
+  SELECT * FROM memory.default.acquired_words
+) acq ON acq.id = a.id
+GROUP BY a.id, a.name, a.description
