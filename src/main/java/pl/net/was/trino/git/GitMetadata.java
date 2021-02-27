@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorMetadata;
@@ -23,18 +24,35 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTableProperties;
 import io.trino.spi.connector.ConnectorViewDefinition;
+import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaNotFoundException;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import io.trino.spi.connector.TableNotFoundException;
+import io.trino.spi.predicate.DiscreteValues;
+import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.EquatableValueSet;
+import io.trino.spi.predicate.Range;
+import io.trino.spi.predicate.Ranges;
+import io.trino.spi.predicate.SortedRangeSet;
+import io.trino.spi.predicate.TupleDomain;
+import io.trino.spi.predicate.ValueSet;
+import io.trino.spi.statistics.ColumnStatistics;
+import io.trino.spi.statistics.Estimate;
+import io.trino.spi.statistics.TableStatistics;
 
 import javax.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import static com.google.common.base.Verify.verify;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class GitMetadata
@@ -72,7 +90,7 @@ public class GitMetadata
             return null;
         }
 
-        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName());
+        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName(), Optional.empty(), OptionalLong.empty());
     }
 
     @Override
@@ -200,5 +218,129 @@ public class GitMetadata
     public void setCatalogName(String catalogName)
     {
         this.catalogName = catalogName;
+    }
+
+    @Override
+    public TableStatistics getTableStatistics(ConnectorSession session, ConnectorTableHandle tableHandle, Constraint constraint)
+    {
+        GitTableHandle gitTableHandle = (GitTableHandle) tableHandle;
+        String tableName = gitTableHandle.getTableName();
+
+        Map<String, ColumnHandle> columns = getColumnHandles(session, tableHandle);
+        TableStatistics.Builder builder = TableStatistics.builder();
+        switch (tableName) {
+            case "commits":
+                builder.setRowCount(Estimate.of(1));
+                builder.setColumnStatistics(columns.get("object_id"), ColumnStatistics.builder()
+                        .setNullsFraction(Estimate.zero())
+                        .setDistinctValuesCount(Estimate.of(1))
+                        .setDataSize(Estimate.of(1000))
+                        .build());
+                break;
+            case "trees":
+                builder.setRowCount(Estimate.of(1000000));
+                builder.setColumnStatistics(columns.get("commit_id"), ColumnStatistics.builder()
+                        .setNullsFraction(Estimate.zero())
+                        .setDistinctValuesCount(Estimate.of(1000000))
+                        .setDataSize(Estimate.of(1000000000))
+                        .build());
+                break;
+        }
+        return builder.build();
+    }
+
+    @Override
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
+    {
+        GitTableHandle handle = (GitTableHandle) table;
+
+        Optional<List<String>> oldCommits = handle.getCommitIds();
+
+        Optional<List<String>> commitIds = Optional.empty();
+        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.getSummary();
+
+        Map<String, ColumnHandle> columns = getColumnHandles(session, handle);
+
+        if (handle.getTableName().equals(GitClient.TABLE.trees.name())) {
+            commitIds = getCommitIds(constraint.getSummary());
+            unenforcedConstraint = constraint.getSummary().filter(
+                    (columnHandle, domain) -> !columnHandle.equals(columns.get("commit_id")));
+        }
+        else if (handle.getTableName().equals(GitClient.TABLE.commits.name())) {
+            // TODO merge both conditions, mapping table name to column (FK?)
+            commitIds = getCommitIds(constraint.getSummary());
+            unenforcedConstraint = constraint.getSummary().filter(
+                    (columnHandle, domain) -> !columnHandle.equals(columns.get("object_id")));
+        }
+
+        if ((oldCommits.isEmpty() && commitIds.isEmpty()) ||
+                (oldCommits.isPresent() && commitIds.isPresent() &&
+                        oldCommits.get().size() == commitIds.get().size() && oldCommits.get().containsAll(commitIds.get()))) {
+            return Optional.empty();
+        }
+        if (oldCommits.isEmpty()) {
+            oldCommits = commitIds;
+        }
+        else if (commitIds.isPresent()) {
+            oldCommits.get().addAll(commitIds.get());
+        }
+
+        return Optional.of(new ConstraintApplicationResult<>(
+                new GitTableHandle(
+                        handle.getSchemaName(),
+                        handle.getTableName(),
+                        oldCommits,
+                        handle.getLimit()),
+                unenforcedConstraint));
+    }
+
+    public static Optional<List<String>> getCommitIds(TupleDomain<ColumnHandle> constraintSummary)
+    {
+        if (constraintSummary.isNone() || constraintSummary.isAll()) {
+            return Optional.empty();
+        }
+
+        for (Map.Entry<ColumnHandle, Domain> entry : constraintSummary.getDomains().get().entrySet()) {
+            System.out.println(entry.getKey() + "/" + entry.getValue());
+            GitColumnHandle column = ((GitColumnHandle) entry.getKey());
+            // TODO this is ambiguous and should be passed as a param, since every call to getCommitIds has a table handle in scope
+            if (!column.getColumnName().equals("commit_id") && !column.getColumnName().equals("object_id")) {
+                continue;
+            }
+            Domain domain = entry.getValue();
+            verify(!domain.isNone(), "Domain is none");
+            if (domain.isAll()) {
+                continue;
+            }
+            if (domain.isOnlyNull()) {
+                return Optional.of(ImmutableList.of());
+            }
+            if ((!domain.getValues().isNone() && domain.isNullAllowed()) || (domain.getValues().isAll() && !domain.isNullAllowed())) {
+                continue;
+            }
+            if (domain.isSingleValue()) {
+                String value = ((Slice) domain.getSingleValue()).toStringUtf8();
+                return Optional.of(ImmutableList.of(value));
+            }
+            ValueSet valueSet = domain.getValues();
+            if (valueSet instanceof EquatableValueSet) {
+                DiscreteValues discreteValues = valueSet.getDiscreteValues();
+                return Optional.of(discreteValues.getValues().stream().map(value -> ((Slice) value).toStringUtf8()).collect(Collectors.toList()));
+            }
+            if (valueSet instanceof SortedRangeSet) {
+                Ranges ranges = ((SortedRangeSet) valueSet).getRanges();
+                List<Range> rangeList = ranges.getOrderedRanges();
+                if (rangeList.stream().allMatch(Range::isSingleValue)) {
+                    List<String> values = rangeList.stream()
+                            .map(range -> ((Slice) range.getSingleValue()).toStringUtf8())
+                            .collect(toImmutableList());
+                    return Optional.of(values);
+                }
+                // ignore unbounded ranges
+                return Optional.empty();
+            }
+            throw new IllegalStateException("Unexpected domain: " + domain);
+        }
+        return Optional.empty();
     }
 }

@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -37,8 +38,9 @@ public class GitRecordSet
     private final List<Type> columnTypes;
     private final String tableName;
     private Git repo;
+    private final Optional<List<String>> commitIds;
 
-    public GitRecordSet(GitSplit split, List<GitColumnHandle> columnHandles)
+    public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)
     {
         requireNonNull(split, "split is null");
 
@@ -49,6 +51,14 @@ public class GitRecordSet
         }
         this.columnTypes = types.build();
         this.tableName = split.getTableName();
+        Optional<List<String>> splitCommits = split.getCommitIds();
+        if (splitCommits.isEmpty()) {
+            splitCommits = table.getCommitIds();
+        }
+        else if (table.getCommitIds().isPresent()) {
+            splitCommits.get().addAll(table.getCommitIds().get());
+        }
+        this.commitIds = splitCommits;
 
         String url = split.getUri().toString();
         File localPath;
@@ -104,16 +114,16 @@ public class GitRecordSet
         }
         Constructor<?> ctr;
         try {
-            ctr = clazz.getConstructor(List.class, Git.class);
+            ctr = clazz.getConstructor(List.class, Git.class, Optional.class);
         }
-        catch (NoSuchMethodException ignored) {
-            return null;
+        catch (NoSuchMethodException e) {
+            throw new RuntimeException("Missing cursor constructor", e);
         }
         try {
-            return (RecordCursor) ctr.newInstance(columnHandles, repo);
+            return (RecordCursor) ctr.newInstance(columnHandles, repo, commitIds);
         }
         catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            return null;
+            throw new RuntimeException("Unknown exception", e);
         }
     }
 

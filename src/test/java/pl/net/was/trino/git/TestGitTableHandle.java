@@ -17,12 +17,15 @@ import io.airlift.json.JsonCodec;
 import io.airlift.testing.EquivalenceTester;
 import org.testng.annotations.Test;
 
+import java.util.Optional;
+import java.util.OptionalLong;
+
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static org.testng.Assert.assertEquals;
 
 public class TestGitTableHandle
 {
-    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName");
+    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName", Optional.empty(), OptionalLong.empty());
 
     @Test
     public void testJsonRoundTrip()
@@ -38,14 +41,14 @@ public class TestGitTableHandle
     {
         EquivalenceTester.equivalenceTester()
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "table"),
-                        new GitTableHandle("schema", "table"))
+                        new GitTableHandle("schema", "table", Optional.empty(), OptionalLong.empty()),
+                        new GitTableHandle("schema", "table", Optional.empty(), OptionalLong.empty()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schemaX", "table"),
-                        new GitTableHandle("schemaX", "table"))
+                        new GitTableHandle("schemaX", "table", Optional.empty(), OptionalLong.empty()),
+                        new GitTableHandle("schemaX", "table", Optional.empty(), OptionalLong.empty()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "tableX"),
-                        new GitTableHandle("schema", "tableX"))
+                        new GitTableHandle("schema", "tableX", Optional.empty(), OptionalLong.empty()),
+                        new GitTableHandle("schema", "tableX", Optional.empty(), OptionalLong.empty()))
                 .check();
     }
 }

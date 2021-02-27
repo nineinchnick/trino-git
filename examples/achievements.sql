@@ -801,10 +801,9 @@ FROM (
     c.commit_time,
     c.object_id,
     c.author_email,
-    array_agg(DISTINCT reverse(split_part(reverse(t.file_name), '.', 1))) AS extensions
+    array_agg(DISTINCT reverse(split_part(reverse(s.path_name), '.', 1))) AS extensions
   FROM commits c
   JOIN diff_stats s ON s.commit_id = c.object_id AND s.change_type = 'Add'
-  JOIN trees t ON (t.commit_id, t.object_id) = (s.commit_id, s.object_id)
   GROUP BY c.commit_time, c.object_id, c.author_email
   UNION
   SELECT

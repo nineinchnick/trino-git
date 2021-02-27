@@ -18,6 +18,7 @@ import org.testng.annotations.Test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static org.testng.Assert.assertEquals;
@@ -25,7 +26,7 @@ import static org.testng.Assert.assertTrue;
 
 public class TestGitSplit
 {
-    private final GitSplit split = new GitSplit("tableName", new URI("url.invalid"));
+    private final GitSplit split = new GitSplit("tableName", new URI("url.invalid"), Optional.empty());
 
     public TestGitSplit()
             throws URISyntaxException
@@ -36,7 +37,7 @@ public class TestGitSplit
             throws URISyntaxException
     {
         URI testURI = new URI("url.invalid");
-        GitSplit httpSplit = new GitSplit("tableName", testURI);
+        GitSplit httpSplit = new GitSplit("tableName", testURI, Optional.empty());
         assertTrue(httpSplit.isRemotelyAccessible());
     }
 

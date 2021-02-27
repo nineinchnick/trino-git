@@ -23,14 +23,20 @@ import io.trino.spi.type.Type;
 import io.trino.spi.type.TypeUtils;
 import io.trino.spi.type.VarcharType;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -43,11 +49,11 @@ public class CommitsRecordCursor
     private final Map<Integer, Function<RevCommit, String>> strFieldGetters = new HashMap<>();
     private final Map<Integer, Function<RevCommit, Object>> objFieldGetters = new HashMap<>();
 
-    private Iterator<RevCommit> commits;
+    private final Iterator<RevCommit> commits;
 
     private RevCommit commit;
 
-    public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
 
@@ -82,11 +88,31 @@ public class CommitsRecordCursor
             objFieldGetters.put(nameToIndex.get("parents"), CommitsRecordCursor::getParents);
         }
 
-        try {
-            commits = repo.log().all().call().iterator();
+        RefDatabase refDb = repo.getRepository().getRefDatabase();
+        RevWalk revWalk = new RevWalk(repo.getRepository());
+
+        if (commitIds.isEmpty()) {
+            try {
+                Collection<Ref> allRefs = refDb.getRefs();
+                for (Ref ref : allRefs) {
+                    revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+                }
+            }
+            catch (IOException ignored) {
+                // pass
+            }
+            commits = revWalk.iterator();
         }
-        catch (GitAPIException | IOException ignore) {
-            // pass
+        else {
+            commits = commitIds.get().stream().map(id -> {
+                try {
+                    return revWalk.parseCommit(ObjectId.fromString(id));
+                }
+                catch (IOException ignored) {
+                    // ignore invalid commits
+                    return null;
+                }
+            }).filter(Objects::nonNull).iterator();
         }
     }
 

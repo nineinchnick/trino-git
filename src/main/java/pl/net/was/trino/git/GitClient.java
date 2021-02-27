@@ -40,12 +40,30 @@ import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
+    public enum TABLE {
+        branches,
+        commits,
+        diff_stats,
+        tags,
+        trees,
+        objects,
+    }
+
+    public enum TREES_COLUMNS {
+        commit_id,
+    }
+
+    public enum VIEW {
+        idents,
+        commit_stats,
+    }
+
     private final Map<String, List<GitColumn>> columns = Map.of(
-            "branches", List.of(
+            TABLE.branches.name(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("name", VarcharType.VARCHAR),
                     new GitColumn("is_merged", BooleanType.BOOLEAN)),
-            "commits", List.of(
+            TABLE.commits.name(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("author_name", VarcharType.VARCHAR),
                     new GitColumn("author_email", VarcharType.VARCHAR),
@@ -55,7 +73,7 @@ public class GitClient
                     new GitColumn("parents", new ArrayType(VarcharType.VARCHAR)),
                     new GitColumn("tree_id", VarcharType.VARCHAR),
                     new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
-            "diff_stats", List.of(
+            TABLE.diff_stats.name(), List.of(
                     new GitColumn("commit_id", VarcharType.VARCHAR),
                     new GitColumn("old_commit_id", VarcharType.VARCHAR),
                     new GitColumn("object_id", VarcharType.VARCHAR),
@@ -65,29 +83,29 @@ public class GitClient
                     new GitColumn("similarity_score", IntegerType.INTEGER),
                     new GitColumn("added_lines", IntegerType.INTEGER),
                     new GitColumn("deleted_lines", IntegerType.INTEGER)),
-            "tags", List.of(
+            TABLE.tags.name(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("name", VarcharType.VARCHAR)),
-            "trees", List.of(
-                    new GitColumn("commit_id", VarcharType.VARCHAR),
+            TABLE.trees.name(), List.of(
+                    new GitColumn(TREES_COLUMNS.commit_id.name(), VarcharType.VARCHAR),
                     new GitColumn("object_type", VarcharType.VARCHAR),
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("file_name", VarcharType.VARCHAR),
                     new GitColumn("path_name", VarcharType.VARCHAR),
                     new GitColumn("attributes", VarcharType.VARCHAR),
                     new GitColumn("depth", IntegerType.INTEGER)),
-            "objects", List.of(
+            TABLE.objects.name(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("contents", VarbinaryType.VARBINARY)));
 
     Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
-            "idents",
+            VIEW.idents.name(),
             List.of(
                     new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId()),
                     new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId()),
                     new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId()),
                     new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId())),
-            "commit_stats",
+            VIEW.commit_stats.name(),
             List.of(
                     new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId()),
                     new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId()),

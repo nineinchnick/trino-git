@@ -18,7 +18,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalLong;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,14 +30,20 @@ public final class GitTableHandle
 {
     private final String schemaName;
     private final String tableName;
+    private final Optional<List<String>> commitIds;
+    private final OptionalLong limit;
 
     @JsonCreator
     public GitTableHandle(
             @JsonProperty("schemaName") String schemaName,
-            @JsonProperty("tableName") String tableName)
+            @JsonProperty("tableName") String tableName,
+            @JsonProperty("commitIds") Optional<List<String>> commitIds,
+            @JsonProperty("limit") OptionalLong limit)
     {
         this.schemaName = requireNonNull(schemaName, "schemaName is null");
         this.tableName = requireNonNull(tableName, "tableName is null");
+        this.commitIds = requireNonNull(commitIds, "commitIds is null");
+        this.limit = requireNonNull(limit, "limit is null");
     }
 
     @JsonProperty
@@ -52,6 +61,18 @@ public final class GitTableHandle
     public SchemaTableName toSchemaTableName()
     {
         return new SchemaTableName(schemaName, tableName);
+    }
+
+    @JsonProperty
+    public Optional<List<String>> getCommitIds()
+    {
+        return commitIds;
+    }
+
+    @JsonProperty
+    public OptionalLong getLimit()
+    {
+        return limit;
     }
 
     @Override
@@ -72,7 +93,9 @@ public final class GitTableHandle
 
         GitTableHandle other = (GitTableHandle) obj;
         return Objects.equals(this.schemaName, other.schemaName) &&
-                Objects.equals(this.tableName, other.tableName);
+                Objects.equals(this.tableName, other.tableName) &&
+                Objects.equals(this.commitIds, other.commitIds) &&
+                Objects.equals(this.limit, other.limit);
     }
 
     @Override

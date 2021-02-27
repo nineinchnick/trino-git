@@ -20,6 +20,7 @@ import io.trino.spi.connector.ConnectorSplit;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -30,14 +31,17 @@ public class GitSplit
     private final URI uri;
     // split needs to track for which table it was created for to use it in RecordSetProvider
     private final String tableName;
+    private final Optional<List<String>> commitIds;
 
     @JsonCreator
     public GitSplit(
             @JsonProperty("tableName") String tableName,
-            @JsonProperty("uri") URI uri)
+            @JsonProperty("uri") URI uri,
+            @JsonProperty("commitIds") Optional<List<String>> commitIds)
     {
         this.tableName = requireNonNull(tableName, "table name is null");
         this.uri = requireNonNull(uri, "uri is null");
+        this.commitIds = requireNonNull(commitIds, "commitIds is null");
     }
 
     @JsonProperty
@@ -50,6 +54,12 @@ public class GitSplit
     public URI getUri()
     {
         return uri;
+    }
+
+    @JsonProperty
+    public Optional<List<String>> getCommitIds()
+    {
+        return commitIds;
     }
 
     @Override

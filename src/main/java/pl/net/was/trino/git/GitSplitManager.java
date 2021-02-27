@@ -13,6 +13,8 @@
  */
 package pl.net.was.trino.git;
 
+import io.trino.spi.connector.ColumnHandle;
+import io.trino.spi.connector.ConnectorPartitionHandle;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
@@ -20,12 +22,18 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.DynamicFilter;
 import io.trino.spi.connector.FixedSplitSource;
+import io.trino.spi.predicate.TupleDomain;
 
 import javax.inject.Inject;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
+import static io.trino.spi.connector.DynamicFilter.NOT_BLOCKED;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static pl.net.was.trino.git.GitMetadata.getCommitIds;
 
 public class GitSplitManager
         implements ConnectorSplitManager
@@ -46,8 +54,85 @@ public class GitSplitManager
             SplitSchedulingStrategy splitSchedulingStrategy,
             DynamicFilter dynamicFilter)
     {
-        GitTableHandle tableHandle = (GitTableHandle) connectorTableHandle;
+        long timeoutMillis = 20000;
+        if (!dynamicFilter.isAwaitable()) {
+            return getSplitSource(connectorTableHandle, splitSchedulingStrategy, dynamicFilter);
+        }
+        CompletableFuture<?> dynamicFilterFuture = whenCompleted(dynamicFilter)
+                .completeOnTimeout(null, timeoutMillis, MILLISECONDS);
+        CompletableFuture<ConnectorSplitSource> splitSourceFuture = dynamicFilterFuture.thenApply(
+                ignored -> getSplitSource(connectorTableHandle, splitSchedulingStrategy, dynamicFilter));
+        return new GitDynamicFilteringSplitSource(dynamicFilterFuture, splitSourceFuture);
+    }
 
-        return new FixedSplitSource(List.of(new GitSplit(tableHandle.getTableName(), config.getMetadata())));
+    private ConnectorSplitSource getSplitSource(
+            ConnectorTableHandle table,
+            SplitSchedulingStrategy splitSchedulingStrategy,
+            DynamicFilter dynamicFilter)
+    {
+        GitTableHandle handle = (GitTableHandle) table;
+
+        TupleDomain<ColumnHandle> constraint = dynamicFilter.getCurrentPredicate().simplify(100);
+        // TODO see how this handle is different from recordSetProvider
+        List<GitSplit> splits = List.of(new GitSplit(handle.getTableName(), config.getMetadata(), getCommitIds(constraint)));
+
+        if (splitSchedulingStrategy == SplitSchedulingStrategy.UNGROUPED_SCHEDULING) {
+            return new FixedSplitSource(splits);
+        }
+        throw new IllegalArgumentException("Unknown splitSchedulingStrategy: " + splitSchedulingStrategy);
+    }
+
+    private static CompletableFuture<?> whenCompleted(DynamicFilter dynamicFilter)
+    {
+        if (dynamicFilter.isAwaitable()) {
+            return dynamicFilter.isBlocked().thenCompose(ignored -> whenCompleted(dynamicFilter));
+        }
+        return NOT_BLOCKED;
+    }
+
+    private static class GitDynamicFilteringSplitSource
+            implements ConnectorSplitSource
+    {
+        private final CompletableFuture<?> dynamicFilterFuture;
+        private final CompletableFuture<ConnectorSplitSource> splitSourceFuture;
+
+        private GitDynamicFilteringSplitSource(
+                CompletableFuture<?> dynamicFilterFuture,
+                CompletableFuture<ConnectorSplitSource> splitSourceFuture)
+        {
+            this.dynamicFilterFuture = requireNonNull(dynamicFilterFuture, "dynamicFilterFuture is null");
+            this.splitSourceFuture = requireNonNull(splitSourceFuture, "splitSourceFuture is null");
+        }
+
+        @Override
+        public CompletableFuture<ConnectorSplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, int maxSize)
+        {
+            return splitSourceFuture.thenCompose(splitSource -> splitSource.getNextBatch(partitionHandle, maxSize));
+        }
+
+        @Override
+        public void close()
+        {
+            if (!dynamicFilterFuture.cancel(true)) {
+                splitSourceFuture.thenAccept(ConnectorSplitSource::close);
+            }
+        }
+
+        @Override
+        public boolean isFinished()
+        {
+            if (!splitSourceFuture.isDone()) {
+                return false;
+            }
+            if (splitSourceFuture.isCompletedExceptionally()) {
+                return false;
+            }
+            try {
+                return splitSourceFuture.get().isFinished();
+            }
+            catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

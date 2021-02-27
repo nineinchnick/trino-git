@@ -27,6 +27,8 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static org.testng.Assert.assertEquals;
@@ -46,30 +48,34 @@ public class TestGitRecordSet
     @Test
     public void testGetColumnTypes()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of(
+        GitSplit split = new GitSplit("commits", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
         assertEquals(recordSet.getColumnTypes(), List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of(
+        recordSet = new GitRecordSet(split,table,  List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 0)));
         assertEquals(recordSet.getColumnTypes(), List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of(
+        recordSet = new GitRecordSet(split,table,  List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_email", createUnboundedVarcharType(), 0)));
         assertEquals(recordSet.getColumnTypes(), List.of(createUnboundedVarcharType(), createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of());
+        recordSet = new GitRecordSet(split, table, List.of());
         assertEquals(recordSet.getColumnTypes(), List.of());
     }
 
     @Test
     public void testCommitsCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("commits", uri), List.of(
+        GitSplit split = new GitSplit("commits", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
@@ -92,7 +98,9 @@ public class TestGitRecordSet
     @Test
     public void testBranchesCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("branches", uri), List.of(
+        GitSplit split = new GitSplit("branches", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "branches", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
         RecordCursor cursor = recordSet.cursor();
@@ -112,7 +120,9 @@ public class TestGitRecordSet
     @Test
     public void testTagsCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("tags", uri), List.of(
+        GitSplit split = new GitSplit("tags", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
         RecordCursor cursor = recordSet.cursor();
@@ -132,7 +142,9 @@ public class TestGitRecordSet
     @Test
     public void testTreesCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("trees", uri), List.of(
+        GitSplit split = new GitSplit("trees", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "trees", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1)));
         RecordCursor cursor = recordSet.cursor();
@@ -154,7 +166,9 @@ public class TestGitRecordSet
     @Test
     public void testObjectsCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("objects", uri), List.of(
+        GitSplit split = new GitSplit("objects", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "objects", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("contents", VarbinaryType.VARBINARY, 1)));
         RecordCursor cursor = recordSet.cursor();
@@ -178,7 +192,9 @@ public class TestGitRecordSet
     @Test
     public void testDiffStatsCursorSimple()
     {
-        RecordSet recordSet = new GitRecordSet(new GitSplit("diff_stats", uri), List.of(
+        GitSplit split = new GitSplit("diff_stats", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "diff_stats", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("old_commit_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("added_lines", IntegerType.INTEGER, 2),

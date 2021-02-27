@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableMap;
 import io.airlift.log.Level;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
@@ -39,6 +40,11 @@ public final class GitQueryRunner
             throws Exception
     {
         DistributedQueryRunner queryRunner = DistributedQueryRunner.builder(createSession())
+                .setCoordinatorProperties(ImmutableMap.of(
+                        "join-distribution-type", "AUTOMATIC",
+                        "query.max-memory", "5GB",
+                        "query.max-memory-per-node", "1GB",
+                        "query.max-total-memory-per-node", "2GB"))
                 .setExtraProperties(extraProperties)
                 .build();
         try {

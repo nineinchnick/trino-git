@@ -19,7 +19,9 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
@@ -30,6 +32,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -53,7 +57,7 @@ public class TreesRecordCursor
             FileMode.SYMLINK, "Symlink",
             FileMode.GITLINK, "Gitlink");
 
-    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
         this.repo = repo;
         this.columnHandles = columnHandles;
@@ -82,17 +86,31 @@ public class TreesRecordCursor
             }
         }
 
+        RefDatabase refDb = repo.getRepository().getRefDatabase();
         RevWalk revWalk = new RevWalk(repo.getRepository());
-        try {
-            Collection<Ref> allRefs = repo.getRepository().getRefDatabase().getRefs();
-            for (Ref ref : allRefs) {
-                revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+        if (commitIds.isEmpty()) {
+            try {
+                Collection<Ref> allRefs = refDb.getRefs();
+                for (Ref ref : allRefs) {
+                    revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+                }
             }
+            catch (IOException ignored) {
+                // pass
+            }
+            commits = revWalk.iterator();
         }
-        catch (IOException ignored) {
-            // pass
+        else {
+            commits = commitIds.get().stream().map(id -> {
+                try {
+                    return revWalk.parseCommit(ObjectId.fromString(id));
+                }
+                catch (IOException ignored) {
+                    // ignore invalid commits
+                    return null;
+                }
+            }).filter(Objects::nonNull).iterator();
         }
-        commits = revWalk.iterator();
     }
 
     private String getFileMode(FileMode fileMode)

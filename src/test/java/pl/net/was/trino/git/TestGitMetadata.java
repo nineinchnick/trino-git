@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import static io.trino.spi.type.TimestampWithTimeZoneType.createTimestampWithTimeZoneType;
@@ -50,7 +51,7 @@ public class TestGitMetadata
     public void setUp()
             throws IOException, GitAPIException, URISyntaxException
     {
-        commitsTableHandle = new GitTableHandle("default", "commits");
+        commitsTableHandle = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
 
         String url = "fake.example";
         TestGitClient.setupRepo(URI.create(url));
@@ -94,7 +95,7 @@ public class TestGitMetadata
 
         // unknown table
         try {
-            metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown"));
+            metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty()));
             fail("Expected getColumnHandle of unknown table to throw a TableNotFoundException");
         }
         catch (TableNotFoundException expected) {
@@ -121,9 +122,9 @@ public class TestGitMetadata
                         new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown")));
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown")));
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers")));
+        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty())));
+        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty(), OptionalLong.empty())));
+        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty(), OptionalLong.empty())));
     }
 
     @Test
