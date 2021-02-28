@@ -228,19 +228,78 @@ VALUES
   ,'Change more than 100 files in one commit'
   ,100
   ,CAST(NULL AS INT)
-  ,NULL
   ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,NULL
+  ,NULL
 )
 ,(
   'mover'
   ,'Mover'
   ,'Move a file from one place to another without changing it'
-  ,NULL
+  ,CAST(NULL AS INT)
   ,0
   ,0
   ,CAST(NULL AS INT)
+  ,NULL
+  ,NULL
 )
-) AS t(id, name, description, changed_from, changed_to, moved_from, moved_to);
+,(
+  'change-of-mind'
+  ,'Change Of Mind'
+  ,'Change license type or edit license file'
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,ARRAY['Add', 'Modify']
+  ,'(^|/)license$(?i)'
+)
+,(
+  'gitignore'
+  ,'Gitignore'
+  ,'Add .gitignore'
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,ARRAY['Add']
+  ,'(^|/).gitignore$(?i)'
+)
+,(
+  'good-boy'
+  ,'Good Boy'
+  ,'Create ''test'' or ''doc'' directory'
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,ARRAY['Add']
+  ,'(^|/)(test|docs|doc)/(?i)'
+)
+,(
+  'scribbler'
+  ,'Scribbler'
+  ,'Create a README'
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,ARRAY['Add']
+  ,'(^|/)readme(\..+?)?$(?i)'
+)
+,(
+  'nothing-to-hide'
+  ,'Nothing to Hide'
+  ,'Commit id_rsa file'
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,CAST(NULL AS INT)
+  ,ARRAY['Add']
+  ,'(^|/)id_rsa$(?i)'
+)
+) AS t(id, name, description, changed_from, changed_to, moved_from, moved_to, change_types, path_regex);
 
 
 CREATE OR REPLACE VIEW memory.default.achievements_words AS
@@ -253,6 +312,8 @@ VALUES
   ,ARRAY['achievement', 'achievements']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'fix'
@@ -261,6 +322,8 @@ VALUES
   ,ARRAY['fix', 'fixes', 'fixed', 'fixing']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'forgot'
@@ -269,6 +332,8 @@ VALUES
   ,ARRAY['forgot']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'google'
@@ -277,6 +342,8 @@ VALUES
   ,ARRAY['google']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'hack'
@@ -285,6 +352,8 @@ VALUES
   ,ARRAY['hack']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'impossible'
@@ -293,6 +362,8 @@ VALUES
   ,ARRAY['impossible']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'magic'
@@ -301,6 +372,8 @@ VALUES
   ,ARRAY['magic']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'never-probably'
@@ -309,6 +382,8 @@ VALUES
   ,ARRAY['later']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'secure'
@@ -317,6 +392,8 @@ VALUES
   ,ARRAY['insecure', 'secure']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'sorry'
@@ -325,6 +402,8 @@ VALUES
   ,ARRAY['sorry']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'wow'
@@ -333,14 +412,18 @@ VALUES
   ,ARRAY['wow']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'narcissist'
   ,'Narcissist'
-  ,'Use your own name in a commit message' -- TODO
+  ,'Use your own name in a commit message'
   ,ARRAY[]
   ,true
   ,false
+  ,NULL
+  ,NULL
 )
 ,(
   'bad-motherfucker'
@@ -349,21 +432,84 @@ VALUES
   ,ARRAY['fuck', 'fucking', 'damn', 'shit']
   ,false
   ,false
+  ,NULL
+  ,NULL
 )
-) AS t(id, name, description, words, include_self, exclude_self)
+,(
+  'man-of-few-words'
+  ,'A Man of Few Words'
+  ,'Commit message with 3 letters or less'
+  ,NULL
+  ,false
+  ,false
+  ,'^([^\p{L}]*\p{L}){0,3}[^\p{L}]*$'
+  ,NULL
+)
+,(
+  'no-more-letters'
+  ,'No More Letters'
+  ,'Write a commit message without any letters'
+  ,NULL
+  ,false
+  ,false
+  ,'^[^\p{L}]*$'
+  ,NULL
+)
+,(
+  'emoji'
+  ,'C00l kid'
+  ,'Use emoji in a commit message'
+  ,NULL
+  ,false
+  ,false
+  ,'[\x{1f300}-\x{1f5ff}\x{1f600}-\x{1f64f}\x{1f680}-\x{1f6ff}\x{2600}-\x{26FF}\x{2700}-\x{2FBF}]'
+  ,NULL
+)
+,(
+  'lucky'
+  ,'Lucky'
+  ,'Consecutive 777 in SHA-1'
+  ,NULL
+  ,false
+  ,false
+  ,NULL
+  ,'777'
+)
+,(
+  'mark-of-the-beast'
+  ,'Mark of the Beast'
+  ,'Consecutive 666 in SHA-1'
+  ,NULL
+  ,false
+  ,false
+  ,NULL
+  ,'666'
+)
+,(
+  'leo-tolstoy'
+  ,'Leo Tolstoy'
+  ,'More than 10 lines in a commit message'
+  ,NULL
+  ,false
+  ,false
+  ,'^([^\n]*\n){10}[^\n]*$'
+  ,NULL
+)
+) AS t(id, name, description, words, include_self, exclude_self, message_regex, id_regex)
 UNION ALL
 SELECT
   'blamer'
   ,'Blamer'
-  ,'Use someone else’s name in a commit message' -- TODO exclude own
+  ,'Use someone else’s name in a commit message'
   ,(SELECT array_agg(trim(s.name)) AS name
     FROM idents
     CROSS JOIN UNNEST(extra_names) AS e(name)
     CROSS JOIN UNNEST(split(e.name, ' ')) AS s(name)
     WHERE trim(s.name) != '')
   ,false
-  ,true;
-
+  ,true
+  ,NULL
+  ,NULL;
 
 
 CREATE OR REPLACE VIEW memory.default.achievements_languages AS
@@ -537,18 +683,6 @@ VALUES
 /*+
  *
 
- {:description "Commit message with 3 letters or less",
-  :key :man-of-few-words,
-  :name "A Man of Few Words"}
-
- {:description "Write a commit message without any letters",
-  :key :no-more-letters,
-  :name "No More Letters"}
-
- {:description "Use emoji in a commit message",
-  :key :emoji,
-  :name "C00l kid"}
-
  {:description "StackOverflow URL in a commit body or message",
   :key :citation-needed,
   :name "Citation Needed"}
@@ -558,54 +692,15 @@ VALUES
   :name "Hello, Linus",
   :level-description "One level for each 5 swear words in a message"}
 
- {:description "Consecutive 777 in SHA-1",
-  :key :lucky,
-  :name "Lucky"}
-
- {:description "Consecutive 666 in SHA-1",
-  :key :mark-of-the-beast,
-  :name "Mark of the Beast"}
-
  {:description "Make commit #1000, or #1111, or #1234",
   :key :get,
   :name "Get"}
 
- {:description "More than 10 lines in a commit message",
-  :key :leo-tolstoy,
-  :name "Leo Tolstoy"}
 
-
-
-
-
-
-
-
-
- {:description "Change license type or edit license file",
-  :key :change-of-mind,
-  :name "Change of Mind"}
 
  {:description "Add GPL license file to the repo",
   :key :for-stallman,
   :name "For Stallman!"}
-
- {:description "Add .gitignore",
-  :key :gitignore,
-  :name "Gitignore"}
-
- {:description
-  "Create 'test' or 'doc' directory (not in the first commit)",
-  :key :good-boy,
-  :name "Good Boy"}
-
- {:description "Commit id_rsa file",
-  :key :nothing-to-hide,
-  :name "Nothing to Hide"}
-
- {:description "Create a README",
-  :key :scribbler,
-  :name "Scribbler"}
 
  {:description "Commit 2Mb file or bigger",
   :key :fat-ass,
@@ -752,16 +847,21 @@ CREATE TABLE memory.default.acquired_changed_files AS SELECT
     count(*) AS num_achieved
 FROM commits c
 JOIN (
-  SELECT commit_id,
+  SELECT
+    commit_id,
+    change_type,
+    path_name,
     count(*) FILTER (WHERE change_type = 'Rename' AND added_lines = 0 AND deleted_lines = 0) AS renamed,
     count(*) FILTER (WHERE change_type != 'Rename' OR (added_lines != 0 AND deleted_lines != 0)) AS modified
   FROM diff_stats
-  GROUP BY commit_id
+  GROUP BY commit_id, change_type, path_name
 ) s ON s.commit_id = c.object_id
 JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_changed_files a ON
   s.renamed BETWEEN COALESCE(a.moved_from, 0) AND COALESCE(a.moved_to, bitwise_right_shift(bitwise_not(0), 1))
   AND s.modified BETWEEN COALESCE(a.changed_from, 0) AND COALESCE(a.changed_to, bitwise_right_shift(bitwise_not(0), 1))
+  AND (a.change_types IS NULL OR contains(a.change_types, s.change_type))
+  AND (a.path_regex IS NULL OR regexp_like(s.path_name, a.path_regex))
 GROUP BY
     a.id,
     a.name,
@@ -844,6 +944,7 @@ FROM (
     commit_time,
     object_id,
     author_email,
+    message,
     TRANSFORM(FILTER(regexp_split(message, '[^\p{Alphabetic}\p{Digit}]'), x -> x != ''), x -> lower(x)) AS words
   FROM commits
 ) c
@@ -856,9 +957,11 @@ JOIN (
   FROM idents
 ) i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_words a ON
-  arrays_overlap(a.words, c.words)
+  (a.words IS NULL OR arrays_overlap(a.words, c.words))
   AND (NOT include_self OR arrays_overlap(c.words, i.words))
   AND (NOT exclude_self OR NOT arrays_overlap(c.words, i.words))
+  AND (a.message_regex IS NULL OR regexp_like(c.message, a.message_regex))
+  AND (a.id_regex IS NULL OR regexp_like(c.object_id, a.id_regex))
 GROUP BY
     a.id,
     a.name,
@@ -866,8 +969,7 @@ GROUP BY
     i.name,
     i.email;
 
-SELECT a.id, a.name, a.description, COUNT(acq.id)
-FROM (
+WITH acha AS (
   SELECT id, name, description FROM memory.default.achievements_calendar
   UNION ALL
   SELECT id, name, description FROM memory.default.achievements_changed_files
@@ -877,8 +979,7 @@ FROM (
   SELECT id, name, description FROM memory.default.achievements_languages
   UNION ALL
   SELECT id, name, description FROM memory.default.achievements_words
-) a
-LEFT JOIN (
+), acq AS (
   SELECT * FROM memory.default.acquired_calendar
   UNION ALL
   SELECT * FROM memory.default.acquired_changed_files
@@ -888,5 +989,23 @@ LEFT JOIN (
   SELECT * FROM memory.default.acquired_languages
   UNION ALL
   SELECT * FROM memory.default.acquired_words
-) acq ON acq.id = a.id
-GROUP BY a.id, a.name, a.description
+), top3 AS (
+  SELECT
+    acq.id,
+    COALESCE(ELEMENT_AT(ARRAY_AGG(acq.num_achieved ORDER BY acq.num_achieved DESC), 3), 0) as num
+  FROM acq
+  GROUP BY acq.id
+)
+SELECT
+  acha.name,
+  acha.description,
+  COUNT(acq.id) AS num_achieved,
+  FORMAT('%.2f', 100 * CAST(COUNT(acq.id) AS DOUBLE) / i.idents_count) AS percent,
+  ARRAY_AGG(acq.author_name || ' <' || acq.email ORDER BY acq.num_achieved DESC, acq.author_name)
+    FILTER (WHERE acq.num_achieved >= top3.num) AS top3
+FROM acha
+LEFT JOIN acq ON acq.id = acha.id
+LEFT JOIN top3 ON acq.id = top3.id
+CROSS JOIN (SELECT COUNT(*) AS idents_count FROM idents) i
+GROUP BY acha.id, acha.name, acha.description, i.idents_count
+ORDER BY NULLIF(num_achieved, 0) NULLS LAST, acha.name
