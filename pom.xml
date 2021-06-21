@@ -43,7 +43,7 @@
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.7.1</dep.errorprone.version>
         <dep.jackson.version>2.12.3</dep.jackson.version>
-        <dep.testng.version>6.10</dep.testng.version>
+        <dep.testng.version>7.4.0</dep.testng.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.scm.id>github</project.scm.id>
