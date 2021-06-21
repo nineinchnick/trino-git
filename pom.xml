@@ -33,7 +33,7 @@
         <air.maven.version>3.3.9</air.maven.version>
 
         <dep.trino.version>352</dep.trino.version>
-        <dep.airlift.version>202</dep.airlift.version>
+        <dep.airlift.version>206</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.7.1</dep.errorprone.version>
         <dep.jackson.version>2.12.3</dep.jackson.version>
