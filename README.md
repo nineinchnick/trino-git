@@ -5,10 +5,25 @@ Trino git Connector
 
 This is a [Trino](http://trino.io/) connector to access git repos. Please keep in mind that this is not production ready and it was created for tests.
 
+# Quick Start
+
+To run a Docker container with the connector, run the following:
+```bash
+docker run \
+  --tmpfs /etc/trino/catalog \
+  -v $(pwd)/catalog/git.properties:/etc/trino/catalog/git.properties \
+  -p 8080:8080 \
+  --name trino-git \
+  nineinchnick/trino-git:0.4
+```
+
+Then use your favourite SQL client to connect to Trino running at http://localhost:8080
+
 # Usage
 
-Copy jar files in the target directory to the plugins directory on every node in your Trino cluster.
-Create a `git.properties` file in your Trino catalog directory and point to a remote repo. You can also use a path to a local repo if it's available on every worker node.
+Download one of the ZIP packages, unzip it and copy the `trino-git-0.4` directory to the plugin directory on every node in your Trino cluster.
+Create a `github.properties` file in your Trino catalog directory and point to a remote repo.
+You can also use a path to a local repo if it's available on every worker node.
 
 ```
 connector.name=git
@@ -44,7 +59,6 @@ HAVING
 ORDER BY
     i.name,
     i.email;
-    
 ```
 
 Should return:
@@ -78,21 +92,25 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/target/trino-git-0.3-SNAPSHOT:/usr/lib/trino/plugin/git \
+  -v $src/target/trino-git-0.4-SNAPSHOT:/usr/lib/trino/plugin/git \
   -v $src/catalog:/usr/lib/trino/default/etc/catalog \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:351
+  trinodb/trino:358
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:351 trino --server trino:8080 --catalog git --schema default
+docker run -it --rm --link trino trinodb/trino:358 trino --server trino:8080 --catalog git --schema default
 ```
 
 # References
 
-If you're looking to analize the structure or contents of a Git repo, [gitbase](https://github.com/src-d/gitbase) could be more suitable for such task. It could even work with Trino, since Trino has a [MySQL connector](https://trino.io/docs/current/connector/mysql.html).
+If you're looking to analize the structure or contents of a Git repo, [gitbase](https://github.com/src-d/gitbase) could be more suitable for such task.
+It could even work with Trino, since Trino has a [MySQL connector](https://trino.io/docs/current/connector/mysql.html).
 
-This effort is inspired by [Acha](https://github.com/someteam/acha), to be able to calculate this in SQL.
+If you also want to analyze Github issues, pull requests (with review comments) or workflow runs and jobs,
+check out the Github connector in [trino-rest](https://github.com/nineinchnick/trino-rest).
+
+This effort is inspired by [Acha](https://github.com/someteam/acha), to be able to calculate achievements based on contents of a Git repository using SQL.
