@@ -19,7 +19,7 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.internal.storage.file.PackFile;
+import org.eclipse.jgit.internal.storage.file.Pack;
 import org.eclipse.jgit.internal.storage.file.PackIndex;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -41,14 +42,14 @@ public class ObjectsRecordCursor
     private final List<GitColumnHandle> columnHandles;
 
     private final FileRepository fileRepo;
-    private final Iterator<PackFile> packs;
+    private final Iterator<Pack> packs;
     private Iterator<PackIndex.MutableEntry> entries;
     private ObjectId objectId;
     private ObjectLoader loader;
 
     private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
-    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
 
@@ -69,7 +70,7 @@ public class ObjectsRecordCursor
         }
 
         fileRepo = (FileRepository) repo.getRepository();
-        Collection<PackFile> packs = fileRepo.getObjectDatabase().getPacks();
+        Collection<Pack> packs = fileRepo.getObjectDatabase().getPacks();
         this.packs = packs.iterator();
     }
 

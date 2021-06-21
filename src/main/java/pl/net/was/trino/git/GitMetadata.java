@@ -261,12 +261,12 @@ public class GitMetadata
 
         Map<String, ColumnHandle> columns = getColumnHandles(session, handle);
 
-        if (handle.getTableName().equals(GitClient.TABLE.trees.name())) {
+        if (handle.getTableName().equals(GitClient.Table.trees.name())) {
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
                     (columnHandle, domain) -> !columnHandle.equals(columns.get("commit_id")));
         }
-        else if (handle.getTableName().equals(GitClient.TABLE.commits.name())) {
+        else if (handle.getTableName().equals(GitClient.Table.commits.name())) {
             // TODO merge both conditions, mapping table name to column (FK?)
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
@@ -291,7 +291,8 @@ public class GitMetadata
                         handle.getTableName(),
                         oldCommits,
                         handle.getLimit()),
-                unenforcedConstraint));
+                unenforcedConstraint,
+                true));
     }
 
     public static Optional<List<String>> getCommitIds(TupleDomain<ColumnHandle> constraintSummary)
@@ -313,14 +314,14 @@ public class GitMetadata
                 continue;
             }
             if (domain.isOnlyNull()) {
-                return Optional.of(ImmutableList.of());
+                return Optional.of(List.of());
             }
             if ((!domain.getValues().isNone() && domain.isNullAllowed()) || (domain.getValues().isAll() && !domain.isNullAllowed())) {
                 continue;
             }
             if (domain.isSingleValue()) {
                 String value = ((Slice) domain.getSingleValue()).toStringUtf8();
-                return Optional.of(ImmutableList.of(value));
+                return Optional.of(List.of(value));
             }
             ValueSet valueSet = domain.getValues();
             if (valueSet instanceof EquatableValueSet) {

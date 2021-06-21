@@ -55,12 +55,12 @@ public class TestGitRecordSet
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
         assertEquals(recordSet.getColumnTypes(), List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(split,table,  List.of(
+        recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 0)));
         assertEquals(recordSet.getColumnTypes(), List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(split,table,  List.of(
+        recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_email", createUnboundedVarcharType(), 0)));

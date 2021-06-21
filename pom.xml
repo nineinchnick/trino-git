@@ -8,10 +8,15 @@
     <version>0.3-SNAPSHOT</version>
     <packaging>trino-plugin</packaging>
 
+    <scm>
+        <developerConnection>scm:git:https://github.com/nineinchnick/trino-git.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>105</version>
+        <version>110</version>
     </parent>
 
     <licenses>
@@ -23,24 +28,45 @@
     </licenses>
 
     <properties>
+        <project.build.targetJdk>11</project.build.targetJdk>
+
         <air.main.basedir>${project.basedir}</air.main.basedir>
 
-        <air.check.skip-spotbugs>true</air.check.skip-spotbugs>
-        <air.check.skip-pmd>true</air.check.skip-pmd>
-        <air.check.skip-jacoco>true</air.check.skip-jacoco>
+        <air.check.skip-extended>true</air.check.skip-extended>
+        <air.check.skip-license>false</air.check.skip-license>
 
-        <project.build.targetJdk>11</project.build.targetJdk>
-        <air.maven.version>3.3.9</air.maven.version>
+        <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
+        <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>352</dep.trino.version>
-        <dep.airlift.version>202</dep.airlift.version>
+        <dep.trino.version>358</dep.trino.version>
+        <dep.airlift.version>206</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.7.1</dep.errorprone.version>
         <dep.jackson.version>2.12.3</dep.jackson.version>
         <dep.testng.version>6.10</dep.testng.version>
+
         <air.javadoc.lint>-missing</air.javadoc.lint>
-        <project.build.targetJdk>11</project.build.targetJdk>
+        <project.scm.id>github</project.scm.id>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub nineinchnick Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/nineinchnick/trino-git</url>
+        </repository>
+    </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.bval</groupId>
+                <artifactId>bval-jsr</artifactId>
+                <version>2.0.5</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 
     <dependencies>
         <dependency>
@@ -83,13 +109,13 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>30.1-jre</version>
+            <version>30.1.1-jre</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>4.2.3</version>
+            <version>5.0.1</version>
         </dependency>
 
         <dependency>
@@ -195,6 +221,13 @@
         </dependency>
 
         <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.8.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
             <version>3.0</version>
@@ -202,33 +235,45 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>4.0.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.16.1</version>
+            <version>3.18.1</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- other -->
-        <!--dependency>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <version>2.6.1</version>
-        </dependency-->
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.0.0-M1</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <scmCommentPrefix>[ci skip]</scmCommentPrefix>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <pushChanges>true</pushChanges>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-scm-plugin</artifactId>
+                <version>1.11.2</version>
+                <configuration>
+                    <pushChanges>true</pushChanges>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>io.trino</groupId>
                 <artifactId>trino-maven-plugin</artifactId>
-                <version>10</version>
+                <version>11</version>
                 <extensions>true</extensions>
                 <configuration>
                     <pluginClassName>io.trino.spi.Plugin</pluginClassName>
@@ -238,58 +283,9 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.2</version>
-                <executions>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}</outputDirectory>
-                            <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>false</overWriteSnapshots>
-                            <overWriteIfNewer>true</overWriteIfNewer>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-              <groupId>com.diffplug.spotless</groupId>
-              <artifactId>spotless-maven-plugin</artifactId>
-              <version>2.12.1</version>
-              <configuration>
-                <java>
-                    <!-- optional: limit format enforcement to just the files changed by this feature branch -->
-                    <!--ratchetFrom>origin/main</ratchetFrom-->
-                    <includes>
-                        <include>src/main/java/**/*.java</include>
-                        <include>src/test/java/**/*.java</include>
-                    </includes>
-
-                    <importOrder /> <!-- standard import order -->
-                    <removeUnusedImports /> <!-- self-explanatory -->
-
-                    <googleJavaFormat /> <!-- has its own section below -->
-                 </java>
-              </configuration>
+                <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
+                <artifactId>provisio-maven-plugin</artifactId>
+                <extensions>true</extensions>
             </plugin>
         </plugins>
     </build>

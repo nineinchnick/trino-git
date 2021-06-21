@@ -1,0 +1,54 @@
+name: Release with Maven
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          server-id: github
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Configure Git user
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Prepare release
+        run: ./mvnw -B release:prepare
+      - name: Build and push Docker image
+        run: |
+          ./docker-build.sh
+      - name: Save version number in env
+        run: |
+          echo "VERSION=$(grep 'project.rel.pl.net.was\\:trino-git=' release.properties | cut -d'=' -f2)" >> $GITHUB_ENV
+      - uses: marvinpinto/action-automatic-releases@v1.2.1
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          automatic_release_tag: v${{ env.VERSION }}
+          title: v${{ env.VERSION }}
+          files: |
+            trino-git-*/target/*.zip
+      - name: Publish JAR
+        run: ./mvnw -B release:perform -Darguments=-Dgpg.skip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

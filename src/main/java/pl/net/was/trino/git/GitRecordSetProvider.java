@@ -42,6 +42,6 @@ public class GitRecordSetProvider
             handles.add((GitColumnHandle) handle);
         }
 
-        return new GitRecordSet(gitSplit, (GitTableHandle)table, handles.build());
+        return new GitRecordSet(gitSplit, (GitTableHandle) table, handles.build());
     }
 }

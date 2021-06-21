@@ -13,13 +13,12 @@
  */
 package pl.net.was.trino.git;
 
-import com.google.common.collect.ImmutableMap;
 import io.airlift.log.Level;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.trino.Session;
-import io.trino.plugin.tpch.TpchPlugin;
 import io.trino.plugin.memory.MemoryPlugin;
+import io.trino.plugin.tpch.TpchPlugin;
 import io.trino.testing.DistributedQueryRunner;
 
 import java.util.HashMap;
@@ -40,7 +39,7 @@ public final class GitQueryRunner
             throws Exception
     {
         DistributedQueryRunner queryRunner = DistributedQueryRunner.builder(createSession())
-                .setCoordinatorProperties(ImmutableMap.of(
+                .setCoordinatorProperties(Map.of(
                         "join-distribution-type", "AUTOMATIC",
                         "query.max-memory", "5GB",
                         "query.max-memory-per-node", "1GB",
