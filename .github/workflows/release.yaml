@@ -47,7 +47,7 @@ jobs:
           automatic_release_tag: v${{ env.VERSION }}
           title: v${{ env.VERSION }}
           files: |
-            trino-git-*/target/*.zip
+            target/*.zip
       - name: Publish JAR
         run: ./mvnw -B release:perform -Darguments=-Dgpg.skip
         env:
