@@ -1,7 +1,7 @@
 Trino git Connector
 ===================
 
-[![Build Status](https://github.com/nineinchnick/trino-git/workflows/CI/badge.svg)](https://github.com/nineinchnick/trino-git/actions?query=workflow%3ACI+event%3Apush+branch%3Amaster)
+[![Build Status](https://github.com/nineinchnick/trino-git/actions/workflows/release.yaml/badge.svg)](https://github.com/nineinchnick/trino-git/actions/workflows/release.yaml)
 
 This is a [Trino](http://trino.io/) connector to access git repos. Please keep in mind that this is not production ready and it was created for tests.
 
