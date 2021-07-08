@@ -26,6 +26,7 @@ import java.util.Map;
 
 import static io.airlift.testing.Closeables.closeAllSuppress;
 import static io.trino.testing.TestingSession.testSessionBuilder;
+import static java.util.Objects.requireNonNullElse;
 
 public final class GitQueryRunner
 {
@@ -88,7 +89,7 @@ public final class GitQueryRunner
         }
 
         DistributedQueryRunner queryRunner = createGitQueryRunner(
-                Map.of("http-server.http.port", "8081",
+                Map.of("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081"),
                         "protocol.v1.alternate-header-name", "Presto"),
                 Map.of("metadata-uri", url));
 
