@@ -5,12 +5,12 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.6</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
         <developerConnection>scm:git:https://github.com/nineinchnick/trino-git.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.6</tag>
     </scm>
 
     <parent>
