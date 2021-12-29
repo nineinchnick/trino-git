@@ -16,13 +16,11 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           server-id: github
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+          cache: 'maven'
+      - name: Configure Problem Matchers
+        run: |
+          echo "::add-matcher::.github/problem-matcher.json"
+          echo "::remove-matcher owner=java::"
       - name: Configure Git user
         run: |
           git config user.email "actions@github.com"
@@ -52,3 +50,11 @@ jobs:
         run: ./mvnw -B release:perform -Darguments=-Dgpg.skip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: test report ${{ github.job }}
+          path: |
+            **/surefire-reports/TEST-*.xml
+          retention-days: 5
