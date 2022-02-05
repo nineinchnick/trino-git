@@ -14,14 +14,14 @@ docker run \
   -v $(pwd)/catalog/git.properties:/etc/trino/catalog/git.properties \
   -p 8080:8080 \
   --name trino-git \
-  nineinchnick/trino-git:0.4
+  nineinchnick/trino-git:0.13
 ```
 
 Then use your favourite SQL client to connect to Trino running at http://localhost:8080
 
 # Usage
 
-Download one of the ZIP packages, unzip it and copy the `trino-git-0.4` directory to the plugin directory on every node in your Trino cluster.
+Download one of the ZIP packages, unzip it and copy the `trino-git-0.13` directory to the plugin directory on every node in your Trino cluster.
 Create a `github.properties` file in your Trino catalog directory and point to a remote repo.
 You can also use a path to a local repo if it's available on every worker node.
 
@@ -92,17 +92,17 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/target/trino-git-0.4-SNAPSHOT:/usr/lib/trino/plugin/git \
+  -v $src/target/trino-git-0.13-SNAPSHOT:/usr/lib/trino/plugin/git \
   -v $src/catalog:/usr/lib/trino/default/etc/catalog \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:358
+  trinodb/trino:370
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:358 trino --server trino:8080 --catalog git --schema default
+docker run -it --rm --link trino trinodb/trino:370 trino --server trino:8080 --catalog git --schema default
 ```
 
 # References
