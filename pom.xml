@@ -16,7 +16,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>116</version>
+        <version>119</version>
     </parent>
 
     <licenses>
@@ -38,12 +38,12 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>367</dep.trino.version>
-        <dep.airlift.version>212</dep.airlift.version>
+        <dep.trino.version>370</dep.trino.version>
+        <dep.airlift.version>214</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.10.0</dep.errorprone.version>
+        <dep.errorprone.version>2.11.0</dep.errorprone.version>
         <dep.jackson.version>2.13.1</dep.jackson.version>
-        <dep.testng.version>7.4.0</dep.testng.version>
+        <dep.testng.version>7.5</dep.testng.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.scm.id>github</project.scm.id>
@@ -68,7 +68,7 @@
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>3.21.0</version>
+                <version>3.21.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -121,7 +121,7 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.0.1</version>
+            <version>5.1.0</version>
         </dependency>
 
         <dependency>
@@ -236,7 +236,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.21.0</version>
+            <version>3.22.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -247,7 +247,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.0.0-M1</version>
+                <version>3.0.0-M2</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
@@ -264,7 +264,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>1.12.0</version>
+                <version>1.12.2</version>
                 <configuration>
                     <pushChanges>true</pushChanges>
                 </configuration>
@@ -285,6 +285,7 @@
                 <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
                 <artifactId>provisio-maven-plugin</artifactId>
                 <extensions>true</extensions>
+                <version>1.0.19</version>
             </plugin>
         </plugins>
     </build>
