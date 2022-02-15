@@ -1,3 +1,51 @@
+-- Don't use the idents view, because it produces too many stages; instead, break it down into temporary tables
+CREATE TABLE memory.default.nodes AS
+    SELECT DISTINCT author_email AS email, author_name AS name
+    FROM commits
+    UNION
+    SELECT DISTINCT committer_email AS email, committer_name AS name
+    FROM commits;
+
+CREATE TABLE memory.default.edges AS
+    SELECT n1.name AS name1, n2.name AS name2
+    FROM memory.default.nodes n1
+    INNER JOIN memory.default.nodes n2 USING (email);
+
+CREATE TABLE memory.default.idents AS
+WITH RECURSIVE
+walk (name1, name2, visited) AS (
+    SELECT name1, name2, ARRAY[name1]
+    FROM edges
+    WHERE name1 = name2
+    UNION ALL
+    SELECT w.name1, e.name2, w.visited || e.name2
+    FROM walk w
+    INNER JOIN edges e ON e.name1 = w.name2
+    WHERE NOT contains(w.visited, e.name2)
+),
+result (name1, name2s) AS (
+    SELECT name1, array_agg(DISTINCT name2 ORDER BY name2)
+    FROM walk
+    GROUP BY name1
+),
+grouped (names, emails) AS (
+    SELECT
+        array_agg(DISTINCT n.name ORDER BY n.name) AS names,
+        array_agg(DISTINCT n.email ORDER BY n.email) AS emails
+    FROM result r
+    INNER JOIN nodes n ON n.name = r.name1
+    GROUP BY r.name2s;
+)
+SELECT
+    emails[1] AS email,
+    names[1] AS name,
+    slice(emails, 2, cardinality(emails)) AS extra_emails,
+    slice(names, 2, cardinality(emails)) AS extra_names
+FROM grouped
+ORDER BY name, names;
+
+
+
 CREATE OR REPLACE VIEW memory.default.achievements_calendar AS
 SELECT * FROM (
 -- id, name, description, "month", "day_from", "day_to", "doy", "dow", "minute_from", "minute_to"
@@ -502,7 +550,7 @@ SELECT
   ,'Blamer'
   ,'Use someone else’s name in a commit message'
   ,(SELECT array_agg(trim(s.name)) AS name
-    FROM idents
+    FROM memory.default.idents
     CROSS JOIN UNNEST(extra_names) AS e(name)
     CROSS JOIN UNNEST(split(e.name, ' ')) AS s(name)
     WHERE trim(s.name) != '')
@@ -823,7 +871,7 @@ CREATE TABLE memory.default.acquired_calendar AS select
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM commits c
-JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
+JOIN memory.default.idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_calendar a ON
   (a.month IS NULL OR MONTH(c.commit_time) = a.month)
   AND DAY(c.commit_time) BETWEEN COALESCE(a.day_from, 1) AND COALESCE(a.day_to, 31)
@@ -856,7 +904,7 @@ JOIN (
   FROM diff_stats
   GROUP BY commit_id, change_type, path_name
 ) s ON s.commit_id = c.object_id
-JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
+JOIN memory.default.idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_changed_files a ON
   s.renamed BETWEEN COALESCE(a.moved_from, 0) AND COALESCE(a.moved_to, bitwise_right_shift(bitwise_not(0), 1))
   AND s.modified BETWEEN COALESCE(a.changed_from, 0) AND COALESCE(a.changed_to, bitwise_right_shift(bitwise_not(0), 1))
@@ -879,7 +927,7 @@ CREATE TABLE memory.default.acquired_changed_lines AS SELECT
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM commit_stats c
-JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
+JOIN memory.default.idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_changed_lines a ON
   c.added_lines BETWEEN COALESCE(a.added_from, 0) AND COALESCE(a.added_to, bitwise_right_shift(bitwise_not(0), 1))
   AND c.deleted_lines BETWEEN COALESCE(a.removed_from, 0) AND COALESCE(a.removed_from, bitwise_right_shift(bitwise_not(0), 1))
@@ -920,7 +968,7 @@ FROM (
   WHERE CARDINALITY(c.parents) = 0
   GROUP BY c.commit_time, c.object_id, c.author_email
 ) c
-JOIN idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
+JOIN memory.default.idents i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_languages a ON
   arrays_overlap(c.extensions, a.extensions)
 GROUP BY
@@ -954,7 +1002,7 @@ JOIN (
     email,
     extra_emails,
     TRANSFORM(FILTER(regexp_split(name || ' ' || concat_ws(' ', extra_names), '[^\p{Alphabetic}\p{Digit}]'), x -> x != ''), x -> lower(x)) AS words
-  FROM idents
+  FROM memory.default.idents
 ) i ON c.author_email = i.email OR CONTAINS(i.extra_emails, c.author_email)
 JOIN memory.default.achievements_words a ON
   (a.words IS NULL OR arrays_overlap(a.words, c.words))
@@ -1006,6 +1054,6 @@ SELECT
 FROM acha
 LEFT JOIN acq ON acq.id = acha.id
 LEFT JOIN top3 ON acq.id = top3.id
-CROSS JOIN (SELECT COUNT(*) AS idents_count FROM idents) i
+CROSS JOIN (SELECT COUNT(*) AS idents_count FROM memory.default.idents) i
 GROUP BY acha.id, acha.name, acha.description, i.idents_count
 ORDER BY NULLIF(num_achieved, 0) NULLS LAST, acha.name

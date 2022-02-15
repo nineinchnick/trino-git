@@ -1,47 +1,41 @@
-WITH pairs AS (
+-- This can produce too many stages, see the queries in the examples dir
+-- on how to break it down using temporary tables
+WITH RECURSIVE
+nodes (email, name) AS (
+    SELECT DISTINCT author_email, author_name
+    FROM commits
+    UNION
+    SELECT DISTINCT committer_email, committer_name
+    FROM commits
+),
+edges (name1, name2) AS (
+    SELECT n1.name, n2.name
+    FROM nodes n1
+    INNER JOIN nodes n2 USING (email)
+),
+walk (name1, name2, visited) AS (
+    SELECT name1, name2, ARRAY[name1]
+    FROM edges
+    WHERE name1 = name2
+    UNION ALL
+    SELECT w.name1, e.name2, w.visited || e.name2
+    FROM walk w
+    INNER JOIN edges e ON e.name1 = w.name2
+    WHERE NOT contains(w.visited, e.name2)
+),
+result (name1, name2s) AS (
+    SELECT name1, array_agg(DISTINCT name2 ORDER BY name2)
+    FROM walk
+    GROUP BY name1
+),
+grouped (names, emails) AS (
     SELECT
-        DISTINCT lower(email) AS email,
-        name
-    FROM (
-            SELECT
-                author_name AS name,
-                author_email AS email
-            FROM commits
-            GROUP BY 1, 2
-        UNION
-            SELECT
-                committer_name AS name,
-                committer_email AS email
-            FROM commits
-            GROUP BY 1, 2
-        ORDER BY count(*) DESC
-    ) a
-),
--- incomplete name groups with complete (and duplicate) email groups
-emails AS (
-    SELECT p1.email,
-        array_agg(p1.name ORDER BY p1.name) AS names,
-        array_agg(DISTINCT p2.email ORDER BY p2.email) AS emails
-    FROM pairs p1
-    LEFT JOIN pairs p2 ON p1.name = p2.name
-    GROUP BY p1.email
-),
--- incomplete email groups with complete (and duplicate) name groups
-names AS (
-    SELECT p1.name,
-        array_agg(p1.email ORDER BY p1.email) AS emails,
-        array_agg(DISTINCT p2.name ORDER BY p2.name) AS names
-    FROM pairs p1
-    LEFT JOIN pairs p2 ON p1.email = p2.email
-    GROUP BY p1.name
-),
--- join all complete groups and remove duplicates
-grouped AS (
-    SELECT DISTINCT e.emails, n.names
-    FROM emails e
-    LEFT JOIN names n ON CONTAINS(e.names, n.name) OR CONTAINS(n.emails, e.email)
+        array_agg(DISTINCT n.name ORDER BY n.name) AS names,
+        array_agg(DISTINCT n.email ORDER BY n.email) AS emails
+    FROM result r
+    INNER JOIN nodes n ON n.name = r.name1
+    GROUP BY r.name2s;
 )
-
 SELECT
     emails[1] AS email,
     names[1] AS name,
