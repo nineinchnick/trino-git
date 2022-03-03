@@ -10,9 +10,9 @@ else
 fi
 TAG=nineinchnick/trino-git:$VERSION
 
-docker build \
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
     -t "$TAG" \
     --build-arg VERSION="$VERSION" \
+    --push \
     .
-
-docker push "$TAG"
