@@ -13,19 +13,18 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.17-SNAPSHOT</version>
+    <version>0.17</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
         <developerConnection>scm:git:https://github.com/nineinchnick/trino-git.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.17</tag>
     </scm>
 
     <parent>
