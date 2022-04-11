@@ -1,10 +1,14 @@
 -- Don't use the idents view, because it produces too many stages; instead, break it down into temporary tables
 CREATE TABLE memory.default.nodes AS
-    SELECT DISTINCT author_email AS email, author_name AS name
-    FROM commits
-    UNION
-    SELECT DISTINCT committer_email AS email, committer_name AS name
-    FROM commits;
+    SELECT email, name, count(*) AS count
+    FROM (
+        SELECT author_email AS email, author_name AS name
+        FROM git.default.commits
+        UNION ALL
+        SELECT committer_email AS email, committer_name AS name
+        FROM git.default.commits
+    ) names
+    GROUP BY email, name;
 
 CREATE TABLE memory.default.edges AS
     SELECT n1.name AS name1, n2.name AS name2
@@ -13,29 +17,29 @@ CREATE TABLE memory.default.edges AS
 
 CREATE TABLE memory.default.idents AS
 WITH RECURSIVE
-walk (name1, name2, visited) AS (
-    SELECT name1, name2, ARRAY[name1]
-    FROM edges
-    WHERE name1 = name2
-    UNION ALL
-    SELECT w.name1, e.name2, w.visited || e.name2
-    FROM walk w
-    INNER JOIN edges e ON e.name1 = w.name2
-    WHERE NOT contains(w.visited, e.name2)
-),
-result (name1, name2s) AS (
-    SELECT name1, array_agg(DISTINCT name2 ORDER BY name2)
-    FROM walk
-    GROUP BY name1
-),
-grouped (names, emails) AS (
-    SELECT
-        array_agg(DISTINCT n.name ORDER BY n.name) AS names,
-        array_agg(DISTINCT n.email ORDER BY n.email) AS emails
-    FROM result r
-    INNER JOIN nodes n ON n.name = r.name1
-    GROUP BY r.name2s;
-)
+    walk (name1, name2, visited) AS (
+        SELECT name1, name2, ARRAY[name1]
+        FROM edges
+        WHERE name1 = name2
+        UNION ALL
+        SELECT w.name1, e.name2, w.visited || e.name2
+        FROM walk w
+        INNER JOIN edges e ON e.name1 = w.name2
+        WHERE NOT contains(w.visited, e.name2)
+    ),
+    result (name1, name2s) AS (
+        SELECT name1, array_agg(DISTINCT name2 ORDER BY name2)
+        FROM walk
+        GROUP BY name1
+    ),
+    grouped (names, emails) AS (
+        SELECT
+            array_distinct(array_agg(n.name ORDER BY n.count DESC)) AS names,
+            array_distinct(array_agg(n.email ORDER BY n.count DESC)) AS emails
+        FROM result r
+        INNER JOIN nodes n ON n.name = r.name1
+        GROUP BY r.name2s
+    )
 SELECT
     emails[1] AS email,
     names[1] AS name,
@@ -868,6 +872,7 @@ CREATE TABLE memory.default.acquired_calendar AS select
     a.description,
     i.name AS author_name,
     i.email,
+    min_by(c.object_id, c.commit_time) AS achieved_in,
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM commits c
@@ -891,6 +896,7 @@ CREATE TABLE memory.default.acquired_changed_files AS SELECT
     a.description,
     i.name AS author_name,
     i.email,
+    min_by(c.object_id, c.commit_time) AS achieved_in,
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM commits c
@@ -924,6 +930,7 @@ CREATE TABLE memory.default.acquired_changed_lines AS SELECT
     a.description,
     i.name AS author_name,
     i.email,
+    min_by(c.object_id, c.commit_time) AS achieved_in,
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM commit_stats c
@@ -946,6 +953,7 @@ CREATE TABLE memory.default.acquired_languages AS SELECT
     a.description,
     i.name AS author_name,
     i.email,
+    min_by(c.object_id, c.commit_time) AS achieved_in,
     min(c.commit_time) AS achieved_at,
     count(DISTINCT c.object_id) AS num_achieved
 FROM (
@@ -985,6 +993,7 @@ CREATE TABLE memory.default.acquired_words AS SELECT
     a.description,
     i.name AS author_name,
     i.email,
+    min_by(c.object_id, c.commit_time) AS achieved_in,
     min(c.commit_time) AS achieved_at,
     count(*) AS num_achieved
 FROM (
@@ -1017,6 +1026,7 @@ GROUP BY
     i.name,
     i.email;
 
+-- List all achievements with num of all wins, percentage of winners, date and commit id of first win and top3 winners (by number of wins, first winner wins ties)
 WITH acha AS (
   SELECT id, name, description FROM memory.default.achievements_calendar
   UNION ALL
@@ -1037,23 +1047,57 @@ WITH acha AS (
   SELECT * FROM memory.default.acquired_languages
   UNION ALL
   SELECT * FROM memory.default.acquired_words
-), top3 AS (
-  SELECT
-    acq.id,
-    COALESCE(ELEMENT_AT(ARRAY_AGG(acq.num_achieved ORDER BY acq.num_achieved DESC), 3), 0) as num
-  FROM acq
-  GROUP BY acq.id
 )
 SELECT
   acha.name,
   acha.description,
-  COUNT(acq.id) AS num_achieved,
-  FORMAT('%.2f', 100 * CAST(COUNT(acq.id) AS DOUBLE) / i.idents_count) AS percent,
-  ARRAY_AGG(acq.author_name || ' <' || acq.email ORDER BY acq.num_achieved DESC, acq.author_name)
-    FILTER (WHERE acq.num_achieved >= top3.num) AS top3
+  count(acq.id) AS num_winners,
+  FORMAT('%.2f', 100 * cast(count(acq.id) AS DOUBLE) / i.idents_count) AS percent_winners,
+  min(acq.achieved_at) AS first_achieved_at,
+  min_by(acq.achieved_in, acq.achieved_at) AS first_achieved_in,
+  slice(array_agg(acq.author_name || ' <' || acq.email || '>' ORDER BY acq.num_achieved DESC, acq.achieved_at), 1, 3) AS top3
 FROM acha
 LEFT JOIN acq ON acq.id = acha.id
-LEFT JOIN top3 ON acq.id = top3.id
 CROSS JOIN (SELECT COUNT(*) AS idents_count FROM memory.default.idents) i
 GROUP BY acha.id, acha.name, acha.description, i.idents_count
-ORDER BY NULLIF(num_achieved, 0) NULLS LAST, acha.name
+ORDER BY NULLIF(num_winners, 0) NULLS LAST, acha.name
+;
+
+-- List all winners with num and percent of achievements and all achievements (with date and commit)
+WITH acha AS (
+  SELECT id, name, description FROM memory.default.achievements_calendar
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_changed_files
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_changed_lines
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_languages
+  UNION ALL
+  SELECT id, name, description FROM memory.default.achievements_words
+), acq AS (
+  SELECT * FROM memory.default.acquired_calendar
+  UNION ALL
+  SELECT * FROM memory.default.acquired_changed_files
+  UNION ALL
+  SELECT * FROM memory.default.acquired_changed_lines
+  UNION ALL
+  SELECT * FROM memory.default.acquired_languages
+  UNION ALL
+  SELECT * FROM memory.default.acquired_words
+)
+SELECT
+  acq.author_name,
+  acq.email,
+  count(acq.id) OVER w AS num_achievements,
+  format('%.2f', 100 * cast(count(acq.id) OVER w AS double) / a.achievements_count) AS percent_achievments,
+  acq.name,
+  acq.description,
+  acq.achieved_in,
+  acq.achieved_at,
+  acq.num_achieved
+FROM acha
+LEFT JOIN acq ON acq.id = acha.id
+CROSS JOIN (SELECT COUNT(*) AS achievements_count FROM acha) a
+WINDOW w (PARTITION BY acq.email)
+ORDER BY acq.author_name, acq.name
+;
