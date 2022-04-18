@@ -55,7 +55,7 @@
         <dep.trino.version>376</dep.trino.version>
         <dep.airlift.version>215</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.12.1</dep.errorprone.version>
+        <dep.errorprone.version>2.13.1</dep.errorprone.version>
         <dep.jackson.version>2.13.2</dep.jackson.version>
         <dep.testng.version>7.5</dep.testng.version>
 
