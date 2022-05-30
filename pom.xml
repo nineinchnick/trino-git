@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>124</version>
+        <version>125</version>
     </parent>
 
     <licenses>
