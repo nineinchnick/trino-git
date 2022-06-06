@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>124</version>
+        <version>125</version>
     </parent>
 
     <licenses>
@@ -52,10 +52,10 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>381</dep.trino.version>
+        <dep.trino.version>384</dep.trino.version>
         <dep.airlift.version>215</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.13.1</dep.errorprone.version>
+        <dep.errorprone.version>2.14.0</dep.errorprone.version>
         <dep.jackson.version>2.13.3</dep.jackson.version>
         <dep.testng.version>7.6.0</dep.testng.version>
 
@@ -283,7 +283,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>1.12.2</version>
+                <version>1.13.0</version>
                 <configuration>
                     <pushChanges>true</pushChanges>
                 </configuration>
