@@ -19,7 +19,7 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.23-SNAPSHOT</version>
+    <version>0.24-SNAPSHOT</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
@@ -285,7 +285,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>3.0.0-M6</version>
                 <configuration>
                     <scmCommentPrefix>[ci skip]</scmCommentPrefix>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
