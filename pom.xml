@@ -19,7 +19,7 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.24-SNAPSHOT</version>
+    <version>0.25-SNAPSHOT</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
@@ -52,7 +52,7 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>387</dep.trino.version>
+        <dep.trino.version>388</dep.trino.version>
         <dep.airlift.version>217</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.14.0</dep.errorprone.version>
