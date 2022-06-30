@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>127</version>
+        <version>128</version>
     </parent>
 
     <licenses>
@@ -52,7 +52,7 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>385</dep.trino.version>
+        <dep.trino.version>387</dep.trino.version>
         <dep.airlift.version>217</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.14.0</dep.errorprone.version>
@@ -88,13 +88,13 @@
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
-                <version>5.11.0</version>
+                <version>5.12.0</version>
             </dependency>
 
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna-platform</artifactId>
-                <version>5.11.0</version>
+                <version>5.12.0</version>
             </dependency>
 
             <dependency>

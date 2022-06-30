@@ -215,7 +215,7 @@ public class GitMetadata
     }
 
     @Override
-    public TableStatistics getTableStatistics(ConnectorSession session, ConnectorTableHandle tableHandle, Constraint constraint)
+    public TableStatistics getTableStatistics(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         GitTableHandle gitTableHandle = (GitTableHandle) tableHandle;
         String tableName = gitTableHandle.getTableName();
