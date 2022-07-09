@@ -61,6 +61,8 @@ jobs:
         env:
           JRELEASER_PROJECT_VERSION: ${{ env.VERSION }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          setup-java: false
 
       - name: Upload test report
         uses: actions/upload-artifact@v3

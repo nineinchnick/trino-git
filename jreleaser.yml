@@ -5,6 +5,10 @@ project:
   java:
     groupId: pl.net.was
     version: 11
+  authors:
+    - Jan Waś
+  extraProperties:
+    inceptionYear: 2021
 
 files:
   artifacts:
