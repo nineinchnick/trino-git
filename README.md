@@ -97,12 +97,12 @@ docker run \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:384
+  trinodb/trino:389
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:384 trino --server trino:8080 --catalog git --schema default
+docker run -it --rm --link trino trinodb/trino:389 trino --server trino:8080 --catalog git --schema default
 ```
 
 # References
