@@ -1,0 +1,15 @@
+project:
+  name: trino-git
+  description: This is a Trino connector to access git repos
+  license: Apache-2
+  java:
+    groupId: pl.net.was
+    version: 11
+
+files:
+  artifacts:
+    - path: target/{{projectName}}-{{projectVersion}}.zip
+
+release:
+  github:
+    owner: nineinchnick
