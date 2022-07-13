@@ -52,24 +52,22 @@ public class GitSplitManager
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorTableHandle connectorTableHandle,
-            SplitSchedulingStrategy splitSchedulingStrategy,
             DynamicFilter dynamicFilter,
             Constraint constraint)
     {
         long timeoutMillis = 20000;
         if (!dynamicFilter.isAwaitable()) {
-            return getSplitSource(connectorTableHandle, splitSchedulingStrategy, dynamicFilter);
+            return getSplitSource(connectorTableHandle, dynamicFilter);
         }
         CompletableFuture<?> dynamicFilterFuture = whenCompleted(dynamicFilter)
                 .completeOnTimeout(null, timeoutMillis, MILLISECONDS);
         CompletableFuture<ConnectorSplitSource> splitSourceFuture = dynamicFilterFuture.thenApply(
-                ignored -> getSplitSource(connectorTableHandle, splitSchedulingStrategy, dynamicFilter));
+                ignored -> getSplitSource(connectorTableHandle, dynamicFilter));
         return new GitDynamicFilteringSplitSource(dynamicFilterFuture, splitSourceFuture);
     }
 
     private ConnectorSplitSource getSplitSource(
             ConnectorTableHandle table,
-            SplitSchedulingStrategy splitSchedulingStrategy,
             DynamicFilter dynamicFilter)
     {
         GitTableHandle handle = (GitTableHandle) table;
@@ -78,10 +76,7 @@ public class GitSplitManager
         // TODO see how this handle is different from recordSetProvider
         List<GitSplit> splits = List.of(new GitSplit(handle.getTableName(), config.getMetadata(), getCommitIds(constraint)));
 
-        if (splitSchedulingStrategy == SplitSchedulingStrategy.UNGROUPED_SCHEDULING) {
-            return new FixedSplitSource(splits);
-        }
-        throw new IllegalArgumentException("Unknown splitSchedulingStrategy: " + splitSchedulingStrategy);
+        return new FixedSplitSource(splits);
     }
 
     private static CompletableFuture<?> whenCompleted(DynamicFilter dynamicFilter)
