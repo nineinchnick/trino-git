@@ -12,7 +12,7 @@ project:
 
 files:
   artifacts:
-    - path: target/{{projectName}}-{{projectVersion}}.zip
+    - path: "target/{{projectName}}-{{projectVersion}}.zip"
 
 release:
   github:
