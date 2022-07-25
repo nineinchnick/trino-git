@@ -40,11 +40,6 @@ public final class GitQueryRunner
             throws Exception
     {
         DistributedQueryRunner queryRunner = DistributedQueryRunner.builder(createSession())
-                .setCoordinatorProperties(Map.of(
-                        "join-distribution-type", "AUTOMATIC",
-                        "query.max-memory", "5GB",
-                        "query.max-memory-per-node", "1GB",
-                        "query.max-total-memory-per-node", "2GB"))
                 .setExtraProperties(extraProperties)
                 .build();
         try {
@@ -89,8 +84,7 @@ public final class GitQueryRunner
         }
 
         DistributedQueryRunner queryRunner = createGitQueryRunner(
-                Map.of("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081"),
-                        "protocol.v1.alternate-header-name", "Presto"),
+                Map.of("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081")),
                 Map.of("metadata-uri", url));
 
         Logger log = Logger.get(GitQueryRunner.class);
