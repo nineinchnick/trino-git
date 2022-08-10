@@ -19,12 +19,12 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.32-SNAPSHOT</version>
+    <version>0.32</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
         <developerConnection>scm:git:https://github.com/nineinchnick/trino-git.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.32</tag>
     </scm>
 
     <parent>
