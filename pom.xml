@@ -54,7 +54,7 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
         <dep.trino.version>392</dep.trino.version>
-        <dep.airlift.version>217</dep.airlift.version>
+        <dep.airlift.version>218</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.15.0</dep.errorprone.version>
         <dep.jackson.version>2.13.3</dep.jackson.version>
