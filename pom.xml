@@ -19,7 +19,7 @@
     <groupId>pl.net.was</groupId>
     <artifactId>trino-git</artifactId>
     <description>Trino git Connector</description>
-    <version>0.33-SNAPSHOT</version>
+    <version>0.34-SNAPSHOT</version>
     <packaging>trino-plugin</packaging>
 
     <scm>
@@ -53,8 +53,8 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>392</dep.trino.version>
-        <dep.airlift.version>217</dep.airlift.version>
+        <dep.trino.version>393</dep.trino.version>
+        <dep.airlift.version>218</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.15.0</dep.errorprone.version>
         <dep.jackson.version>2.13.3</dep.jackson.version>
@@ -101,7 +101,7 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.36</version>
+                <version>2.0.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -175,7 +175,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.10.14</version>
+            <version>2.11.0</version>
             <scope>runtime</scope>
         </dependency>
 
