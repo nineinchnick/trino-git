@@ -53,11 +53,11 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>393</dep.trino.version>
+        <dep.trino.version>394</dep.trino.version>
         <dep.airlift.version>218</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.15.0</dep.errorprone.version>
-        <dep.jackson.version>2.13.3</dep.jackson.version>
+        <dep.jackson.version>2.13.4</dep.jackson.version>
         <dep.testng.version>7.6.1</dep.testng.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
@@ -77,7 +77,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.12.13</version>
+                <version>1.12.16</version>
             </dependency>
 
             <dependency>
@@ -175,7 +175,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.11.0</version>
+            <version>2.11.1</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -188,7 +188,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>6.2.0.202206071550-r</version>
+            <version>6.3.0.202209071007-r</version>
         </dependency>
 
         <dependency>
