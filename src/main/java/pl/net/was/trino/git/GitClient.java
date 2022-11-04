@@ -101,27 +101,27 @@ public class GitClient
     Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
             View.idents.name(),
             List.of(
-                    new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId())),
+                    new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())),
             View.commit_stats.name(),
             List.of(
-                    new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("author_email", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("committer_name", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("committer_email", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("message", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("parents", new ArrayType(VarcharType.VARCHAR).getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("tree_id", VarcharType.VARCHAR.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS.getTypeId()),
+                    new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("author_email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("committer_name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("committer_email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("message", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("parents", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("tree_id", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS.getTypeId(), Optional.empty()),
 
-                    new ConnectorViewDefinition.ViewColumn("added_lines", BigintType.BIGINT.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("deleted_lines", BigintType.BIGINT.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("changed_files", BigintType.BIGINT.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("similarity_score", DoubleType.DOUBLE.getTypeId()),
-                    new ConnectorViewDefinition.ViewColumn("change_types", new ArrayType(VarcharType.VARCHAR).getTypeId())));
+                    new ConnectorViewDefinition.ViewColumn("added_lines", BigintType.BIGINT.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("deleted_lines", BigintType.BIGINT.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("changed_files", BigintType.BIGINT.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("similarity_score", DoubleType.DOUBLE.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("change_types", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())));
 
     @Inject
     public GitClient(GitConfig config)
