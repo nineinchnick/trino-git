@@ -96,21 +96,42 @@
             <groupId>io.airlift</groupId>
             <artifactId>log</artifactId>
             <version>${dep.airlift.version}</version>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>log-manager</artifactId>
             <version>${dep.airlift.version}</version>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
             <version>0.44</version>
-            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>units</artifactId>
+            <version>1.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-main</artifactId>
+            <version>${dep.trino.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-cli</artifactId>
+            <version>${dep.trino.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-memory</artifactId>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
@@ -155,11 +176,10 @@
             <artifactId>validation-api</artifactId>
         </dependency>
 
-        <!-- Presto SPI -->
+        <!-- Trino SPI -->
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-spi</artifactId>
-            <scope>provided</scope>
             <version>${dep.trino.version}</version>
         </dependency>
 
@@ -167,17 +187,9 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
             <version>${dep.jackson.version}</version>
-            <scope>provided</scope>
         </dependency>
 
         <!-- for testing -->
-        <dependency>
-            <groupId>io.trino</groupId>
-            <artifactId>trino-main</artifactId>
-            <scope>test</scope>
-            <version>${dep.trino.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-testing</artifactId>
@@ -188,13 +200,6 @@
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-tpch</artifactId>
-            <scope>test</scope>
-            <version>${dep.trino.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.trino</groupId>
-            <artifactId>trino-memory</artifactId>
             <scope>test</scope>
             <version>${dep.trino.version}</version>
         </dependency>
@@ -211,13 +216,6 @@
             <artifactId>testing</artifactId>
             <scope>test</scope>
             <version>${dep.airlift.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>units</artifactId>
-            <version>1.8</version>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
