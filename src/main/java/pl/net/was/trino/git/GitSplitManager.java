@@ -72,8 +72,8 @@ public class GitSplitManager
         GitTableHandle handle = (GitTableHandle) table;
 
         TupleDomain<ColumnHandle> constraint = dynamicFilter.getCurrentPredicate().simplify(100);
-        // TODO see how this handle is different from recordSetProvider
-        List<GitSplit> splits = List.of(new GitSplit(handle.getTableName(), config.getMetadata(), getCommitIds(constraint)));
+
+        List<GitSplit> splits = List.of(new GitSplit(handle.getTableName(), config.getUri(), getCommitIds(constraint)));
 
         return new FixedSplitSource(splits);
     }

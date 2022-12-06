@@ -21,18 +21,18 @@ import java.net.URI;
 
 public class GitConfig
 {
-    private URI metadata;
+    private URI uri;
 
     @NotNull
-    public URI getMetadata()
+    public URI getUri()
     {
-        return metadata;
+        return uri;
     }
 
     @Config("metadata-uri")
-    public GitConfig setMetadata(URI metadata)
+    public GitConfig setUri(URI uri)
     {
-        this.metadata = metadata;
+        this.uri = uri;
         return this;
     }
 }

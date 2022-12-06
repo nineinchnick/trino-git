@@ -57,7 +57,7 @@ public class TestGitMetadata
         TestGitClient.setupRepo(URI.create(url));
 
         GitConfig config = new GitConfig();
-        config.setMetadata(new URI(url));
+        config.setUri(new URI(url));
         GitClient client = new GitClient(config);
         metadata = new GitMetadata(client);
     }
