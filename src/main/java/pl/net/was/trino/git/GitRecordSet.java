@@ -20,11 +20,14 @@ import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
@@ -108,36 +111,45 @@ public class GitRecordSet
         try {
             localPath = ensureDir(url);
         }
-        catch (IOException ignored) {
-            return null;
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
         if (!localPath.exists()) {
+            CloneCommand repo = Git.cloneRepository()
+                    .setURI(url)
+                    .setDirectory(localPath);
+            if (!uri.getUserInfo().isEmpty()) {
+                String[] parts = uri.getUserInfo().split(":", 2);
+                UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
+                repo.setCredentialsProvider(credentials);
+            }
             try {
-                CloneCommand repo = Git.cloneRepository()
-                        .setURI(url)
-                        .setDirectory(localPath);
-                if (!uri.getUserInfo().isEmpty()) {
-                    String[] parts = uri.getUserInfo().split(":", 2);
-                    UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
-                    repo.setCredentialsProvider(credentials);
-                }
                 return repo.call();
             }
-            catch (GitAPIException ignored) {
-                // pass
+            catch (GitAPIException e) {
+                throw new RuntimeException(e);
             }
         }
+        Repository fileRepo;
         try {
-            Git repo = new Git(new FileRepositoryBuilder()
+            fileRepo = new FileRepositoryBuilder()
                     .setGitDir(new File(localPath, ".git"))
-                    .build());
-            repo.fetch().setCheckFetchedObjects(true).call();
-            return repo;
+                    .build();
         }
-        catch (GitAPIException | IOException ignored) {
-            // pass
-            return null;
+        catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        Git repo = new Git(fileRepo);
+        try {
+            List<RemoteConfig> remotes = repo.remoteList().call();
+            if (!remotes.isEmpty()) {
+                repo.fetch().setCheckFetchedObjects(true).call();
+            }
+        }
+        catch (GitAPIException e) {
+            throw new RuntimeException(e);
+        }
+        return repo;
     }
 
     public static File ensureDir(String prefix)
