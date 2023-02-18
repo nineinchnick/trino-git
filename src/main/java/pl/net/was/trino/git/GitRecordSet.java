@@ -118,7 +118,7 @@ public class GitRecordSet
             CloneCommand repo = Git.cloneRepository()
                     .setURI(url)
                     .setDirectory(localPath);
-            if (!uri.getUserInfo().isEmpty()) {
+            if (uri.getUserInfo() != null && !uri.getUserInfo().isEmpty()) {
                 String[] parts = uri.getUserInfo().split(":", 2);
                 UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
                 repo.setCredentialsProvider(credentials);
