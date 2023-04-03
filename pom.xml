@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>130</version>
+        <version>134</version>
     </parent>
 
     <licenses>
@@ -43,7 +43,7 @@
 
     <properties>
         <project.build.targetJdk>17</project.build.targetJdk>
-        <air.java.version>17.0.4</air.java.version>
+        <air.java.version>17.0.6</air.java.version>
 
         <air.main.basedir>${project.basedir}</air.main.basedir>
 
@@ -53,13 +53,13 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>405</dep.trino.version>
-        <dep.airlift.version>219</dep.airlift.version>
+        <dep.trino.version>411</dep.trino.version>
+        <dep.airlift.version>228</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.17.0</dep.errorprone.version>
-        <dep.jackson.version>2.14.1</dep.jackson.version>
+        <dep.errorprone.version>2.18.0</dep.errorprone.version>
+        <dep.jackson.version>2.14.2</dep.jackson.version>
         <dep.testng.version>7.7.1</dep.testng.version>
-        <dep.joda.version>2.12.2</dep.joda.version>
+        <dep.joda.version>2.12.5</dep.joda.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.scm.id>github</project.scm.id>
@@ -72,6 +72,21 @@
             <url>https://maven.pkg.github.com/nineinchnick/trino-git</url>
         </repository>
     </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>5.13.0</version>
+            </dependency>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna-platform</artifactId>
+                <version>5.13.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -109,7 +124,7 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>0.44</version>
+            <version>0.45</version>
             <scope>provided</scope>
         </dependency>
 
@@ -147,7 +162,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>6.4.0.202211300538-r</version>
+            <version>6.5.0.202303070854-r</version>
         </dependency>
 
         <dependency>
@@ -223,14 +238,14 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>3.5.0</version>
+            <version>3.5.1</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.23.1</version>
+            <version>3.24.2</version>
             <scope>test</scope>
         </dependency>
 
