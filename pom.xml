@@ -53,7 +53,7 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>415</dep.trino.version>
+        <dep.trino.version>416</dep.trino.version>
         <dep.airlift.version>230</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.18.0</dep.errorprone.version>
