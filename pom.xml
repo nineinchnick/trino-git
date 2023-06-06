@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>138</version>
+        <version>140</version>
     </parent>
 
     <licenses>
@@ -53,12 +53,12 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>415</dep.trino.version>
-        <dep.airlift.version>230</dep.airlift.version>
+        <dep.trino.version>418</dep.trino.version>
+        <dep.airlift.version>232</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.18.0</dep.errorprone.version>
-        <dep.jackson.version>2.15.0</dep.jackson.version>
-        <dep.testng.version>7.7.1</dep.testng.version>
+        <dep.errorprone.version>2.19.1</dep.errorprone.version>
+        <dep.jackson.version>2.15.2</dep.jackson.version>
+        <dep.testng.version>7.8.0</dep.testng.version>
         <dep.joda.version>2.12.5</dep.joda.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
@@ -88,7 +88,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.25.0</version>
+                <version>1.26.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -150,13 +150,13 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>31.1-jre</version>
+            <version>32.0.0-jre</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.1.0</version>
+            <version>7.0.0</version>
         </dependency>
 
         <dependency>
@@ -257,7 +257,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>3.5.1</version>
+            <version>4.0.0</version>
             <scope>test</scope>
         </dependency>
 
