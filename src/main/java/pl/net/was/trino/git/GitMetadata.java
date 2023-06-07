@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
 import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
@@ -41,8 +42,6 @@ import io.trino.spi.predicate.ValueSet;
 import io.trino.spi.statistics.ColumnStatistics;
 import io.trino.spi.statistics.Estimate;
 import io.trino.spi.statistics.TableStatistics;
-
-import javax.inject.Inject;
 
 import java.util.List;
 import java.util.Map;

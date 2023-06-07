@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.inject.Inject;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorMetadata;
@@ -20,8 +21,6 @@ import io.trino.spi.connector.ConnectorRecordSetProvider;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.transaction.IsolationLevel;
-
-import javax.inject.Inject;
 
 import static java.util.Objects.requireNonNull;
 import static pl.net.was.trino.git.GitTransactionHandle.INSTANCE;

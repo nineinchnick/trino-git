@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.io.Resources;
+import com.google.inject.Inject;
 import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.BigintType;
@@ -23,8 +24,6 @@ import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
 import io.trino.spi.type.VarbinaryType;
 import io.trino.spi.type.VarcharType;
-
-import javax.inject.Inject;
 
 import java.io.IOException;
 import java.util.List;
