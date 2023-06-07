@@ -35,6 +35,7 @@ public class GitModule
 {
     private final TypeManager typeManager;
 
+    @Inject
     public GitModule(TypeManager typeManager)
     {
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
