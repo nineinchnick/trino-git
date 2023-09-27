@@ -54,7 +54,7 @@ jobs:
           echo "VERSION=$(grep 'project.rel.pl.net.was\\:trino-git=' release.properties | cut -d'=' -f2)" >> $GITHUB_ENV
 
       - name: Publish JAR
-        run: ./mvnw -B release:perform -Darguments=-Dgpg.skip
+        run: ./mvnw -B release:perform -Darguments="-Dgpg.skip -Dmaven.deploy.skip=true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
