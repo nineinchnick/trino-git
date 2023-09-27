@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>144</version>
+        <version>145</version>
     </parent>
 
     <licenses>
@@ -53,13 +53,22 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
-        <dep.trino.version>425</dep.trino.version>
+        <dep.trino.version>427</dep.trino.version>
         <dep.airlift.version>235</dep.airlift.version>
+        <dep.slice.version>2.2</dep.slice.version>
+        <dep.opentelemetry.version>1.30.1</dep.opentelemetry.version>
+        <dep.opentelemetry-instrumentation.version>1.30.0</dep.opentelemetry-instrumentation.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.errorprone.version>2.21.1</dep.errorprone.version>
+        <dep.guava.version>32.1.2-jre</dep.guava.version>
+        <dep.guice.version>7.0.0</dep.guice.version>
+        <dep.errorprone.version>2.22.0</dep.errorprone.version>
         <dep.jackson.version>2.15.2</dep.jackson.version>
         <dep.testng.version>7.8.0</dep.testng.version>
         <dep.joda.version>2.12.5</dep.joda.version>
+        <dep.junit.version>5.10.0</dep.junit.version>
+        <dep.slf4j.version>2.0.9</dep.slf4j.version>
+        <dep.assertj-core.version>3.24.2</dep.assertj-core.version>
+        <dep.logback.version>1.4.11</dep.logback.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.scm.id>github</project.scm.id>
@@ -78,7 +87,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.27.0</version>
+                <version>${dep.opentelemetry.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -121,7 +130,7 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>2.2</version>
+            <version>${dep.slice.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -140,13 +149,13 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.2-jre</version>
+            <version>${dep.guava.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>7.0.0</version>
+            <version>${dep.guice.version}</version>
         </dependency>
 
         <dependency>
@@ -165,7 +174,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>6.6.0.202305301015-r</version>
+            <version>6.7.0.202309050840-r</version>
         </dependency>
 
         <dependency>
@@ -234,7 +243,7 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
-            <version>1.9</version>
+            <version>1.10</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -248,7 +257,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>${dep.assertj-core.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -334,6 +343,29 @@
                         <groupId>com.github.ferstl</groupId>
                         <artifactId>pedantic-pom-enforcers</artifactId>
                         <version>2.1.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <dependencies>
+                    <!-- allow both JUnit and TestNG -->
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit-platform</artifactId>
+                        <version>${dep.plugin.surefire.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-testng</artifactId>
+                        <version>${dep.plugin.surefire.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-engine</artifactId>
+                        <version>${dep.junit.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
