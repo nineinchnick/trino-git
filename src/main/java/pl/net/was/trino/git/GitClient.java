@@ -171,6 +171,7 @@ public class GitClient
                 viewColumns.get(viewName),
                 Optional.empty(),
                 Optional.empty(),
-                true);
+                true,
+                List.of());
     }
 }
