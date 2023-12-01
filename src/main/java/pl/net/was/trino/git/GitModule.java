@@ -32,17 +32,20 @@ import static java.util.Objects.requireNonNull;
 public class GitModule
         implements Module
 {
+    private final String catalogName;
     private final TypeManager typeManager;
 
     @Inject
-    public GitModule(TypeManager typeManager)
+    public GitModule(String catalogName, TypeManager typeManager)
     {
+        this.catalogName = requireNonNull(catalogName, "catalogName is null");
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
     }
 
     @Override
     public void configure(Binder binder)
     {
+        binder.bindConstant().annotatedWith(GitMetadata.CatalogName.class).to(catalogName);
         binder.bind(TypeManager.class).toInstance(typeManager);
 
         binder.bind(GitConnector.class).in(Scopes.SINGLETON);

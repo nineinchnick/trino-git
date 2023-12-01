@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.BindingAnnotation;
 import com.google.inject.Inject;
 import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
@@ -43,6 +44,10 @@ import io.trino.spi.statistics.ColumnStatistics;
 import io.trino.spi.statistics.Estimate;
 import io.trino.spi.statistics.TableStatistics;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,10 +66,16 @@ public class GitMetadata
     private String catalogName;
 
     @Inject
-    public GitMetadata(GitClient gitClient)
+    public GitMetadata(@CatalogName String catalogName, GitClient gitClient)
     {
+        this.catalogName = requireNonNull(catalogName, "catalogName is null");
         this.gitClient = requireNonNull(gitClient, "client is null");
     }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.FIELD, ElementType.PARAMETER})
+    @BindingAnnotation
+    public @interface CatalogName {}
 
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
@@ -206,11 +217,6 @@ public class GitMetadata
     public Optional<ConnectorViewDefinition> getView(ConnectorSession session, SchemaTableName viewName)
     {
         return Optional.ofNullable(gitClient.getView(catalogName, viewName.getSchemaName(), viewName.getTableName()));
-    }
-
-    public void setCatalogName(String catalogName)
-    {
-        this.catalogName = catalogName;
     }
 
     @Override

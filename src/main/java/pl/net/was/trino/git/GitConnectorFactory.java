@@ -42,15 +42,13 @@ public class GitConnectorFactory
             // A plugin is not required to use Guice; it is just very convenient
             Bootstrap app = new Bootstrap(
                     new JsonModule(),
-                    new GitModule(context.getTypeManager()));
+                    new GitModule(catalogName, context.getTypeManager()));
 
             Injector injector = app
                     .doNotInitializeLogging()
                     .setRequiredConfigurationProperties(requiredConfig)
                     .initialize();
-            GitConnector connector = injector.getInstance(GitConnector.class);
-            ((GitMetadata) connector.getMetadata(null)).setCatalogName(catalogName);
-            return connector;
+            return injector.getInstance(GitConnector.class);
         }
         catch (Exception e) {
             throwIfUnchecked(e);
