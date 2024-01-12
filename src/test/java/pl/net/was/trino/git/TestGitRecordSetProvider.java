@@ -17,8 +17,8 @@ import com.google.common.collect.ImmutableMap;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,15 +30,14 @@ import java.util.OptionalLong;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitRecordSetProvider
 {
     private static final URI uri = URI.create("fake.invalid");
 
-    @BeforeSuite
-    public void setUp()
+    @BeforeAll
+    public static void setUp()
             throws IOException, GitAPIException
     {
         TestGitClient.setupRepo(uri);
@@ -56,16 +55,16 @@ public class TestGitRecordSetProvider
                 List.of(
                         new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                         new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
-        assertNotNull(recordSet, "recordSet is null");
+        assertThat(recordSet).isNotNull();
 
         RecordCursor cursor = recordSet.cursor();
-        assertNotNull(cursor, "cursor is null");
+        assertThat(cursor).isNotNull();
 
         Map<String, String> data = new LinkedHashMap<>();
         while (cursor.advanceNextPosition()) {
             data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
         }
-        assertEquals(data, ImmutableMap.<String, String>builder()
+        assertThat(data).isEqualTo(ImmutableMap.<String, String>builder()
                 .put("080dfdf0aac7d302dc31d57f62942bb6533944f7", "test")
                 .put("c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "test")
                 .build());

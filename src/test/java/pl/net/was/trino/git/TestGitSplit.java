@@ -14,15 +14,14 @@
 package pl.net.was.trino.git;
 
 import io.airlift.json.JsonCodec;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitSplit
 {
@@ -38,7 +37,7 @@ public class TestGitSplit
     {
         URI testURI = new URI("url.invalid");
         GitSplit httpSplit = new GitSplit("tableName", testURI, Optional.empty());
-        assertTrue(httpSplit.isRemotelyAccessible());
+        assertThat(httpSplit.isRemotelyAccessible()).isTrue();
     }
 
     @Test
@@ -47,8 +46,8 @@ public class TestGitSplit
         JsonCodec<GitSplit> codec = jsonCodec(GitSplit.class);
         String json = codec.toJson(split);
         GitSplit copy = codec.fromJson(json);
-        assertEquals(copy.getTableName(), split.getTableName());
+        assertThat(copy.getTableName()).isEqualTo(split.getTableName());
 
-        assertTrue(copy.isRemotelyAccessible());
+        assertThat(copy.isRemotelyAccessible()).isTrue();
     }
 }

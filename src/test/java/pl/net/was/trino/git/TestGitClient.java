@@ -18,7 +18,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,10 +28,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitClient
 {
@@ -39,7 +39,7 @@ public class TestGitClient
     public void testMetadata()
     {
         GitClient client = new GitClient(new GitConfig());
-        assertEquals(client.getSchemaNames(), List.of("default"));
+        assertThat(client.getSchemaNames()).isEqualTo(Set.of("default"));
     }
 
     public static void setupRepo(URI uri)
@@ -63,7 +63,7 @@ public class TestGitClient
         Repository repository = FileRepositoryBuilder.create(new File(localPath, ".git"));
         repository.create();
 
-        // create a new file file
+        // create a new file
         File myFile = new File(repository.getDirectory().getParent(), "testfile");
         if (!myFile.createNewFile()) {
             throw new IOException("Could not create file " + myFile);

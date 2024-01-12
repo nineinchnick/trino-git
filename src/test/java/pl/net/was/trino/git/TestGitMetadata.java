@@ -21,8 +21,10 @@ import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.TableNotFoundException;
 import io.trino.spi.type.ArrayType;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,17 +39,16 @@ import static io.trino.spi.type.TimestampWithTimeZoneType.createTimestampWithTim
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNull;
-import static org.testng.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
-@Test(singleThreaded = true)
+@Execution(ExecutionMode.SAME_THREAD)
 public class TestGitMetadata
 {
     private GitTableHandle commitsTableHandle;
     private GitMetadata metadata;
 
-    @BeforeMethod
+    @BeforeEach
     public void setUp()
             throws IOException, GitAPIException, URISyntaxException
     {
@@ -71,27 +72,25 @@ public class TestGitMetadata
     @Test
     public void testGetTableHandle()
     {
-        assertNull(metadata.getTableHandle(SESSION, new SchemaTableName("example", "unknown")));
-        assertNull(metadata.getTableHandle(SESSION, new SchemaTableName("unknown", "numbers")));
-        assertNull(metadata.getTableHandle(SESSION, new SchemaTableName("unknown", "unknown")));
+        assertThat(metadata.getTableHandle(SESSION, new SchemaTableName("example", "unknown"))).isNull();
+        assertThat(metadata.getTableHandle(SESSION, new SchemaTableName("unknown", "numbers"))).isNull();
+        assertThat(metadata.getTableHandle(SESSION, new SchemaTableName("unknown", "unknown"))).isNull();
     }
 
     @Test
     public void testGetColumnHandles()
     {
         // known table
-        assertEquals(
-                metadata.getColumnHandles(SESSION, commitsTableHandle),
-                Map.of(
-                        "object_id", new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
-                        "author_name", new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
-                        "author_email", new GitColumnHandle("author_email", createUnboundedVarcharType(), 2),
-                        "committer_name", new GitColumnHandle("committer_name", createUnboundedVarcharType(), 3),
-                        "committer_email", new GitColumnHandle("committer_email", createUnboundedVarcharType(), 4),
-                        "message", new GitColumnHandle("message", createUnboundedVarcharType(), 5),
-                        "parents", new GitColumnHandle("parents", new ArrayType(createUnboundedVarcharType()), 6),
-                        "tree_id", new GitColumnHandle("tree_id", createUnboundedVarcharType(), 7),
-                        "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
+        assertThat(metadata.getColumnHandles(SESSION, commitsTableHandle)).isEqualTo(Map.of(
+                "object_id", new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                "author_name", new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
+                "author_email", new GitColumnHandle("author_email", createUnboundedVarcharType(), 2),
+                "committer_name", new GitColumnHandle("committer_name", createUnboundedVarcharType(), 3),
+                "committer_email", new GitColumnHandle("committer_email", createUnboundedVarcharType(), 4),
+                "message", new GitColumnHandle("message", createUnboundedVarcharType(), 5),
+                "parents", new GitColumnHandle("parents", new ArrayType(createUnboundedVarcharType()), 6),
+                "tree_id", new GitColumnHandle("tree_id", createUnboundedVarcharType(), 7),
+                "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
 
         // unknown table
         try {
@@ -107,39 +106,35 @@ public class TestGitMetadata
     {
         // known table
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(SESSION, commitsTableHandle);
-        assertEquals(tableMetadata.getTable().getSchemaName(), "default");
-        assertEquals(
-                tableMetadata.getColumns(),
-                List.of(
-                        new ColumnMetadata("object_id", createUnboundedVarcharType()),
-                        new ColumnMetadata("author_name", createUnboundedVarcharType()),
-                        new ColumnMetadata("author_email", createUnboundedVarcharType()),
-                        new ColumnMetadata("committer_name", createUnboundedVarcharType()),
-                        new ColumnMetadata("committer_email", createUnboundedVarcharType()),
-                        new ColumnMetadata("message", createUnboundedVarcharType()),
-                        new ColumnMetadata("parents", new ArrayType(createUnboundedVarcharType())),
-                        new ColumnMetadata("tree_id", createUnboundedVarcharType()),
-                        new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
+        assertThat(tableMetadata.getTable().getSchemaName()).isEqualTo("default");
+        assertThat(tableMetadata.getColumns()).isEqualTo(List.of(
+                new ColumnMetadata("object_id", createUnboundedVarcharType()),
+                new ColumnMetadata("author_name", createUnboundedVarcharType()),
+                new ColumnMetadata("author_email", createUnboundedVarcharType()),
+                new ColumnMetadata("committer_name", createUnboundedVarcharType()),
+                new ColumnMetadata("committer_email", createUnboundedVarcharType()),
+                new ColumnMetadata("message", createUnboundedVarcharType()),
+                new ColumnMetadata("parents", new ArrayType(createUnboundedVarcharType())),
+                new ColumnMetadata("tree_id", createUnboundedVarcharType()),
+                new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty())));
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty(), OptionalLong.empty())));
-        assertNull(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty(), OptionalLong.empty())));
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty(), OptionalLong.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty(), OptionalLong.empty()))).isNull();
     }
 
     @Test
     public void testListTables()
     {
         // all schemas
-        assertEquals(
-                Set.copyOf(metadata.listTables(SESSION, Optional.empty())),
-                Set.of(
-                        new SchemaTableName("default", "commits"),
-                        new SchemaTableName("default", "branches"),
-                        new SchemaTableName("default", "diff_stats"),
-                        new SchemaTableName("default", "objects"),
-                        new SchemaTableName("default", "tags"),
-                        new SchemaTableName("default", "trees")));
+        assertThat(Set.copyOf(metadata.listTables(SESSION, Optional.empty()))).isEqualTo(Set.of(
+                new SchemaTableName("default", "commits"),
+                new SchemaTableName("default", "branches"),
+                new SchemaTableName("default", "diff_stats"),
+                new SchemaTableName("default", "objects"),
+                new SchemaTableName("default", "tags"),
+                new SchemaTableName("default", "trees")));
 
         // unknown schema
         try {
@@ -153,10 +148,9 @@ public class TestGitMetadata
     @Test
     public void getColumnMetadata()
     {
-        assertEquals(
-                metadata.getColumnMetadata(SESSION, commitsTableHandle,
-                        new GitColumnHandle("text", createUnboundedVarcharType(), 0)),
-                new ColumnMetadata("text", createUnboundedVarcharType()));
+        ColumnMetadata actualColumn = metadata.getColumnMetadata(SESSION, commitsTableHandle,
+                new GitColumnHandle("text", createUnboundedVarcharType(), 0));
+        assertThat(actualColumn).isEqualTo(new ColumnMetadata("text", createUnboundedVarcharType()));
 
         // example connector assumes that the table handle and column handle are
         // properly formed, so it will return a metadata object for any
@@ -165,20 +159,20 @@ public class TestGitMetadata
         // directly.
     }
 
-    @Test(expectedExceptions = TrinoException.class)
+    @Test
     public void testCreateTable()
     {
-        metadata.createTable(
+        assertThatThrownBy(() -> metadata.createTable(
                 SESSION,
                 new ConnectorTableMetadata(
                         new SchemaTableName("example", "foo"),
                         List.of(new ColumnMetadata("text", createUnboundedVarcharType()))),
-                false);
+                false)).isInstanceOf(TrinoException.class);
     }
 
-    @Test(expectedExceptions = TrinoException.class)
+    @Test
     public void testDropTableTable()
     {
-        metadata.dropTable(SESSION, commitsTableHandle);
+        assertThatThrownBy(() -> metadata.dropTable(SESSION, commitsTableHandle)).isInstanceOf(TrinoException.class);
     }
 }

@@ -15,13 +15,13 @@ package pl.net.was.trino.git;
 
 import io.airlift.json.JsonCodec;
 import io.airlift.testing.EquivalenceTester;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 import java.util.OptionalLong;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitTableHandle
 {
@@ -33,7 +33,7 @@ public class TestGitTableHandle
         JsonCodec<GitTableHandle> codec = jsonCodec(GitTableHandle.class);
         String json = codec.toJson(tableHandle);
         GitTableHandle copy = codec.fromJson(json);
-        assertEquals(copy, tableHandle);
+        assertThat(copy).isEqualTo(tableHandle);
     }
 
     @Test
