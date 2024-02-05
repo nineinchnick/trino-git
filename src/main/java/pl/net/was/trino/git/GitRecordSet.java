@@ -41,7 +41,7 @@ public class GitRecordSet
     private final List<GitColumnHandle> columnHandles;
     private final List<Type> columnTypes;
     private final String tableName;
-    private Git repo;
+    private final Git repo;
     private final Optional<List<String>> commitIds;
 
     public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)

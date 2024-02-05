@@ -63,7 +63,7 @@ public class GitMetadata
         implements ConnectorMetadata
 {
     private final GitClient gitClient;
-    private String catalogName;
+    private final String catalogName;
 
     @Inject
     public GitMetadata(@CatalogName String catalogName, GitClient gitClient)
