@@ -28,8 +28,6 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -78,30 +76,18 @@ public class GitRecordSet
     @Override
     public RecordCursor cursor()
     {
-        Map<String, Class<?>> map = Map.of(
-                "branches", BranchesRecordCursor.class,
-                "commits", CommitsRecordCursor.class,
-                "diff_stats", DiffStatsRecordCursor.class,
-                "objects", ObjectsRecordCursor.class,
-                "tags", TagsRecordCursor.class,
-                "trees", TreesRecordCursor.class);
-        Class<?> clazz = map.get(tableName);
-        if (clazz == null) {
+        Map<String, RecordCursorProvider> map = Map.of(
+                "branches", BranchesRecordCursor::new,
+                "commits", CommitsRecordCursor::new,
+                "diff_stats", DiffStatsRecordCursor::new,
+                "objects", ObjectsRecordCursor::new,
+                "tags", TagsRecordCursor::new,
+                "trees", TreesRecordCursor::new);
+        RecordCursorProvider recordCursorProvider = map.get(tableName);
+        if (recordCursorProvider == null) {
             return null;
         }
-        Constructor<?> ctr;
-        try {
-            ctr = clazz.getConstructor(List.class, Git.class, Optional.class);
-        }
-        catch (NoSuchMethodException e) {
-            throw new RuntimeException("Missing cursor constructor", e);
-        }
-        try {
-            return (RecordCursor) ctr.newInstance(columnHandles, repo, commitIds);
-        }
-        catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("Unknown exception", e);
-        }
+        return recordCursorProvider.create(columnHandles, repo, commitIds);
     }
 
     private Git getRepo(URI uri)
