@@ -17,15 +17,22 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevTag;
+import org.eclipse.jgit.revwalk.RevWalk;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.Math.multiplyExact;
+import static java.util.Arrays.asList;
 
 public class TagsRecordCursor
         implements RecordCursor
@@ -33,9 +40,11 @@ public class TagsRecordCursor
     private final List<GitColumnHandle> columnHandles;
     private final int[] fieldToColumnIndex;
 
+    private final boolean parseTag;
+    private final RevWalk walk;
     private Iterator<Ref> tags;
 
-    private List<String> fields;
+    private List<@Nullable Object> fields;
 
     public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
@@ -46,6 +55,9 @@ public class TagsRecordCursor
             fieldToColumnIndex[i] = columnHandles.get(i).getOrdinalPosition();
         }
 
+        parseTag = columnHandles.stream()
+                .anyMatch(column -> column.getColumnName().equals("tag_time"));
+        walk = parseTag ? new RevWalk(repo.getRepository()) : null;
         try {
             tags = repo.tagList().call().iterator();
         }
@@ -76,18 +88,35 @@ public class TagsRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
+        if (walk != null) {
+            walk.reset();
+        }
         if (!tags.hasNext()) {
             return false;
         }
         Ref tag = tags.next();
-        fields = List.of(
+
+        Long tagTime = null;
+        if (parseTag) {
+            RevTag revTag;
+            try {
+                revTag = walk.parseTag(tag.getObjectId());
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            tagTime = multiplyExact(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), 1_000);
+        }
+
+        fields = asList(
                 tag.getObjectId().getName(),
-                tag.getName());
+                tag.getName(),
+                tagTime);
 
         return true;
     }
 
-    private String getFieldValue(int field)
+    private Object getFieldValue(int field)
     {
         checkState(fields != null, "Cursor has not been advanced yet");
 
@@ -104,7 +133,7 @@ public class TagsRecordCursor
     @Override
     public long getLong(int field)
     {
-        throw new UnsupportedOperationException();
+        return (Long) getFieldValue(field);
     }
 
     @Override
@@ -116,7 +145,7 @@ public class TagsRecordCursor
     @Override
     public Slice getSlice(int field)
     {
-        return Slices.utf8Slice(getFieldValue(field));
+        return Slices.utf8Slice((String) getFieldValue(field));
     }
 
     @Override
@@ -128,11 +157,14 @@ public class TagsRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return false;
+        return getFieldValue(field) == null;
     }
 
     @Override
     public void close()
     {
+        if (walk != null) {
+            walk.close();
+        }
     }
 }

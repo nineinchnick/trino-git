@@ -139,6 +139,33 @@ public class TestGitRecordSet
     }
 
     @Test
+    public void testTagsCursorWithTagTime()
+    {
+        GitSplit split = new GitSplit("tags", uri, Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty(), OptionalLong.empty());
+        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+                new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                new GitColumnHandle("name", createUnboundedVarcharType(), 1),
+                new GitColumnHandle("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(2)).isEqualTo(TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS);
+
+            Map<String, List<?>> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                assertThat(cursor.isNull(2)).isFalse();
+                data.put(cursor.getSlice(0).toStringUtf8(), List.of(
+                        cursor.getSlice(1).toStringUtf8(),
+                        cursor.getLong(2)));
+            }
+            assertThat(data).isEqualTo(Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", List.of("refs/tags/tag_for_testing", 1580897313000000L)));
+        }
+    }
+
+    @Test
     public void testTreesCursorSimple()
     {
         GitSplit split = new GitSplit("trees", uri, Optional.empty());
