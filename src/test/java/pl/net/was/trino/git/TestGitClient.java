@@ -24,13 +24,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Set;
 import java.util.TimeZone;
 
+import static com.google.common.io.MoreFiles.deleteRecursively;
+import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitClient
@@ -54,10 +53,7 @@ public class TestGitClient
             return;
         }
         if (localPath.exists()) {
-            Files.walk(localPath.toPath())
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            deleteRecursively(localPath.toPath(), ALLOW_INSECURE);
         }
 
         Repository repository = FileRepositoryBuilder.create(new File(localPath, ".git"));
