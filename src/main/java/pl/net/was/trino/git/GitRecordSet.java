@@ -77,11 +77,11 @@ public class GitRecordSet
     public RecordCursor cursor()
     {
         Map<String, RecordCursorProvider> map = Map.of(
-                "branches", BranchesRecordCursor::new,
+                "branches", (columnHandles, repo, commitIds) -> new BranchesRecordCursor(columnHandles, repo),
                 "commits", CommitsRecordCursor::new,
                 "diff_stats", DiffStatsRecordCursor::new,
-                "objects", ObjectsRecordCursor::new,
-                "tags", TagsRecordCursor::new,
+                "objects", (columnHandles, repo, commitIds) -> new ObjectsRecordCursor(columnHandles, repo),
+                "tags", (columnHandles, repo, commitIds) -> new TagsRecordCursor(columnHandles, repo),
                 "trees", TreesRecordCursor::new);
         RecordCursorProvider recordCursorProvider = map.get(tableName);
         if (recordCursorProvider == null) {

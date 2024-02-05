@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -49,7 +48,7 @@ public class ObjectsRecordCursor
 
     private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
-    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
 

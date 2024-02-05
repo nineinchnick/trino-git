@@ -27,7 +27,6 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -46,7 +45,7 @@ public class BranchesRecordCursor
 
     private List<String> fields;
 
-    public BranchesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public BranchesRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
 
