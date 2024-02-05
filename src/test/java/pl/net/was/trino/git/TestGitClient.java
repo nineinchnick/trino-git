@@ -15,9 +15,11 @@ package pl.net.was.trino.git;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.ConfigInvalidException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.util.SystemReader;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -45,6 +47,14 @@ public class TestGitClient
     public static void setupRepo(URI uri)
             throws IOException, GitAPIException
     {
+        // make sure the global Git config is not being used
+        try {
+            SystemReader.getInstance().getUserConfig().clear();
+        }
+        catch (ConfigInvalidException e) {
+            // ignore
+        }
+
         // ensure the repo dir exists, remove and recreate if necessary
         File localPath;
         try {
