@@ -26,12 +26,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
-import java.util.Date;
+import java.time.Instant;
 import java.util.Set;
-import java.util.TimeZone;
 
 import static com.google.common.io.MoreFiles.deleteRecursively;
 import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
+import static java.time.ZoneOffset.UTC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitClient
@@ -75,7 +75,7 @@ public class TestGitClient
             throw new IOException("Could not create file " + myFile);
         }
 
-        PersonIdent author = new PersonIdent("test", "test@invalid.com", new Date(1580897313000L), TimeZone.getTimeZone("UTC"));
+        PersonIdent author = new PersonIdent("test", "test@invalid.com", Instant.ofEpochSecond(1580897313L), UTC);
         // commit the new file
         Git git = new Git(repository);
         git.add().addFilepattern(".").call();
