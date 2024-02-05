@@ -23,7 +23,6 @@ import org.eclipse.jgit.lib.Ref;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -38,7 +37,7 @@ public class TagsRecordCursor
 
     private List<String> fields;
 
-    public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
         this.columnHandles = columnHandles;
 
