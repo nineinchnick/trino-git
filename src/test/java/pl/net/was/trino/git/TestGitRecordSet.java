@@ -78,20 +78,20 @@ public class TestGitRecordSet
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
-
-        Map<String, List<Object>> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            data.put(cursor.getSlice(0).toStringUtf8(), List.of(
-                    cursor.getSlice(1).toStringUtf8(),
-                    cursor.getLong(2)));
+            Map<String, List<Object>> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                data.put(cursor.getSlice(0).toStringUtf8(), List.of(
+                        cursor.getSlice(1).toStringUtf8(),
+                        cursor.getLong(2)));
+            }
+            assertThat(data).isEqualTo(Map.of(
+                    "080dfdf0aac7d302dc31d57f62942bb6533944f7", List.of("test", 6475355394048000L),
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of("test", 6475355394048000L)));
         }
-        assertThat(data).isEqualTo(Map.of(
-                "080dfdf0aac7d302dc31d57f62942bb6533944f7", List.of("test", 6475355394048000L),
-                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of("test", 6475355394048000L)));
     }
 
     @Test
@@ -102,18 +102,18 @@ public class TestGitRecordSet
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
-
-        Map<String, String> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            assertThat(cursor.isNull(0)).isFalse();
-            assertThat(cursor.isNull(1)).isFalse();
-            data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            Map<String, String> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            }
+            assertThat(data).isEqualTo(Map.of("c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "refs/heads/master"));
         }
-        assertThat(data).isEqualTo(Map.of("c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "refs/heads/master"));
     }
 
     @Test
@@ -124,18 +124,18 @@ public class TestGitRecordSet
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
-
-        Map<String, String> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            assertThat(cursor.isNull(0)).isFalse();
-            assertThat(cursor.isNull(1)).isFalse();
-            data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            Map<String, String> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            }
+            assertThat(data).isEqualTo(Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", "refs/tags/tag_for_testing"));
         }
-        assertThat(data).isEqualTo(Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", "refs/tags/tag_for_testing"));
     }
 
     @Test
@@ -146,20 +146,20 @@ public class TestGitRecordSet
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
-
-        Map<String, String> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            assertThat(cursor.isNull(0)).isFalse();
-            assertThat(cursor.isNull(1)).isFalse();
-            data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            Map<String, String> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+            }
+            assertThat(data).isEqualTo(Map.of(
+                    "080dfdf0aac7d302dc31d57f62942bb6533944f7", "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef"));
         }
-        assertThat(data).isEqualTo(Map.of(
-                "080dfdf0aac7d302dc31d57f62942bb6533944f7", "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef"));
     }
 
     @Test
@@ -170,22 +170,22 @@ public class TestGitRecordSet
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("contents", VarbinaryType.VARBINARY, 1)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(VarbinaryType.VARBINARY);
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(VarbinaryType.VARBINARY);
-
-        Map<String, String> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            assertThat(cursor.isNull(0)).isFalse();
-            assertThat(cursor.isNull(1)).isFalse();
-            String objectId = cursor.getSlice(0).toStringUtf8();
-            String contents = cursor.getSlice(1).toStringUtf8();
-            data.put(objectId, contents);
+            Map<String, String> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                String objectId = cursor.getSlice(0).toStringUtf8();
+                String contents = cursor.getSlice(1).toStringUtf8();
+                data.put(objectId, contents);
+            }
+            assertThat(data).isEqualTo(Map.of(
+                    "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef", "Hello, world!",
+                    "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", ""));
         }
-        assertThat(data).isEqualTo(Map.of(
-                "5dd01c177f5d7d1be5346a5bc18a569a7410c2ef", "Hello, world!",
-                "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", ""));
     }
 
     @Test
@@ -198,31 +198,31 @@ public class TestGitRecordSet
                 new GitColumnHandle("old_commit_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("added_lines", IntegerType.INTEGER, 2),
                 new GitColumnHandle("deleted_lines", IntegerType.INTEGER, 3)));
-        RecordCursor cursor = recordSet.cursor();
+        try (RecordCursor cursor = recordSet.cursor()) {
+            assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
+            assertThat(cursor.getType(2)).isEqualTo(IntegerType.INTEGER);
+            assertThat(cursor.getType(3)).isEqualTo(IntegerType.INTEGER);
 
-        assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
-        assertThat(cursor.getType(2)).isEqualTo(IntegerType.INTEGER);
-        assertThat(cursor.getType(3)).isEqualTo(IntegerType.INTEGER);
-
-        Map<String, List<Object>> data = new LinkedHashMap<>();
-        while (cursor.advanceNextPosition()) {
-            assertThat(cursor.isNull(0)).isFalse();
-            assertThat(cursor.isNull(1)).isFalse();
-            assertThat(cursor.isNull(2)).isFalse();
-            assertThat(cursor.isNull(3)).isFalse();
-            data.put(
-                    cursor.getSlice(0).toStringUtf8(),
+            Map<String, List<Object>> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                assertThat(cursor.isNull(0)).isFalse();
+                assertThat(cursor.isNull(1)).isFalse();
+                assertThat(cursor.isNull(2)).isFalse();
+                assertThat(cursor.isNull(3)).isFalse();
+                data.put(
+                        cursor.getSlice(0).toStringUtf8(),
+                        List.of(
+                                cursor.getSlice(1).toStringUtf8(),
+                                cursor.getLong(2),
+                                cursor.getLong(3)));
+            }
+            assertThat(data).isEqualTo(Map.of(
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4",
                     List.of(
-                            cursor.getSlice(1).toStringUtf8(),
-                            cursor.getLong(2),
-                            cursor.getLong(3)));
+                            "080dfdf0aac7d302dc31d57f62942bb6533944f7",
+                            1L,
+                            0L)));
         }
-        assertThat(data).isEqualTo(Map.of(
-                "c3b14e59f88d0d6597b98ee93cf61e7556d540a4",
-                List.of(
-                        "080dfdf0aac7d302dc31d57f62942bb6533944f7",
-                        1L,
-                        0L)));
     }
 }
