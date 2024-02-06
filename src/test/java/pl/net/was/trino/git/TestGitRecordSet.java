@@ -164,7 +164,7 @@ public class TestGitRecordSet
                         cursor.isNull(2) ? null : cursor.getLong(2)));
             }
             assertThat(data).isEqualTo(Map.of(
-                    "7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", asList("refs/tags/tag_for_testing", 1580897313000000L),
+                    "7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", asList("refs/tags/tag_for_testing", 6475355394048000L),
                     "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", asList("refs/tags/unannotated_tag_for_testing", null)));
         }
     }
