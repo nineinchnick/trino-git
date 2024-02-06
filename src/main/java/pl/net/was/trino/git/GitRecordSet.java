@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hashing;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
 import io.trino.spi.type.Type;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 public class GitRecordSet
@@ -155,6 +157,6 @@ public class GitRecordSet
             }
         }
 
-        return new File(tmpDir, Integer.toHexString(prefix.hashCode()));
+        return new File(tmpDir, Hashing.sha256().hashString(prefix, UTF_8).toString());
     }
 }
