@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitRecordSet
@@ -134,7 +135,9 @@ public class TestGitRecordSet
                 assertThat(cursor.isNull(1)).isFalse();
                 data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
             }
-            assertThat(data).isEqualTo(Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", "refs/tags/tag_for_testing"));
+            assertThat(data).isEqualTo(Map.of(
+                    "7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", "refs/tags/tag_for_testing",
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "refs/tags/unannotated_tag_for_testing"));
         }
     }
 
@@ -156,12 +159,13 @@ public class TestGitRecordSet
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(0)).isFalse();
                 assertThat(cursor.isNull(1)).isFalse();
-                assertThat(cursor.isNull(2)).isFalse();
-                data.put(cursor.getSlice(0).toStringUtf8(), List.of(
+                data.put(cursor.getSlice(0).toStringUtf8(), asList(
                         cursor.getSlice(1).toStringUtf8(),
-                        cursor.getLong(2)));
+                        cursor.isNull(2) ? null : cursor.getLong(2)));
             }
-            assertThat(data).isEqualTo(Map.of("7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", List.of("refs/tags/tag_for_testing", 1580897313000000L)));
+            assertThat(data).isEqualTo(Map.of(
+                    "7afcc1aaeab61c3fd7f2b1b5df5178a823cbf77e", asList("refs/tags/tag_for_testing", 1580897313000000L),
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", asList("refs/tags/unannotated_tag_for_testing", null)));
         }
     }
 
