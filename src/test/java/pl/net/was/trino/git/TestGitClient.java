@@ -105,6 +105,11 @@ public class TestGitClient
                 .setTagger(author)
                 .call();
 
+        git.tag()
+                .setName("unannotated_tag_for_testing")
+                .setAnnotated(false)
+                .call();
+
         // ensure all loose objects are packed
         git.gc().call();
     }

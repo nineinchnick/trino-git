@@ -20,6 +20,7 @@ import io.trino.spi.type.Type;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -96,16 +97,23 @@ public class TagsRecordCursor
         }
         Ref tag = tags.next();
 
+        boolean annotated;
         Long tagTime = null;
         if (parseTag) {
-            RevTag revTag;
+            RevTag revTag = null;
             try {
                 revTag = walk.parseTag(tag.getObjectId());
+                annotated = true;
+            }
+            catch (IncorrectObjectTypeException e) {
+                annotated = false;
             }
             catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            tagTime = multiplyExact(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), 1_000);
+            if (annotated) {
+                tagTime = multiplyExact(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), 1_000);
+            }
         }
 
         fields = asList(
