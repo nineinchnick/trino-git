@@ -32,7 +32,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static java.lang.Math.multiplyExact;
+import static io.trino.spi.type.DateTimeEncoding.packDateTimeWithZone;
+import static io.trino.spi.type.TimeZoneKey.getTimeZoneKey;
 import static java.util.Arrays.asList;
 
 public class TagsRecordCursor
@@ -112,7 +113,7 @@ public class TagsRecordCursor
                 throw new UncheckedIOException(e);
             }
             if (annotated) {
-                tagTime = multiplyExact(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), 1_000);
+                tagTime = packDateTimeWithZone(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), getTimeZoneKey(revTag.getTaggerIdent().getZoneId().getId()));
             }
         }
 
