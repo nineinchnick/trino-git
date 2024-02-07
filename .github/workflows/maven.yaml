@@ -25,7 +25,7 @@ jobs:
           echo "::remove-matcher owner=java::"
 
       - name: Build with Maven
-        run: ./mvnw -B package
+        run: ./mvnw -B install
 
       - name: Annotate run
         uses: trinodb/github-actions/action-surefire-report@b63800bedfbc7ab1ff2e5fe7eaecf5ab82ce6a70
