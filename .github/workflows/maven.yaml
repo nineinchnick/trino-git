@@ -24,7 +24,7 @@ jobs:
           echo "::add-matcher::.github/problem-matcher.json"
           echo "::remove-matcher owner=java::"
       - name: Build with Maven
-        run: mvn -B package
+        run: mvn -B install
       - name: Upload test report
         uses: actions/upload-artifact@v3
         if: always()
