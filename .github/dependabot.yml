@@ -8,10 +8,12 @@ updates:
       dependency-updates:
         applies-to: version-updates
         update-types:
+        - major
         - minor
         - patch
       security-updates:
         applies-to: security-updates
+        dependency-type: production
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
