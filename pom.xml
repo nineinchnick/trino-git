@@ -49,7 +49,7 @@
         <air.build.jvmsize>4g</air.build.jvmsize>
 
         <dep.trino.version>444</dep.trino.version>
-        <dep.airlift.version>243</dep.airlift.version>
+        <dep.airlift.version>244</dep.airlift.version>
         <dep.slice.version>2.2</dep.slice.version>
         <dep.opentelemetry.version>1.36.0</dep.opentelemetry.version>
         <dep.opentelemetry-instrumentation.version>2.2.0</dep.opentelemetry-instrumentation.version>
@@ -93,7 +93,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.14.12</version>
+                <version>1.14.13</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
