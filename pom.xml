@@ -51,7 +51,7 @@
         <dep.trino.version>447</dep.trino.version>
         <dep.airlift.version>248</dep.airlift.version>
         <dep.slice.version>2.2</dep.slice.version>
-        <dep.opentelemetry.version>1.37.0</dep.opentelemetry.version>
+        <dep.opentelemetry.version>1.38.0</dep.opentelemetry.version>
         <dep.opentelemetry-instrumentation.version>2.3.0</dep.opentelemetry-instrumentation.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.guava.version>33.2.0-jre</dep.guava.version>
