@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>156</version>
+        <version>157</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -51,7 +51,7 @@
         <dep.trino.version>449</dep.trino.version>
         <dep.airlift.version>248</dep.airlift.version>
         <dep.slice.version>2.2</dep.slice.version>
-        <dep.opentelemetry.version>1.38.0</dep.opentelemetry.version>
+        <dep.opentelemetry.version>1.39.0</dep.opentelemetry.version>
         <dep.opentelemetry-instrumentation.version>2.4.0</dep.opentelemetry-instrumentation.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.guava.version>33.2.1-jre</dep.guava.version>
@@ -298,7 +298,7 @@
             <plugin>
                 <groupId>io.trino</groupId>
                 <artifactId>trino-maven-plugin</artifactId>
-                <version>14</version>
+                <version>15</version>
                 <extensions>true</extensions>
                 <configuration>
                     <pluginClassName>io.trino.spi.Plugin</pluginClassName>
