@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>170</version>
+        <version>175</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -48,15 +48,15 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
         <air.build.jvmsize>4g</air.build.jvmsize>
 
-        <dep.trino.version>455</dep.trino.version>
-        <dep.airlift.version>261</dep.airlift.version>
+        <dep.trino.version>457</dep.trino.version>
+        <dep.airlift.version>267</dep.airlift.version>
         <dep.slice.version>2.3</dep.slice.version>
-        <dep.opentelemetry.version>1.41.0</dep.opentelemetry.version>
+        <dep.opentelemetry.version>1.42.1</dep.opentelemetry.version>
         <dep.opentelemetry-instrumentation.version>2.7.0</dep.opentelemetry-instrumentation.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.guava.version>33.3.0-jre</dep.guava.version>
         <dep.guice.version>7.0.0</dep.guice.version>
-        <dep.errorprone.version>2.31.0</dep.errorprone.version>
+        <dep.errorprone.version>2.32.0</dep.errorprone.version>
         <dep.jackson.version>2.17.2</dep.jackson.version>
         <dep.joda.version>2.12.7</dep.joda.version>
         <dep.junit.version>5.11.0</dep.junit.version>
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>6.10.0.202406032230-r</version>
+            <version>7.0.0.202409031743-r</version>
         </dependency>
 
         <dependency>
@@ -293,7 +293,7 @@
             <plugin>
                 <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
                 <artifactId>provisio-maven-plugin</artifactId>
-                <version>1.0.25</version>
+                <version>1.1.1</version>
                 <extensions>true</extensions>
             </plugin>
 
