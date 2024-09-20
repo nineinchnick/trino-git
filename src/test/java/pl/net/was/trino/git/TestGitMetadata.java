@@ -160,17 +160,6 @@ public class TestGitMetadata
     }
 
     @Test
-    public void testCreateTable()
-    {
-        assertThatThrownBy(() -> metadata.createTable(
-                SESSION,
-                new ConnectorTableMetadata(
-                        new SchemaTableName("example", "foo"),
-                        List.of(new ColumnMetadata("text", createUnboundedVarcharType()))),
-                false)).isInstanceOf(TrinoException.class);
-    }
-
-    @Test
     public void testDropTableTable()
     {
         assertThatThrownBy(() -> metadata.dropTable(SESSION, commitsTableHandle)).isInstanceOf(TrinoException.class);

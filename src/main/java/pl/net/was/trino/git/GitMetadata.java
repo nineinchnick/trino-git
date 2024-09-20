@@ -297,6 +297,7 @@ public class GitMetadata
                         oldCommits,
                         handle.getLimit()),
                 unenforcedConstraint,
+                constraint.getExpression(),
                 true));
     }
 

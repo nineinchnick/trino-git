@@ -74,10 +74,4 @@ public class GitSplit
     {
         return List.of();
     }
-
-    @Override
-    public Object getInfo()
-    {
-        return this;
-    }
 }
