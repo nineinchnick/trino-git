@@ -15,7 +15,7 @@ jobs:
       - name: Set up the JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '22'
+          java-version: '23'
           distribution: 'temurin'
           server-id: github
           cache: 'maven'
@@ -24,12 +24,10 @@ jobs:
           echo "::add-matcher::.github/problem-matcher.json"
           echo "::remove-matcher owner=java::"
       - name: Build with Maven
-        run: mvn -B package
-      - name: Upload test report
-        uses: actions/upload-artifact@v4
+        run: ./mvnw -B package
+      - name: Annotate run
+        uses: trinodb/github-actions/action-surefire-report@b63800bedfbc7ab1ff2e5fe7eaecf5ab82ce6a70
         if: always()
         with:
-          name: test report ${{ github.job }}
-          path: |
-            **/surefire-reports/TEST-*.xml
-          retention-days: 5
+          fail_if_no_tests: false
+          skip_publishing: true
