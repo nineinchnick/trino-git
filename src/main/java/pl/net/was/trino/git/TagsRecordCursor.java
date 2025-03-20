@@ -17,7 +17,6 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -46,7 +45,7 @@ public class TagsRecordCursor
     private final RevWalk walk;
     private Iterator<Ref> tags;
 
-    private List<@Nullable Object> fields;
+    private List<Object> fields;
 
     public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
     {
