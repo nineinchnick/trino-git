@@ -48,7 +48,7 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
         <air.build.jvmsize>4g</air.build.jvmsize>
 
-        <dep.trino.version>473</dep.trino.version>
+        <dep.trino.version>474</dep.trino.version>
         <dep.airlift.version>319</dep.airlift.version>
         <dep.slice.version>2.3</dep.slice.version>
         <dep.opentelemetry.version>1.48.0</dep.opentelemetry.version>
