@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>264</version>
+        <version>305</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -48,20 +48,21 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
         <air.build.jvmsize>4g</air.build.jvmsize>
 
-        <dep.trino.version>476</dep.trino.version>
-        <dep.airlift.version>336</dep.airlift.version>
-        <dep.slice.version>2.3</dep.slice.version>
-        <dep.opentelemetry.version>1.50.0</dep.opentelemetry.version>
-        <dep.opentelemetry-instrumentation.version>2.16.0</dep.opentelemetry-instrumentation.version>
+        <dep.trino.version>477</dep.trino.version>
+        <dep.airlift.version>361</dep.airlift.version>
+        <dep.slice.version>2.4</dep.slice.version>
+        <dep.opentelemetry.version>1.54.1</dep.opentelemetry.version>
+        <dep.opentelemetry-instrumentation.version>2.20.1</dep.opentelemetry-instrumentation.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.guava.version>33.4.8-jre</dep.guava.version>
+        <dep.guava.version>33.5.0-jre</dep.guava.version>
         <dep.guice.version>7.0.0</dep.guice.version>
-        <dep.errorprone.version>2.38.0</dep.errorprone.version>
-        <dep.jackson.version>2.19.0</dep.jackson.version>
+        <dep.errorprone.version>2.42.0</dep.errorprone.version>
+        <dep.jackson-annotations.version>2.20</dep.jackson-annotations.version>
+        <dep.jackson.version>2.20.0</dep.jackson.version>
         <dep.joda.version>2.14.0</dep.joda.version>
-        <dep.junit.version>5.13.0</dep.junit.version>
+        <dep.junit.version>5.13.4</dep.junit.version>
         <dep.slf4j.version>2.0.17</dep.slf4j.version>
-        <dep.assertj-core.version>3.27.3</dep.assertj-core.version>
+        <dep.assertj-core.version>3.27.6</dep.assertj-core.version>
         <dep.logback.version>1.5.18</dep.logback.version>
         <dep.plugin.surefire.version>3.2.5</dep.plugin.surefire.version>
 
@@ -99,6 +100,7 @@
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
             <version>${dep.guice.version}</version>
+            <classifier>classes</classifier>
         </dependency>
 
         <dependency>
@@ -127,13 +129,13 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>7.2.0.202503040940-r</version>
+            <version>7.3.0.202506031305-r</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${dep.jackson.version}</version>
+            <version>${dep.jackson-annotations.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -217,6 +219,12 @@
             <artifactId>trino-testing</artifactId>
             <version>${dep.trino.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -300,7 +308,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-wrapper-plugin</artifactId>
-                <version>3.3.2</version>
+                <version>3.3.4</version>
             </plugin>
         </plugins>
     </build>
