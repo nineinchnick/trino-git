@@ -12,22 +12,18 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Set up the JDK
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: '24'
           distribution: 'temurin'
           cache: 'maven'
-
       - name: Configure Problem Matchers
         run: |
           echo "::add-matcher::.github/problem-matcher.json"
           echo "::remove-matcher owner=java::"
-
       - name: Configure Git user
         run: |
           git config user.name "${{ github.event.head_commit.committer.name }}"
@@ -35,12 +31,24 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Get Trino version
+        id: trino_tag
+        run: |
+          trino_tag=$(./mvnw -B help:evaluate -Dexpression=dep.trino.version -q -DforceStdout)
+          echo "trino_tag=$trino_tag" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v5
+        with:
+          repository: trinodb/trino
+          path: trino
+          ref: ${{ steps.trino_tag.outputs.trino_tag }}
+      - name: Build Trino
+        run: cd trino && ./mvnw -B install -DskipTests -Dair.check.skip-all -Dskip.npm -pl ':trino-main,:trino-testing,:trino-memory,:trino-tpch' -am
 
       - name: Prepare release
         run: ./mvnw -B release:prepare
