@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up the JDK
         uses: actions/setup-java@v5
         with:
@@ -29,7 +29,7 @@ jobs:
         run: |
           trino_tag=$(./mvnw -B help:evaluate -Dexpression=dep.trino.version -q -DforceStdout)
           echo "trino_tag=$trino_tag" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: trinodb/trino
           path: trino
