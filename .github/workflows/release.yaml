@@ -12,7 +12,7 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-java@v5
@@ -36,19 +36,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Get Trino version
-        id: trino_tag
-        run: |
-          trino_tag=$(./mvnw -B help:evaluate -Dexpression=dep.trino.version -q -DforceStdout)
-          echo "trino_tag=$trino_tag" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v5
-        with:
-          repository: trinodb/trino
-          path: trino
-          ref: ${{ steps.trino_tag.outputs.trino_tag }}
-      - name: Build Trino
-        run: cd trino && ./mvnw -B install -DskipTests -Dair.check.skip-all -Dskip.npm -pl ':trino-main,:trino-testing,:trino-memory,:trino-tpch' -am
 
       - name: Prepare release
         run: ./mvnw -B release:prepare
