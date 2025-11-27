@@ -15,7 +15,7 @@ jobs:
       - name: Set up the JDK
         uses: actions/setup-java@v5
         with:
-          java-version: '24'
+          java-version: '25'
           distribution: 'temurin'
           server-id: github
           cache: 'maven'

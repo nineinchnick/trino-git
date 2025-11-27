@@ -36,8 +36,8 @@
     </distributionManagement>
 
     <properties>
-        <project.build.targetJdk>24</project.build.targetJdk>
-        <air.java.version>24</air.java.version>
+        <project.build.targetJdk>25</project.build.targetJdk>
+        <air.java.version>25</air.java.version>
 
         <air.main.basedir>${project.basedir}</air.main.basedir>
 
