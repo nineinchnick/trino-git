@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>334</version>
+        <version>335</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -49,7 +49,7 @@
         <air.build.jvmsize>4g</air.build.jvmsize>
 
         <dep.trino.version>479</dep.trino.version>
-        <dep.airlift.version>386</dep.airlift.version>
+        <dep.airlift.version>388</dep.airlift.version>
         <dep.jackson-annotations.version>2.20</dep.jackson-annotations.version>
         <dep.logback.version>1.5.22</dep.logback.version>
 
