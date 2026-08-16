@@ -65,7 +65,7 @@ public class CommitsRecordCursor
         if (nameToIndex.containsKey("commit_time")) {
             longFieldGetters.put(
                     nameToIndex.get("commit_time"),
-                    c -> DateTimeEncoding.packDateTimeWithZone(c.getCommitTime() * 1000L, c.getCommitterIdent().getTimeZoneOffset()));
+                    c -> DateTimeEncoding.packDateTimeWithZone(c.getCommitTime() * 1000L, c.getCommitterIdent().getZoneOffset().getTotalSeconds() / 60));
         }
 
         Map<String, Function<RevCommit, String>> getters = Map.of(

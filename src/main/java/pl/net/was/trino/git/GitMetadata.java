@@ -31,9 +31,9 @@ import io.trino.spi.connector.ConnectorTableVersion;
 import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
+import io.trino.spi.connector.RelationColumnsMetadata;
 import io.trino.spi.connector.SchemaNotFoundException;
 import io.trino.spi.connector.SchemaTableName;
-import io.trino.spi.connector.SchemaTablePrefix;
 import io.trino.spi.connector.TableNotFoundException;
 import io.trino.spi.predicate.DiscreteValues;
 import io.trino.spi.predicate.Domain;
@@ -51,11 +51,14 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Verify.verify;
@@ -153,18 +156,25 @@ public class GitMetadata
     }
 
     @Override
-    public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
+    public Iterator<RelationColumnsMetadata> streamRelationColumns(
+            ConnectorSession session,
+            Optional<String> schemaName,
+            UnaryOperator<Set<SchemaTableName>> relationFilter)
     {
-        requireNonNull(prefix, "prefix is null");
-        ImmutableMap.Builder<SchemaTableName, List<ColumnMetadata>> columns = ImmutableMap.builder();
-        for (SchemaTableName tableName : listTables(session, prefix)) {
+        Map<SchemaTableName, RelationColumnsMetadata> relationColumns = new HashMap<>();
+        for (SchemaTableName tableName : listTables(session, schemaName)) {
             ConnectorTableMetadata tableMetadata = getTableMetadata(tableName);
             // table can disappear during listing operation
             if (tableMetadata != null) {
-                columns.put(tableName, tableMetadata.getColumns());
+                relationColumns.put(tableName, RelationColumnsMetadata.forTable(tableName, tableMetadata.getColumns()));
             }
         }
-        return columns.build();
+        for (SchemaTableName viewName : listViews(session, schemaName)) {
+            getView(session, viewName).ifPresent(view -> relationColumns.put(viewName, RelationColumnsMetadata.forView(viewName, view.getColumns())));
+        }
+        return relationFilter.apply(relationColumns.keySet()).stream()
+                .map(relationColumns::get)
+                .iterator();
     }
 
     private ConnectorTableMetadata getTableMetadata(SchemaTableName tableName)
@@ -179,14 +189,6 @@ public class GitMetadata
         }
 
         return new ConnectorTableMetadata(tableName, table.getColumnsMetadata());
-    }
-
-    private List<SchemaTableName> listTables(ConnectorSession session, SchemaTablePrefix prefix)
-    {
-        if (prefix.getTable().isEmpty()) {
-            return listTables(session, prefix.getSchema());
-        }
-        return List.of(prefix.toSchemaTableName());
     }
 
     @Override
@@ -234,22 +236,22 @@ public class GitMetadata
         Map<String, ColumnHandle> columns = getColumnHandles(session, tableHandle);
         TableStatistics.Builder builder = TableStatistics.builder();
         switch (tableName) {
-            case "commits":
+            case "commits" -> {
                 builder.setRowCount(Estimate.of(1));
                 builder.setColumnStatistics(columns.get("object_id"), ColumnStatistics.builder()
                         .setNullsFraction(Estimate.zero())
                         .setDistinctValuesCount(Estimate.of(1))
                         .setDataSize(Estimate.of(1000))
                         .build());
-                break;
-            case "trees":
+            }
+            case "trees" -> {
                 builder.setRowCount(Estimate.of(1000000));
                 builder.setColumnStatistics(columns.get("commit_id"), ColumnStatistics.builder()
                         .setNullsFraction(Estimate.zero())
                         .setDistinctValuesCount(Estimate.of(1000000))
                         .setDataSize(Estimate.of(1000000000))
                         .build());
-                break;
+            }
         }
         return builder.build();
     }

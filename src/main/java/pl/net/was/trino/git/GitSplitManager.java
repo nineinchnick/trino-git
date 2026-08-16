@@ -16,22 +16,22 @@ package pl.net.was.trino.git;
 import com.google.inject.Inject;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.Constraint;
-import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.connector.DynamicFilterSnapshot;
 import io.trino.spi.connector.FixedSplitSource;
 import io.trino.spi.predicate.TupleDomain;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-import static io.trino.spi.connector.DynamicFilter.NOT_BLOCKED;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static pl.net.was.trino.git.GitMetadata.getCommitIds;
 
 public class GitSplitManager
@@ -50,84 +50,66 @@ public class GitSplitManager
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorTableHandle connectorTableHandle,
-            DynamicFilter dynamicFilter,
+            Set<ColumnHandle> dynamicFilterColumns,
             Constraint constraint)
     {
-        long timeoutMillis = 20000;
-        if (!dynamicFilter.isAwaitable()) {
-            return getSplitSource(connectorTableHandle, dynamicFilter);
-        }
-        CompletableFuture<?> dynamicFilterFuture = whenCompleted(dynamicFilter)
-                .completeOnTimeout(null, timeoutMillis, MILLISECONDS);
-        CompletableFuture<ConnectorSplitSource> splitSourceFuture = dynamicFilterFuture.thenApply(
-                ignored -> getSplitSource(connectorTableHandle, dynamicFilter));
-        return new GitDynamicFilteringSplitSource(dynamicFilterFuture, splitSourceFuture);
+        return new GitDynamicFilteringSplitSource((GitTableHandle) connectorTableHandle, config.getUri());
     }
 
-    private ConnectorSplitSource getSplitSource(
-            ConnectorTableHandle table,
-            DynamicFilter dynamicFilter)
+    private static ConnectorSplitSource getSplitSource(
+            GitTableHandle table,
+            URI uri,
+            DynamicFilterSnapshot dynamicFilterSnapshot)
     {
-        GitTableHandle handle = (GitTableHandle) table;
+        TupleDomain<ColumnHandle> constraint = dynamicFilterSnapshot.currentPredicate().simplify(100);
 
-        TupleDomain<ColumnHandle> constraint = dynamicFilter.getCurrentPredicate().simplify(100);
-
-        List<GitSplit> splits = List.of(new GitSplit(handle.getTableName(), config.getUri(), getCommitIds(constraint)));
+        List<GitSplit> splits = List.of(new GitSplit(table.getTableName(), uri, getCommitIds(constraint)));
 
         return new FixedSplitSource(splits);
-    }
-
-    private static CompletableFuture<?> whenCompleted(DynamicFilter dynamicFilter)
-    {
-        if (dynamicFilter.isAwaitable()) {
-            return dynamicFilter.isBlocked().thenCompose(ignored -> whenCompleted(dynamicFilter));
-        }
-        return NOT_BLOCKED;
     }
 
     private static class GitDynamicFilteringSplitSource
             implements ConnectorSplitSource
     {
-        private final CompletableFuture<?> dynamicFilterFuture;
-        private final CompletableFuture<ConnectorSplitSource> splitSourceFuture;
+        private static final long DYNAMIC_FILTERING_WAIT_TIMEOUT_MILLIS = 20_000;
 
-        private GitDynamicFilteringSplitSource(
-                CompletableFuture<?> dynamicFilterFuture,
-                CompletableFuture<ConnectorSplitSource> splitSourceFuture)
+        private final GitTableHandle table;
+        private final URI uri;
+        private ConnectorSplitSource delegateSplitSource;
+
+        private GitDynamicFilteringSplitSource(GitTableHandle table, URI uri)
         {
-            this.dynamicFilterFuture = requireNonNull(dynamicFilterFuture, "dynamicFilterFuture is null");
-            this.splitSourceFuture = requireNonNull(splitSourceFuture, "splitSourceFuture is null");
+            this.table = requireNonNull(table, "table is null");
+            this.uri = requireNonNull(uri, "uri is null");
         }
 
         @Override
-        public CompletableFuture<ConnectorSplitBatch> getNextBatch(int maxSize)
+        public long getRequestedDynamicFilterWaitTimeoutMillis()
         {
-            return splitSourceFuture.thenCompose(splitSource -> splitSource.getNextBatch(maxSize));
+            return DYNAMIC_FILTERING_WAIT_TIMEOUT_MILLIS;
         }
 
         @Override
-        public void close()
+        public synchronized CompletableFuture<List<ConnectorSplit>> getNextBatch(int maxSize, DynamicFilterSnapshot dynamicFilterSnapshot)
         {
-            if (!dynamicFilterFuture.cancel(true)) {
-                splitSourceFuture.thenAccept(ConnectorSplitSource::close);
+            if (delegateSplitSource == null) {
+                delegateSplitSource = getSplitSource(table, uri, dynamicFilterSnapshot);
+            }
+            return delegateSplitSource.getNextBatch(maxSize, dynamicFilterSnapshot);
+        }
+
+        @Override
+        public synchronized void close()
+        {
+            if (delegateSplitSource != null) {
+                delegateSplitSource.close();
             }
         }
 
         @Override
-        public boolean isFinished()
+        public synchronized boolean isFinished()
         {
-            if (!splitSourceFuture.isDone()) {
-                return false;
-            }
-            if (splitSourceFuture.isCompletedExceptionally()) {
-                return false;
-            }
-            try {
-                return splitSourceFuture.get().isFinished();
-            }
-            catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            return delegateSplitSource != null && delegateSplitSource.isFinished();
         }
     }
 }
