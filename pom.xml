@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>395</version>
+        <version>401</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -49,7 +49,7 @@
         <air.build.jvmsize>4g</air.build.jvmsize>
 
         <dep.trino.version>483</dep.trino.version>
-        <dep.airlift.version>439</dep.airlift.version>
+        <dep.airlift.version>444</dep.airlift.version>
         <dep.jackson-annotations.version>2.22</dep.jackson-annotations.version>
         <dep.logback.version>1.6.3</dep.logback.version>
 
@@ -235,7 +235,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>4.0.2</version>
+            <version>4.0.3</version>
             <scope>test</scope>
         </dependency>
 
