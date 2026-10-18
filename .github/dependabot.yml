@@ -3,18 +3,28 @@ updates:
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
+      # Trino, Airlift and Airbase have to be bumped together to stay compatible with the SPI
+      trino:
+        applies-to: version-updates
+        patterns:
+          - "io.trino:*"
+          - "io.airlift:*"
       dependency-updates:
         applies-to: version-updates
         update-types:
-        - major
-        - minor
-        - patch
+          - major
+          - minor
+          - patch
       security-updates:
         applies-to: security-updates
         dependency-type: production
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
