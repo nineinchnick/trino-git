@@ -50,36 +50,21 @@
 
         <dep.trino.version>484</dep.trino.version>
         <dep.airlift.version>451</dep.airlift.version>
-        <dep.logback.version>1.6.5</dep.logback.version>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
         <project.scm.id>github</project.scm.id>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-bom</artifactId>
-                <version>${dep.opentelemetry.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${dep.jackson.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${dep.guava.version}</version>
         </dependency>
 
         <dependency>
@@ -126,7 +111,6 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
-            <version>${dep.slice.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -152,7 +136,6 @@
         <dependency>
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
-            <version>${dep.errorprone.version}</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -221,7 +204,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${dep.assertj-core.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -249,13 +231,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.1.4</version>
-            </plugin>
-            <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.3.1</version>
                 <configuration>
                     <scmCommentPrefix>[ci skip]</scmCommentPrefix>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -265,7 +241,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>2.2.1</version>
                 <configuration>
                     <pushChanges>true</pushChanges>
                 </configuration>
@@ -315,12 +290,6 @@
                         </exception>
                     </exceptions>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-wrapper-plugin</artifactId>
-                <version>3.3.4</version>
             </plugin>
         </plugins>
     </build>
