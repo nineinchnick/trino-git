@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import io.trino.spi.TrinoException;
+import io.trino.spi.catalog.CatalogName;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaNotFoundException;
@@ -59,7 +60,7 @@ public class TestGitMetadata
         GitConfig config = new GitConfig();
         config.setUri(new URI(url));
         GitClient client = new GitClient(config);
-        metadata = new GitMetadata("test", client);
+        metadata = new GitMetadata(new CatalogName("test"), client);
     }
 
     @Test
