@@ -189,6 +189,16 @@ The connector also provides a view:
 * `commit_stats` - every column of `commits`, with the number of `added_lines`, `deleted_lines` and `changed_files`,
   the average `similarity_score` of renames and copies, and all `change_types` from `diff_stats`.
 
+# Filtering
+
+These filters make the connector read less data:
+* `commits.object_id`, `trees.commit_id` and `diff_stats.commit_id` - only the selected commits are read.
+* `objects.object_id` - only the selected objects are read, and they don't have to be reachable from any branch or tag.
+* `trees.path_name` and `diff_stats.path_name` - other files are skipped. Trino still applies these filters,
+  because the connector also returns directories containing matching files, and renames of them.
+
+Filters need to compare columns with constants, like `path_name = 'README.md'` or `object_id IN (...)`.
+
 # Procedures
 
 * `CALL git.system.refresh()` - makes every node fetch new commits the next time it reads a repository,

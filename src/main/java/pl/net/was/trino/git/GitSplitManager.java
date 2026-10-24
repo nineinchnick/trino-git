@@ -44,7 +44,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static pl.net.was.trino.git.CommitWalks.walkCommits;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
-import static pl.net.was.trino.git.GitMetadata.getCommitIds;
+import static pl.net.was.trino.git.GitMetadata.getIds;
 
 public class GitSplitManager
         implements ConnectorSplitManager
@@ -79,16 +79,19 @@ public class GitSplitManager
             Snapshot snapshot,
             DynamicFilterSnapshot dynamicFilterSnapshot)
     {
-        Optional<String> commitIdColumn = GitClient.Table.fromName(table.tableName()).getCommitIdColumn();
-        if (commitIdColumn.isEmpty()) {
+        GitClient.Table gitTable = GitClient.Table.fromName(table.tableName());
+        if (gitTable.getIdColumn().isEmpty()) {
             return new FixedSplitSource(List.of(new GitSplit(table.toSchemaTableName(), Optional.empty(), snapshot)));
         }
 
         TupleDomain<GitColumnHandle> constraint = table.constraint()
                 .intersect(dynamicFilterSnapshot.currentPredicate().simplify(100).transformKeys(GitColumnHandle.class::cast));
-        Optional<List<String>> commitIds = getCommitIds(constraint, commitIdColumn.orElseThrow());
-        if (commitIds.isPresent()) {
-            return new LazySplitSource(splits(table, snapshot, commitIds.orElseThrow().iterator()), () -> {});
+        Optional<List<String>> ids = getIds(constraint, gitTable.getIdColumn().orElseThrow());
+        if (!gitTable.isSplitByCommits()) {
+            return new FixedSplitSource(List.of(new GitSplit(table.toSchemaTableName(), ids, snapshot)));
+        }
+        if (ids.isPresent()) {
+            return new LazySplitSource(splits(table, snapshot, ids.orElseThrow().iterator()), () -> {});
         }
         // the coordinator has a clone with the pinned commits, since it read the refs from it
         Repository repository = repositoryManager.getRepository(table.schemaName(), snapshot).getRepository();

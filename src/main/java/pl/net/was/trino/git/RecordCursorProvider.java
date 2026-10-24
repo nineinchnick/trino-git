@@ -22,5 +22,5 @@ import java.util.Optional;
 
 public interface RecordCursorProvider
 {
-    RecordCursor create(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds);
+    RecordCursor create(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> ids, Optional<List<String>> paths);
 }

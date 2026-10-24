@@ -19,6 +19,8 @@ import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.ObjectWalk;
@@ -26,6 +28,7 @@ import org.eclipse.jgit.revwalk.RevObject;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,13 +44,14 @@ public class ObjectsRecordCursor
     private final List<GitColumnHandle> columnHandles;
 
     private final ObjectWalk walk;
+    private final Optional<Iterator<String>> objectIds;
     private boolean commitsWalked;
     private RevObject object;
     private Optional<Slice> contents;
 
     private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
-    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs)
+    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> objectIds)
     {
         this.columnHandles = columnHandles;
 
@@ -68,6 +72,10 @@ public class ObjectsRecordCursor
         }
 
         walk = new ObjectWalk(repo.getRepository());
+        this.objectIds = objectIds.map(List::iterator);
+        if (objectIds.isPresent()) {
+            return;
+        }
         try {
             for (Ref ref : refs) {
                 if (ref.getObjectId() != null) {
@@ -103,6 +111,9 @@ public class ObjectsRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
+        if (objectIds.isPresent()) {
+            return advanceToSelectedObject(objectIds.orElseThrow());
+        }
         try {
             if (!commitsWalked) {
                 // an object walk returns trees and blobs only after all commits
@@ -124,6 +135,27 @@ public class ObjectsRecordCursor
             throw new TrinoException(GIT_READ_ERROR, "Failed to read objects", e);
         }
         return true;
+    }
+
+    private boolean advanceToSelectedObject(Iterator<String> ids)
+    {
+        while (ids.hasNext()) {
+            try {
+                RevObject selected = walk.parseAny(ObjectId.fromString(ids.next()));
+                if (selected.getType() == OBJ_BLOB) {
+                    object = selected;
+                    contents = null;
+                    return true;
+                }
+            }
+            catch (MissingObjectException _) {
+                // ids from filters don't have to exist, they just don't match any rows
+            }
+            catch (IOException e) {
+                throw new TrinoException(GIT_READ_ERROR, "Failed to read objects", e);
+            }
+        }
+        return false;
     }
 
     @Override

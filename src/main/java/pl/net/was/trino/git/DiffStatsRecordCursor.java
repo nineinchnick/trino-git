@@ -13,6 +13,8 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.TrinoException;
@@ -42,6 +44,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -55,6 +58,7 @@ public class DiffStatsRecordCursor
     private final Map<Integer, Function<DiffStatsRecordCursor, Integer>> intFieldGetters = new HashMap<>();
     private final Map<Integer, Function<DiffStatsRecordCursor, String>> strFieldGetters = new HashMap<>();
 
+    private final Optional<Set<String>> paths;
     private final RevWalk revWalk;
     private final ObjectReader reader;
     private final DiffFormatter formatter;
@@ -66,7 +70,7 @@ public class DiffStatsRecordCursor
     private DiffEntry entry;
     private Optional<EditList> edits;
 
-    public DiffStatsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds)
+    public DiffStatsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds, Optional<List<String>> paths)
     {
         this.columnHandles = columnHandles;
 
@@ -103,6 +107,7 @@ public class DiffStatsRecordCursor
             }
         }
 
+        this.paths = paths.map(ImmutableSet::copyOf);
         revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(revWalk, refs, commitIds);
 
@@ -146,7 +151,8 @@ public class DiffStatsRecordCursor
                 currentCommit = commits.next();
                 // like `git log -p --first-parent`, merge commits are compared only with the first parent
                 parentCommit = Optional.ofNullable(currentCommit.getParentCount() > 0 ? currentCommit.getParent(0) : null);
-                entries = formatter.scan(getTree(parentCommit), getTree(Optional.of(currentCommit))).iterator();
+                // skip other files after detecting renames, which a path filter in the formatter would break
+                entries = Iterators.filter(formatter.scan(getTree(parentCommit), getTree(Optional.of(currentCommit))).iterator(), this::isSelected);
             }
 
             entry = entries.next();
@@ -158,6 +164,11 @@ public class DiffStatsRecordCursor
             throw new TrinoException(GIT_READ_ERROR, "Failed to compare commit %s with its parent".formatted(currentCommit.getName()), e);
         }
         return true;
+    }
+
+    private boolean isSelected(DiffEntry entry)
+    {
+        return paths.map(selected -> selected.contains(entry.getNewPath()) || selected.contains(entry.getOldPath())).orElse(true);
     }
 
     private AbstractTreeIterator getTree(Optional<RevCommit> commit)
