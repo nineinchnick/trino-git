@@ -21,6 +21,7 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.DateTimeEncoding;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 
@@ -61,6 +62,9 @@ public class CommitsRecordCursor
                     nameToIndex.get("commit_time"),
                     c -> DateTimeEncoding.packDateTimeWithZone(c.getCommitTime() * 1000L, c.getCommitterIdent().getZoneOffset().getTotalSeconds() / 60));
         }
+        if (nameToIndex.containsKey("author_time")) {
+            longFieldGetters.put(nameToIndex.get("author_time"), c -> packTime(c.getAuthorIdent()));
+        }
 
         Map<String, Function<RevCommit, String>> getters = Map.of(
                 "object_id", RevCommit::getName,
@@ -84,6 +88,11 @@ public class CommitsRecordCursor
 
         RevWalk revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+    }
+
+    private static long packTime(PersonIdent ident)
+    {
+        return DateTimeEncoding.packDateTimeWithZone(ident.getWhenAsInstant().toEpochMilli(), ident.getZoneOffset().getTotalSeconds() / 60);
     }
 
     public static Block getParents(RevCommit c)

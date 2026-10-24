@@ -66,6 +66,16 @@ final class TestGitConnectorQueries
     }
 
     @Test
+    void testAuthorTime()
+    {
+        // the fixture makes every change 30 minutes before committing it
+        assertThat(query("SELECT DISTINCT date_diff('minute', author_time, commit_time) FROM commits"))
+                .matches("VALUES BIGINT '30'");
+        assertThat(query("SELECT author_time FROM commits WHERE object_id = '%s'".formatted(id(repository.getInitialCommit()))))
+                .matches("VALUES TIMESTAMP '2024-01-01 15:00:00 +05:30'");
+    }
+
+    @Test
     void testCommits()
     {
         assertThat(query("SELECT object_id, author_name, author_email, committer_name, committer_email, message, tree_id, commit_time FROM commits"))
