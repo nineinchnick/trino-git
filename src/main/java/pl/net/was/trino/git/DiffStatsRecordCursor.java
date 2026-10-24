@@ -244,9 +244,7 @@ public class DiffStatsRecordCursor
     }
 
     @Override
-    public void close()
-    {
-    }
+    public void close() {}
 
     private String getChangeType(DiffEntry.ChangeType changeType)
     {

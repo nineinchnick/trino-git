@@ -148,7 +148,9 @@ public class TestGitMetadata
     @Test
     public void getColumnMetadata()
     {
-        ColumnMetadata actualColumn = metadata.getColumnMetadata(SESSION, commitsTableHandle,
+        ColumnMetadata actualColumn = metadata.getColumnMetadata(
+                SESSION,
+                commitsTableHandle,
                 new GitColumnHandle("text", createUnboundedVarcharType(), 0));
         assertThat(actualColumn).isEqualTo(new ColumnMetadata("text", createUnboundedVarcharType()));
 

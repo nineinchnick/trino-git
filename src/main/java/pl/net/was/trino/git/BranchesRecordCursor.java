@@ -58,7 +58,7 @@ public class BranchesRecordCursor
             branches = repo.branchList().setListMode(ListBranchCommand.ListMode.ALL).call().iterator();
         }
         catch (GitAPIException ignored) {
-            //pass
+            // pass
         }
 
         walk = new RevWalk(repo.getRepository());
@@ -156,7 +156,5 @@ public class BranchesRecordCursor
     }
 
     @Override
-    public void close()
-    {
-    }
+    public void close() {}
 }

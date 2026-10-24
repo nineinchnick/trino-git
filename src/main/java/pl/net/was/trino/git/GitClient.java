@@ -39,7 +39,8 @@ import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
-    public static enum Table {
+    public static enum Table
+    {
         branches,
         commits,
         diff_stats,
@@ -48,11 +49,13 @@ public class GitClient
         objects,
     }
 
-    public static enum TreesColumns {
-        commit_id,
+    public static enum TreesColumns
+    {
+        commit_id
     }
 
-    public static enum View {
+    public static enum View
+    {
         idents,
         commit_stats,
     }
@@ -99,14 +102,12 @@ public class GitClient
                     new GitColumn("contents", VarbinaryType.VARBINARY)));
 
     Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
-            View.idents.name(),
-            List.of(
+            View.idents.name(), List.of(
                     new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())),
-            View.commit_stats.name(),
-            List.of(
+            View.commit_stats.name(), List.of(
                     new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("author_email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
