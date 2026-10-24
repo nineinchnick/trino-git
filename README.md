@@ -49,6 +49,18 @@ connector.name=git
 git.url=https://github.com/nineinchnick/trino-git.git
 ```
 
+The catalog supports these properties:
+
+| Property              | Description                                                                                     | Default                       |
+|-----------------------|-------------------------------------------------------------------------------------------------|-------------------------------|
+| `git.url`             | URL of the repository. Must not contain credentials. Previously called `metadata-uri`.         |                               |
+| `git.username`        | Username used to authenticate to the repository.                                               |                               |
+| `git.password`        | Password or access token used to authenticate to the repository.                               |                               |
+| `git.cache-directory` | Directory where every node clones the repository. Only the user running Trino may access it.   | `${java.io.tmpdir}/trino-git` |
+
+Keep credentials out of the catalog file by reading them from environment variables, for example
+`git.password=${ENV:GIT_TOKEN}`. For GitHub, use a token as the password and any non-empty username.
+
 After restarting Trino, the `git` catalog has the tables and views described below in the `default` schema.
 
 To see who added and deleted the most lines:
@@ -155,9 +167,8 @@ The connector also provides two views:
 # Limitations
 
 * One catalog reads one repository. To query more repositories, create a catalog for each one. See [#273](https://github.com/nineinchnick/trino-git/issues/273).
-* Every worker clones the repository into a directory in `java.io.tmpdir`, and keeps it there.
+* Every worker clones the repository into `git.cache-directory`, and keeps it there.
 * Every table scan fetches from the remote repository. See [#264](https://github.com/nineinchnick/trino-git/issues/264).
-* Do not put credentials into `metadata-uri` for now: they are stored on disk, logged and sent to other nodes. See [#260](https://github.com/nineinchnick/trino-git/issues/260).
 
 # Known issues
 
