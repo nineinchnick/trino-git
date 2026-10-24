@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
@@ -33,6 +34,7 @@ import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static pl.net.was.trino.git.CommitWalks.walkCommits;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class TreesRecordCursor
         implements RecordCursor
@@ -41,9 +43,8 @@ public class TreesRecordCursor
     private final Map<Integer, Function<TreeWalk, Integer>> intFieldGetters = new HashMap<>();
     private final Map<Integer, Function<TreesRecordCursor, String>> strFieldGetters = new HashMap<>();
 
-    private final Git repo;
     private final Iterator<RevCommit> commits;
-    private TreeWalk treeWalk;
+    private final TreeWalk treeWalk;
     private RevCommit commit;
 
     private final Map<FileMode, String> fileModeNames = Map.of(
@@ -55,7 +56,6 @@ public class TreesRecordCursor
 
     public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
-        this.repo = repo;
         this.columnHandles = columnHandles;
 
         Map<String, Integer> nameToIndex = new HashMap<>();
@@ -84,6 +84,8 @@ public class TreesRecordCursor
 
         RevWalk revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+        treeWalk = new TreeWalk(repo.getRepository());
+        treeWalk.setRecursive(true);
     }
 
     private String getFileMode(FileMode fileMode)
@@ -122,23 +124,18 @@ public class TreesRecordCursor
         }
 
         try {
-            if (treeWalk == null || !treeWalk.next()) {
+            // commits can have empty trees, like an orphan branch with an empty first commit
+            while (commit == null || !treeWalk.next()) {
                 if (!commits.hasNext()) {
                     return false;
                 }
                 commit = commits.next();
-                treeWalk = new TreeWalk(repo.getRepository());
-                treeWalk.addTree(commit.getTree());
-                treeWalk.setRecursive(true);
-                if (!treeWalk.next()) {
-                    return false;
-                }
+                treeWalk.reset(commit.getTree());
             }
         }
-        catch (IOException ignores) {
-            // pass
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read the tree of commit " + commit.getName(), e);
         }
-
         return true;
     }
 
