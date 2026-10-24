@@ -45,7 +45,7 @@ public class TestGitRecordSetProvider
     @Test
     public void testGetRecordSet()
     {
-        GitRecordSetProvider recordSetProvider = new GitRecordSetProvider();
+        GitRecordSetProvider recordSetProvider = new GitRecordSetProvider(new GitRepositoryManager());
         RecordSet recordSet = recordSetProvider.getRecordSet(
                 GitTransactionHandle.INSTANCE,
                 SESSION,

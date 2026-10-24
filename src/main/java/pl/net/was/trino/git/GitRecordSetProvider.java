@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorRecordSetProvider;
 import io.trino.spi.connector.ConnectorSession;
@@ -24,9 +25,19 @@ import io.trino.spi.connector.RecordSet;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 public class GitRecordSetProvider
         implements ConnectorRecordSetProvider
 {
+    private final GitRepositoryManager repositoryManager;
+
+    @Inject
+    public GitRecordSetProvider(GitRepositoryManager repositoryManager)
+    {
+        this.repositoryManager = requireNonNull(repositoryManager, "repositoryManager is null");
+    }
+
     @Override
     public RecordSet getRecordSet(
             ConnectorTransactionHandle transaction,
@@ -42,6 +53,6 @@ public class GitRecordSetProvider
             handles.add((GitColumnHandle) handle);
         }
 
-        return new GitRecordSet(gitSplit, (GitTableHandle) table, handles.build());
+        return new GitRecordSet(gitSplit, (GitTableHandle) table, handles.build(), repositoryManager.getRepository(gitSplit.uri()));
     }
 }

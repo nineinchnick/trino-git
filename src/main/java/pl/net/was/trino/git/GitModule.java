@@ -30,6 +30,7 @@ public class GitModule
         binder.bind(GitClient.class).in(Scopes.SINGLETON);
         binder.bind(GitSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(GitRecordSetProvider.class).in(Scopes.SINGLETON);
+        binder.bind(GitRepositoryManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(GitConfig.class);
     }
 }

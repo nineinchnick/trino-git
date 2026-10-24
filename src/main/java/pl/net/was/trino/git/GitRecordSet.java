@@ -14,28 +14,15 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.hash.Hashing;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
 import io.trino.spi.type.Type;
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.eclipse.jgit.transport.RemoteConfig;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 public class GitRecordSet
@@ -47,7 +34,7 @@ public class GitRecordSet
     private final Git repo;
     private final Optional<List<String>> commitIds;
 
-    public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)
+    public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles, Git repo)
     {
         requireNonNull(split, "split is null");
 
@@ -70,7 +57,7 @@ public class GitRecordSet
         }
         this.commitIds = splitCommits;
 
-        this.repo = getRepo(split.uri());
+        this.repo = requireNonNull(repo, "repo is null");
     }
 
     @Override
@@ -94,66 +81,5 @@ public class GitRecordSet
             return null;
         }
         return recordCursorProvider.create(columnHandles, repo, commitIds);
-    }
-
-    private Git getRepo(URI uri)
-    {
-        String url = uri.toString();
-        Path localPath;
-        try {
-            localPath = ensureDir(url);
-        }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        if (!Files.exists(localPath)) {
-            CloneCommand repo = Git.cloneRepository()
-                    .setURI(url)
-                    .setDirectory(localPath.toFile());
-            if (uri.getUserInfo() != null && !uri.getUserInfo().isEmpty()) {
-                String[] parts = uri.getUserInfo().split(":", 2);
-                UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
-                repo.setCredentialsProvider(credentials);
-            }
-            try {
-                return repo.call();
-            }
-            catch (GitAPIException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        Repository fileRepo;
-        try {
-            fileRepo = new FileRepositoryBuilder()
-                    .setGitDir(localPath.resolve(".git").toFile())
-                    .build();
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        Git repo = new Git(fileRepo);
-        try {
-            List<RemoteConfig> remotes = repo.remoteList().call();
-            if (!remotes.isEmpty()) {
-                repo.fetch().setCheckFetchedObjects(true).call();
-            }
-        }
-        catch (GitAPIException e) {
-            throw new RuntimeException(e);
-        }
-        return repo;
-    }
-
-    public static Path ensureDir(String prefix)
-            throws IOException
-    {
-        String tmpDirStr = System.getProperty("java.io.tmpdir");
-        if (tmpDirStr == null) {
-            throw new IOException(
-                    "System property 'java.io.tmpdir' does not specify a tmp dir");
-        }
-
-        Path tmpDir = Files.createDirectories(Path.of(tmpDirStr));
-        return tmpDir.resolve(Hashing.sha256().hashString(prefix, UTF_8).toString());
     }
 }
