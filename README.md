@@ -83,11 +83,11 @@ See [examples/achievements.sql](examples/achievements.sql) for more complex quer
 # Tables
 
 The `commits`, `diff_stats` and `trees` tables read every commit reachable from any ref:
-`HEAD`, local branches, remote-tracking branches and tags.
+`HEAD`, branches and tags of the remote repository.
 
 ## `branches`
 
-Local and remote-tracking branches.
+Branches of the remote repository.
 
 | Column      | Type      | Description                                         |
 |-------------|-----------|-----------------------------------------------------|
@@ -175,7 +175,6 @@ The connector also provides two views:
 * Selecting `commits.parents` fails, so the `commit_stats` view fails too.
 * The `idents` view does not parse. See [#261](https://github.com/nineinchnick/trino-git/issues/261).
 * `diff_stats` compares every commit with the next commit it reads, not with its parent, so it has wrong results for repositories with more than one branch. See [#258](https://github.com/nineinchnick/trino-git/issues/258).
-* Local branches are not updated after the first clone. See [#263](https://github.com/nineinchnick/trino-git/issues/263).
 * `objects` only has objects from pack files. See [#265](https://github.com/nineinchnick/trino-git/issues/265).
 
 # Build
