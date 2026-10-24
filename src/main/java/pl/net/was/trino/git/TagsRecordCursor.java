@@ -15,17 +15,19 @@ package pl.net.was.trino.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,6 +36,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static io.trino.spi.type.DateTimeEncoding.packDateTimeWithZone;
 import static io.trino.spi.type.TimeZoneKey.getTimeZoneKey;
 import static java.util.Arrays.asList;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class TagsRecordCursor
         implements RecordCursor
@@ -57,13 +60,13 @@ public class TagsRecordCursor
         }
 
         parseTag = columnHandles.stream()
-                .anyMatch(column -> column.columnName().equals("tag_time"));
+                .anyMatch(column -> column.columnName().equals("commit_id") || column.columnName().equals("tag_time"));
         walk = parseTag ? new RevWalk(repo.getRepository()) : null;
         try {
             tags = repo.tagList().call().iterator();
         }
-        catch (GitAPIException ignored) {
-            // pass
+        catch (GitAPIException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to list tags", e);
         }
     }
 
@@ -97,27 +100,29 @@ public class TagsRecordCursor
         }
         Ref tag = tags.next();
 
-        boolean annotated;
+        String commitId = null;
         Long tagTime = null;
         if (parseTag) {
-            RevTag revTag = null;
             try {
-                revTag = walk.parseTag(tag.getObjectId());
-                annotated = true;
-            }
-            catch (IncorrectObjectTypeException e) {
-                annotated = false;
+                RevObject object = walk.parseAny(tag.getObjectId());
+                // tags can point to other tags, trees or blobs
+                if (walk.peel(object) instanceof RevCommit commit) {
+                    commitId = commit.getName();
+                }
+                // tags made before git added tagger information don't have it
+                if (object instanceof RevTag revTag && revTag.getTaggerIdent() != null) {
+                    PersonIdent tagger = revTag.getTaggerIdent();
+                    tagTime = packDateTimeWithZone(tagger.getWhenAsInstant().toEpochMilli(), getTimeZoneKey(tagger.getZoneId().getId()));
+                }
             }
             catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-            if (annotated) {
-                tagTime = packDateTimeWithZone(revTag.getTaggerIdent().getWhenAsInstant().toEpochMilli(), getTimeZoneKey(revTag.getTaggerIdent().getZoneId().getId()));
+                throw new TrinoException(GIT_READ_ERROR, "Failed to read tag " + tag.getName(), e);
             }
         }
 
         fields = asList(
                 tag.getObjectId().getName(),
+                commitId,
                 tag.getName(),
                 tagTime);
 
