@@ -92,6 +92,7 @@ public class GitClient
                     new GitColumn("commit_id", VarcharType.VARCHAR),
                     new GitColumn("old_commit_id", VarcharType.VARCHAR),
                     new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("old_object_id", VarcharType.VARCHAR),
                     new GitColumn("path_name", VarcharType.VARCHAR),
                     new GitColumn("old_path_name", VarcharType.VARCHAR),
                     new GitColumn("change_type", VarcharType.VARCHAR),

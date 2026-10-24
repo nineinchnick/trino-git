@@ -114,18 +114,20 @@ Branches of the remote repository.
 Files changed in every commit compared with its first parent, with renames detected.
 Merge commits are compared only with their first parent, like `git log -p --first-parent`,
 and root commits with an empty tree, so all their files are added.
+Copies are not detected, so `change_type` is never `Copy`.
 
 | Column             | Type      | Description                                                         |
 |--------------------|-----------|---------------------------------------------------------------------|
 | `commit_id`        | `varchar` | Commit id                                                           |
-| `old_commit_id`    | `varchar` | Id of the first parent commit, or null for a root commit             |
-| `object_id`        | `varchar` | Id of the new file contents                                         |
-| `path_name`        | `varchar` | New file path                                                       |
-| `old_path_name`    | `varchar` | Old file path                                                       |
+| `old_commit_id`    | `varchar` | Id of the first parent commit, `NULL` for a root commit             |
+| `object_id`        | `varchar` | Id of the new file contents, `NULL` for a deleted file              |
+| `old_object_id`    | `varchar` | Id of the old file contents, `NULL` for an added file               |
+| `path_name`        | `varchar` | New file path, `NULL` for a deleted file                            |
+| `old_path_name`    | `varchar` | Old file path, `NULL` for an added file                             |
 | `change_type`      | `varchar` | One of `Add`, `Modify`, `Delete`, `Rename`, `Copy`                  |
 | `similarity_score` | `integer` | Similarity of the old and new file for renames and copies, 0 to 100 |
-| `added_lines`      | `integer` | Number of added lines                                               |
-| `deleted_lines`    | `integer` | Number of deleted lines                                             |
+| `added_lines`      | `integer` | Number of added lines, `NULL` for binary files                      |
+| `deleted_lines`    | `integer` | Number of deleted lines, `NULL` for binary files                    |
 
 ## `objects`
 

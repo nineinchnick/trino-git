@@ -364,7 +364,6 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/11")
     void testDiffStatsAddedFile()
             throws IOException
     {
@@ -375,7 +374,14 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/11")
+    void testDiffStatsBinaryFile()
+    {
+        assertThat(query("SELECT change_type, added_lines, deleted_lines FROM diff_stats WHERE path_name = 'image.bin'"))
+                .skippingTypesCheck()
+                .matches("VALUES ('Add', CAST(NULL AS integer), CAST(NULL AS integer))");
+    }
+
+    @Test
     void testDiffStatsDeletedFile()
             throws IOException
     {
