@@ -129,12 +129,12 @@ and root commits with an empty tree, so all their files are added.
 
 ## `objects`
 
-Contents of every file (blob).
+Contents of every file (blob) reachable from any branch or tag.
 
-| Column      | Type        | Description   |
-|-------------|-------------|---------------|
-| `object_id` | `varchar`   | Blob id       |
-| `contents`  | `varbinary` | File contents |
+| Column      | Type        | Description                                                              |
+|-------------|-------------|--------------------------------------------------------------------------|
+| `object_id` | `varchar`   | Blob id                                                                  |
+| `contents`  | `varbinary` | File contents, `NULL` for blobs too large to load, over 50 MB by default |
 
 ## `tags`
 
@@ -178,7 +178,6 @@ The connector also provides two views:
 # Known issues
 
 * The `idents` view does not parse. See [#261](https://github.com/nineinchnick/trino-git/issues/261).
-* `objects` only has objects from pack files. See [#265](https://github.com/nineinchnick/trino-git/issues/265).
 
 # Build
 

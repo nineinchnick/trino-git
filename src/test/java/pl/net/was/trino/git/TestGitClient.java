@@ -101,8 +101,6 @@ public class TestGitClient
                 .setAnnotated(false)
                 .call();
 
-        // ensure all loose objects are packed
-        git.gc().call();
         return localPath.toUri();
     }
 }
