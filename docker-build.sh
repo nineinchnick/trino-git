@@ -6,9 +6,9 @@ set -x
 if [ -f release.properties ]; then
     VERSION=$(grep 'project.rel.pl.net.was\\:trino-git=' release.properties | cut -d'=' -f2)
 else
-    VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+    VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
 fi
-TRINO_VERSION=$(mvn help:evaluate -Dexpression=dep.trino.version -q -DforceStdout)
+TRINO_VERSION=$(./mvnw help:evaluate -Dexpression=dep.trino.version -q -DforceStdout)
 TAG=nineinchnick/trino-git:$VERSION
 
 docker buildx build \
