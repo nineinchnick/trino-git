@@ -26,6 +26,8 @@ public enum GitErrorCode
     GIT_FETCH_ERROR(1, EXTERNAL),
     GIT_OPEN_ERROR(2, EXTERNAL),
     GIT_READ_ERROR(3, EXTERNAL),
+    GIT_REPOSITORY_NOT_FOUND(4, EXTERNAL),
+    GIT_AUTHENTICATION_ERROR(5, EXTERNAL),
     /**/;
 
     private final ErrorCode errorCode;

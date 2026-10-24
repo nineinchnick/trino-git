@@ -14,12 +14,15 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.Streams;
+import com.sun.net.httpserver.HttpServer;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,8 +39,9 @@ import static io.trino.testing.assertions.TrinoExceptionAssert.assertTrinoExcept
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.jgit.lib.Constants.HEAD;
-import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
+import static pl.net.was.trino.git.GitErrorCode.GIT_AUTHENTICATION_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
+import static pl.net.was.trino.git.GitErrorCode.GIT_REPOSITORY_NOT_FOUND;
 
 public class TestGitRepositoryManager
 {
@@ -46,8 +50,55 @@ public class TestGitRepositoryManager
     {
         GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(URI.create("file:///nonexistent/trino-git/repo")));
         assertTrinoExceptionThrownBy(repositoryManager::getRepository)
-                .hasErrorCode(GIT_CLONE_ERROR)
-                .hasMessage("Failed to clone the repository");
+                .hasErrorCode(GIT_REPOSITORY_NOT_FOUND)
+                .hasMessage("Failed to clone file:///nonexistent/trino-git/repo: repository not found");
+    }
+
+    @Test
+    public void testFetchRemovedRepository(@TempDir Path tempDir)
+            throws Exception
+    {
+        Path source = tempDir.resolve("source");
+        Git.init().setDirectory(source.toFile()).call().close();
+        URI url = source.toUri();
+        GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig()
+                .setUrl(url)
+                .setCacheDirectory(tempDir.resolve("cache").toFile()));
+        repositoryManager.getRepository().close();
+
+        deleteRecursively(source, ALLOW_INSECURE);
+        assertTrinoExceptionThrownBy(repositoryManager::getRepository)
+                .hasErrorCode(GIT_REPOSITORY_NOT_FOUND)
+                .hasMessage("Failed to fetch %s: repository not found".formatted(url));
+    }
+
+    @Test
+    public void testAuthenticationFailure(@TempDir Path tempDir)
+            throws Exception
+    {
+        HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            exchange.getResponseHeaders().add("WWW-Authenticate", "Basic realm=\"git\"");
+            exchange.sendResponseHeaders(401, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            URI url = URI.create("http://localhost:%d/repo.git".formatted(server.getAddress().getPort()));
+            for (GitConfig config : List.of(
+                    new GitConfig(),
+                    new GitConfig().setUsername("user").setPassword("wrong"))) {
+                GitRepositoryManager repositoryManager = new GitRepositoryManager(config
+                        .setUrl(url)
+                        .setCacheDirectory(tempDir.resolve("cache").toFile()));
+                assertTrinoExceptionThrownBy(repositoryManager::getRepository)
+                        .hasErrorCode(GIT_AUTHENTICATION_ERROR)
+                        .hasMessage("Failed to clone %s: authentication failed, check git.username and git.password".formatted(url));
+            }
+        }
+        finally {
+            server.stop(0);
+        }
     }
 
     @Test
