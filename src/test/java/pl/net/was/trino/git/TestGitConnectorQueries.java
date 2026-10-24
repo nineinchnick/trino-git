@@ -402,7 +402,17 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/261")
+    void testCommitStatsSimilarityOfRenamesOnly()
+    {
+        assertThat(query("SELECT similarity_score, array_sort(change_types) FROM commit_stats WHERE object_id = '%s'".formatted(id(repository.getRenameCommit()))))
+                .skippingTypesCheck()
+                .matches("VALUES (DOUBLE '100', ARRAY['Add', 'Rename'])");
+        assertThat(query("SELECT similarity_score, change_types FROM commit_stats WHERE object_id = '%s'".formatted(id(repository.getUpdateCommit()))))
+                .skippingTypesCheck()
+                .matches("VALUES (CAST(NULL AS double), ARRAY['Modify'])");
+    }
+
+    @Test
     void testCommitStatsIncludesAllCommits()
     {
         assertThat(query("SELECT count(*) FROM commit_stats"))
