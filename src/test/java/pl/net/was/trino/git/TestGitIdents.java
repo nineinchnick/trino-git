@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static io.trino.spi.type.VarcharType.VARCHAR;
@@ -55,14 +56,16 @@ public class TestGitIdents
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         List<List<Object>> rows = new ArrayList<>();
         try (Git repo = repositoryManager.getRepository("default", Snapshot.latest(0));
-                RecordCursor cursor = new IdentsRecordCursor(
+                RecordCursor cursor = new IdentsTable().createCursor(
                         List.of(
                                 new GitColumnHandle("email", VARCHAR, 0),
                                 new GitColumnHandle("name", VARCHAR, 1),
                                 new GitColumnHandle("extra_emails", VARCHAR, 2),
                                 new GitColumnHandle("extra_names", VARCHAR, 3)),
                         repo,
-                        repo.getRepository().getRefDatabase().getRefs())) {
+                        repo.getRepository().getRefDatabase().getRefs(),
+                        Optional.empty(),
+                        Optional.empty())) {
             while (cursor.advanceNextPosition()) {
                 rows.add(List.of(
                         cursor.getSlice(0).toStringUtf8(),

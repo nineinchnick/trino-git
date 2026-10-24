@@ -19,13 +19,8 @@ import com.google.inject.Inject;
 import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.BigintType;
-import io.trino.spi.type.BooleanType;
 import io.trino.spi.type.DoubleType;
-import io.trino.spi.type.IntegerType;
-import io.trino.spi.type.MapType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
-import io.trino.spi.type.TypeOperators;
-import io.trino.spi.type.VarbinaryType;
 import io.trino.spi.type.VarcharType;
 
 import java.io.IOException;
@@ -34,36 +29,46 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static io.trino.spi.type.TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
-    private static final TypeOperators TYPE_OPERATORS = new TypeOperators();
-
     private final Set<String> schemaNames;
 
     public enum Table
     {
-        BRANCHES(Optional.empty(), false, Optional.empty()),
-        COMMITS(Optional.of("object_id"), true, Optional.empty()),
-        DIFF_STATS(Optional.of("commit_id"), true, Optional.of("path_name")),
-        IDENTS(Optional.empty(), false, Optional.empty()),
-        TAGS(Optional.empty(), false, Optional.empty()),
-        TREES(Optional.of("commit_id"), true, Optional.of("path_name")),
-        OBJECTS(Optional.of("object_id"), false, Optional.empty());
+        BRANCHES(new BranchesTable(), Optional.empty(), false, Optional.empty()),
+        COMMITS(new CommitsTable(), Optional.of("object_id"), true, Optional.empty()),
+        DIFF_STATS(new DiffStatsTable(), Optional.of("commit_id"), true, Optional.of("path_name")),
+        IDENTS(new IdentsTable(), Optional.empty(), false, Optional.empty()),
+        TAGS(new TagsTable(), Optional.empty(), false, Optional.empty()),
+        TREES(new TreesTable(), Optional.of("commit_id"), true, Optional.of("path_name")),
+        OBJECTS(new ObjectsTable(), Optional.of("object_id"), false, Optional.empty());
 
+        private final GitTableReader<?> reader;
         private final Optional<String> idColumn;
         private final boolean splitByCommits;
         private final Optional<String> pathColumn;
 
-        Table(Optional<String> idColumn, boolean splitByCommits, Optional<String> pathColumn)
+        Table(GitTableReader<?> reader, Optional<String> idColumn, boolean splitByCommits, Optional<String> pathColumn)
         {
+            this.reader = reader;
             this.idColumn = idColumn;
             this.splitByCommits = splitByCommits;
             this.pathColumn = pathColumn;
+        }
+
+        public GitTableReader<?> getReader()
+        {
+            return reader;
         }
 
         /**
@@ -112,55 +117,8 @@ public class GitClient
         }
     }
 
-    private final Map<String, List<GitColumn>> columns = Map.of(
-            Table.BRANCHES.getName(), List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Id of the commit the branch points to"),
-                    new GitColumn("name", VarcharType.VARCHAR, "Full ref name, like refs/heads/main"),
-                    new GitColumn("is_merged", BooleanType.BOOLEAN, "Whether the branch is merged into the HEAD commit")),
-            Table.COMMITS.getName(), List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Commit id"),
-                    new GitColumn("author_name", VarcharType.VARCHAR, "Author name"),
-                    new GitColumn("author_email", VarcharType.VARCHAR, "Author email"),
-                    new GitColumn("committer_name", VarcharType.VARCHAR, "Committer name"),
-                    new GitColumn("committer_email", VarcharType.VARCHAR, "Committer email"),
-                    new GitColumn("message", VarcharType.VARCHAR, "Full commit message"),
-                    new GitColumn("parents", new ArrayType(VarcharType.VARCHAR), "Ids of the parent commits"),
-                    new GitColumn("tree_id", VarcharType.VARCHAR, "Id of the root tree"),
-                    new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Time when the commit was made, in the committer's time zone"),
-                    new GitColumn("author_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Time when the change was originally made, in the author's time zone, which differs from commit_time after a rebase or a cherry-pick")),
-            Table.IDENTS.getName(), List.of(
-                    new GitColumn("email", VarcharType.VARCHAR, "Main email"),
-                    new GitColumn("name", VarcharType.VARCHAR, "Main name"),
-                    new GitColumn("extra_emails", new ArrayType(VarcharType.VARCHAR), "Other emails used by the same person"),
-                    new GitColumn("extra_names", new ArrayType(VarcharType.VARCHAR), "Other names used by the same person")),
-            Table.DIFF_STATS.getName(), List.of(
-                    new GitColumn("commit_id", VarcharType.VARCHAR, "Commit id"),
-                    new GitColumn("old_commit_id", VarcharType.VARCHAR, "Id of the first parent commit, NULL for a root commit"),
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Id of the new file contents, NULL for a deleted file"),
-                    new GitColumn("old_object_id", VarcharType.VARCHAR, "Id of the old file contents, NULL for an added file"),
-                    new GitColumn("path_name", VarcharType.VARCHAR, "New file path, NULL for a deleted file"),
-                    new GitColumn("old_path_name", VarcharType.VARCHAR, "Old file path, NULL for an added file"),
-                    new GitColumn("change_type", VarcharType.VARCHAR, "One of added, modified, deleted, renamed, copied"),
-                    new GitColumn("similarity_score", IntegerType.INTEGER, "Similarity of the old and new file for renames and copies, 0 to 100"),
-                    new GitColumn("added_lines", IntegerType.INTEGER, "Number of added lines, NULL for binary files"),
-                    new GitColumn("deleted_lines", IntegerType.INTEGER, "Number of deleted lines, NULL for binary files")),
-            Table.TAGS.getName(), List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Id of the object the tag points to: a tag object or a commit"),
-                    new GitColumn("commit_id", VarcharType.VARCHAR, "Id of the tagged commit, NULL if the tag points to a tree or a blob"),
-                    new GitColumn("name", VarcharType.VARCHAR, "Full ref name, like refs/tags/v1.0"),
-                    new GitColumn("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Time of an annotated tag, NULL for lightweight tags and tags without one")),
-            Table.TREES.getName(), List.of(
-                    new GitColumn("commit_id", VarcharType.VARCHAR, "Commit id"),
-                    new GitColumn("file_mode", VarcharType.VARCHAR, "One of file, executable, symlink, submodule, directory"),
-                    new GitColumn("mode", VarcharType.VARCHAR, "Raw file mode in octal, like 100644, the same as in git ls-tree"),
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Id of the file contents, the directory tree, or the submodule commit"),
-                    new GitColumn("file_name", VarcharType.VARCHAR, "File name"),
-                    new GitColumn("path_name", VarcharType.VARCHAR, "Full file path"),
-                    new GitColumn("attributes", new MapType(VarcharType.VARCHAR, VarcharType.VARCHAR, TYPE_OPERATORS), "Git attributes of the file from .gitattributes, true or false for attributes that are set or unset"),
-                    new GitColumn("depth", IntegerType.INTEGER, "Number of parent directories of the file")),
-            Table.OBJECTS.getName(), List.of(
-                    new GitColumn("object_id", VarcharType.VARCHAR, "Blob id"),
-                    new GitColumn("contents", VarbinaryType.VARBINARY, "File contents, NULL for blobs too large to load, over 50 MB by default")));
+    private final Map<String, List<GitColumn>> columns = Stream.of(Table.values())
+            .collect(toImmutableMap(Table::getName, table -> table.getReader().getColumns().stream().map(TableColumn::column).collect(toImmutableList())));
 
     private final Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
             View.COMMIT_STATS.getName(), List.of(

@@ -23,10 +23,8 @@ import org.eclipse.jgit.lib.Ref;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
@@ -73,16 +71,6 @@ public class GitRecordSet
     @Override
     public RecordCursor cursor()
     {
-        Map<String, RecordCursorProvider> map = Map.of(
-                "branches", (columnHandles, repo, refs, _, _) -> new BranchesRecordCursor(columnHandles, repo, refs),
-                "commits", (columnHandles, repo, refs, ids, _) -> new CommitsRecordCursor(columnHandles, repo, refs, ids),
-                "diff_stats", DiffStatsRecordCursor::new,
-                "idents", (columnHandles, repo, refs, _, _) -> new IdentsRecordCursor(columnHandles, repo, refs),
-                "objects", (columnHandles, repo, refs, ids, _) -> new ObjectsRecordCursor(columnHandles, repo, refs, ids),
-                "tags", (columnHandles, repo, refs, _, _) -> new TagsRecordCursor(columnHandles, repo, refs),
-                "trees", TreesRecordCursor::new);
-        RecordCursorProvider recordCursorProvider = map.get(tableName);
-        checkArgument(recordCursorProvider != null, "Unknown table: %s", tableName);
-        return recordCursorProvider.create(columnHandles, repo, refs, commitIds, paths);
+        return GitClient.Table.fromName(tableName).getReader().createCursor(columnHandles, repo, refs, commitIds, paths);
     }
 }
