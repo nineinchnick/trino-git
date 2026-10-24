@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
@@ -27,9 +28,12 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.eclipse.jgit.lib.Constants.HEAD;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class BranchesRecordCursor
         implements RecordCursor
@@ -38,7 +42,7 @@ public class BranchesRecordCursor
     private final int[] fieldToColumnIndex;
 
     private final RevWalk walk;
-    private RevCommit main;
+    private final Optional<RevCommit> head;
 
     private Iterator<Ref> branches;
     private Ref branch;
@@ -57,17 +61,16 @@ public class BranchesRecordCursor
         try {
             branches = repo.branchList().setListMode(ListBranchCommand.ListMode.ALL).call().iterator();
         }
-        catch (GitAPIException ignored) {
-            // pass
+        catch (GitAPIException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to list branches", e);
         }
 
         walk = new RevWalk(repo.getRepository());
         try {
-            Ref head = repo.getRepository().findRef("HEAD");
-            main = walk.parseCommit(head.getObjectId());
+            head = getCommit(repo.getRepository().exactRef(HEAD));
         }
-        catch (IOException ignored) {
-            // pass
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read HEAD", e);
         }
     }
 
@@ -117,12 +120,24 @@ public class BranchesRecordCursor
     public boolean getBoolean(int field)
     {
         try {
-            RevCommit current = walk.parseCommit(branch.getObjectId());
-            return walk.isMergedInto(current, main);
+            return walk.isMergedInto(getCommit(branch).orElseThrow(), head.orElseThrow());
         }
         catch (IOException e) {
-            return false;
+            throw new TrinoException(GIT_READ_ERROR, "Failed to check if %s is merged".formatted(branch.getName()), e);
         }
+    }
+
+    private Optional<RevCommit> getCommit(Ref ref)
+            throws IOException
+    {
+        // HEAD of an empty repository doesn't point to any object, and branches can point to any object
+        if (ref == null || ref.getObjectId() == null) {
+            return Optional.empty();
+        }
+        if (walk.peel(walk.parseAny(ref.getObjectId())) instanceof RevCommit commit) {
+            return Optional.of(commit);
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -152,7 +167,15 @@ public class BranchesRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return false;
+        if (!columnHandles.get(field).columnName().equals("is_merged")) {
+            return false;
+        }
+        try {
+            return head.isEmpty() || getCommit(branch).isEmpty();
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read branch " + branch.getName(), e);
+        }
     }
 
     @Override
