@@ -159,13 +159,25 @@ All files in every commit.
 | `attributes`  | `varchar` | Git attributes of the file, from `.gitattributes`             |
 | `depth`       | `integer` | Number of parent directories of the file                      |
 
+## `idents`
+
+Authors and committers grouped into people: names used with the same email, and emails used with the same name,
+belong to the same person, also indirectly. Names and emails are first mapped using the `.mailmap` file from `HEAD`,
+like `git shortlog` does, and the mapped identity becomes the main one.
+Otherwise, the main identity is the first name and email in alphabetical order.
+
+| Column         | Type             | Description                          |
+|----------------|------------------|--------------------------------------|
+| `email`        | `varchar`        | Main email                           |
+| `name`         | `varchar`        | Main name                            |
+| `extra_emails` | `array(varchar)` | Other emails used by the same person |
+| `extra_names`  | `array(varchar)` | Other names used by the same person  |
+
 # Views
 
-The connector also provides two views:
+The connector also provides a view:
 * `commit_stats` - every column of `commits`, with the number of `added_lines`, `deleted_lines` and `changed_files`,
-  the average `similarity_score`, and all `change_types` from `diff_stats`.
-* `idents` - groups the authors and committers that share a name or an email.
-  Every row has the main `email` and `name`, and the other `extra_emails` and `extra_names`.
+  the average `similarity_score` of renames and copies, and all `change_types` from `diff_stats`.
 
 # Limitations
 
@@ -175,10 +187,6 @@ The connector also provides two views:
   `trees t JOIN commits c ON t.commit_id = c.object_id`. The connector doesn't provide table statistics, so Trino doesn't
   reorder such joins, and only this order lets Trino read the trees of the matching commits instead of all of them.
 * Every table scan fetches from the remote repository. See [#264](https://github.com/nineinchnick/trino-git/issues/264).
-
-# Known issues
-
-* The `idents` view does not parse. See [#261](https://github.com/nineinchnick/trino-git/issues/261).
 
 # Build
 

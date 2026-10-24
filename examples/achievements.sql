@@ -44,7 +44,7 @@ SELECT
     emails[1] AS email,
     names[1] AS name,
     slice(emails, 2, cardinality(emails)) AS extra_emails,
-    slice(names, 2, cardinality(emails)) AS extra_names
+    slice(names, 2, cardinality(names)) AS extra_names
 FROM grouped
 ORDER BY name, names;
 

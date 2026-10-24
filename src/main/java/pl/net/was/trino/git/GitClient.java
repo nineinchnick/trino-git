@@ -43,6 +43,7 @@ public class GitClient
         branches(Optional.empty()),
         commits(Optional.of("object_id")),
         diff_stats(Optional.of("commit_id")),
+        idents(Optional.empty()),
         tags(Optional.empty()),
         trees(Optional.of("commit_id")),
         objects(Optional.empty());
@@ -70,8 +71,7 @@ public class GitClient
 
     public static enum View
     {
-        idents,
-        commit_stats,
+        commit_stats
     }
 
     private final Map<String, List<GitColumn>> columns = Map.of(
@@ -89,6 +89,11 @@ public class GitClient
                     new GitColumn("parents", new ArrayType(VarcharType.VARCHAR)),
                     new GitColumn("tree_id", VarcharType.VARCHAR),
                     new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
+            Table.idents.name(), List.of(
+                    new GitColumn("email", VarcharType.VARCHAR),
+                    new GitColumn("name", VarcharType.VARCHAR),
+                    new GitColumn("extra_emails", new ArrayType(VarcharType.VARCHAR)),
+                    new GitColumn("extra_names", new ArrayType(VarcharType.VARCHAR))),
             Table.diff_stats.name(), List.of(
                     new GitColumn("commit_id", VarcharType.VARCHAR),
                     new GitColumn("old_commit_id", VarcharType.VARCHAR),
@@ -117,11 +122,6 @@ public class GitClient
                     new GitColumn("contents", VarbinaryType.VARBINARY)));
 
     Map<String, List<ConnectorViewDefinition.ViewColumn>> viewColumns = Map.of(
-            View.idents.name(), List.of(
-                    new ConnectorViewDefinition.ViewColumn("email", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
-                    new ConnectorViewDefinition.ViewColumn("name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
-                    new ConnectorViewDefinition.ViewColumn("extra_emails", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty()),
-                    new ConnectorViewDefinition.ViewColumn("extra_names", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())),
             View.commit_stats.name(), List.of(
                     new ConnectorViewDefinition.ViewColumn("object_id", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("author_name", VarcharType.VARCHAR.getTypeId(), Optional.empty()),

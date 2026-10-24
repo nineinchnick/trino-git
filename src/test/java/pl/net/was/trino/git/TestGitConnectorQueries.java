@@ -53,7 +53,7 @@ final class TestGitConnectorQueries
     {
         assertThat(query("SHOW TABLES"))
                 .skippingTypesCheck()
-                .matches("VALUES 'branches', 'commits', 'diff_stats', 'objects', 'tags', 'trees'");
+                .matches("VALUES 'branches', 'commits', 'diff_stats', 'idents', 'objects', 'tags', 'trees'");
     }
 
     @Test
@@ -386,7 +386,6 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/261")
     void testIdents()
     {
         assertThat(query("SELECT email, name, extra_emails, extra_names FROM idents"))
