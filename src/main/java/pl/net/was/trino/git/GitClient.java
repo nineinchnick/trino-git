@@ -39,12 +39,28 @@ public class GitClient
 {
     public static enum Table
     {
-        branches,
-        commits,
-        diff_stats,
-        tags,
-        trees,
-        objects,
+        branches(Optional.empty()),
+        commits(Optional.of("object_id")),
+        // TODO read only matching commits once diff_stats compares commits with their parents
+        diff_stats(Optional.empty()),
+        tags(Optional.empty()),
+        trees(Optional.of("commit_id")),
+        objects(Optional.empty());
+
+        private final Optional<String> commitIdColumn;
+
+        Table(Optional<String> commitIdColumn)
+        {
+            this.commitIdColumn = commitIdColumn;
+        }
+
+        /**
+         * Column with the id of the commit each row was read from, used to read only the commits matching a filter.
+         */
+        public Optional<String> getCommitIdColumn()
+        {
+            return commitIdColumn;
+        }
     }
 
     public static enum TreesColumns

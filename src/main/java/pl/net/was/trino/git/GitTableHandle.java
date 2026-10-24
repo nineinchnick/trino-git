@@ -13,23 +13,20 @@
  */
 package pl.net.was.trino.git;
 
-import com.google.common.collect.ImmutableList;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
-
-import java.util.List;
-import java.util.Optional;
+import io.trino.spi.predicate.TupleDomain;
 
 import static java.util.Objects.requireNonNull;
 
-public record GitTableHandle(String schemaName, String tableName, Optional<List<String>> commitIds)
+public record GitTableHandle(String schemaName, String tableName, TupleDomain<GitColumnHandle> constraint)
         implements ConnectorTableHandle
 {
     public GitTableHandle
     {
         requireNonNull(schemaName, "schemaName is null");
         requireNonNull(tableName, "tableName is null");
-        commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
+        requireNonNull(constraint, "constraint is null");
     }
 
     public SchemaTableName toSchemaTableName()

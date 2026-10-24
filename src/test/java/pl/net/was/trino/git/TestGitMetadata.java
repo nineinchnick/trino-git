@@ -13,13 +13,19 @@
  */
 package pl.net.was.trino.git;
 
+import io.airlift.slice.Slices;
 import io.trino.spi.TrinoException;
 import io.trino.spi.catalog.CatalogName;
 import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaNotFoundException;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.TableNotFoundException;
+import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,16 +40,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static io.airlift.slice.Slices.utf8Slice;
+import static io.trino.spi.predicate.Domain.multipleValues;
+import static io.trino.spi.predicate.Domain.singleValue;
 import static io.trino.spi.type.TimestampWithTimeZoneType.createTimestampWithTimeZoneType;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
+import static java.util.Locale.ENGLISH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Execution(ExecutionMode.SAME_THREAD)
 public class TestGitMetadata
 {
+    private static final String COMMIT_A = "080dfdf0aac7d302dc31d57f62942bb6533944f7";
+    private static final String COMMIT_B = "c3b14e59f88d0d6597b98ee93cf61e7556d540a4";
+    private static final String COMMIT_C = "8f9ec8eb5f9a4a5c42fbd8d0a1a31c0e7b8c4f12";
+    private static final GitColumnHandle TREES_COMMIT_ID = new GitColumnHandle("commit_id", VARCHAR, 0);
+    private static final GitColumnHandle TREES_OBJECT_ID = new GitColumnHandle("object_id", VARCHAR, 1);
+
     private GitTableHandle commitsTableHandle;
     private GitMetadata metadata;
 
@@ -51,7 +70,7 @@ public class TestGitMetadata
     public void setUp()
             throws IOException, GitAPIException, URISyntaxException
     {
-        commitsTableHandle = new GitTableHandle("default", "commits", Optional.empty());
+        commitsTableHandle = new GitTableHandle("default", "commits", TupleDomain.all());
 
         String url = "fake.example";
         TestGitClient.setupRepo(URI.create(url));
@@ -89,7 +108,7 @@ public class TestGitMetadata
                 "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
 
         // unknown table
-        assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty())))
+        assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", TupleDomain.all())))
                 .isInstanceOf(TableNotFoundException.class);
     }
 
@@ -111,9 +130,9 @@ public class TestGitMetadata
                 new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty()))).isNull();
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty()))).isNull();
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", TupleDomain.all()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", TupleDomain.all()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", TupleDomain.all()))).isNull();
     }
 
     @Test
@@ -153,5 +172,55 @@ public class TestGitMetadata
     public void testDropTableTable()
     {
         assertThatThrownBy(() -> metadata.dropTable(SESSION, commitsTableHandle)).isInstanceOf(TrinoException.class);
+    }
+
+    @Test
+    public void testApplyFilterIgnoresObjectIdOfTrees()
+    {
+        GitTableHandle trees = new GitTableHandle("default", "trees", TupleDomain.all());
+        Constraint constraint = new Constraint(TupleDomain.withColumnDomains(Map.of(TREES_OBJECT_ID, singleValue(VARCHAR, utf8Slice(COMMIT_A)))));
+        assertThat(metadata.applyFilter(SESSION, trees, constraint)).isEmpty();
+    }
+
+    @Test
+    public void testApplyFilterIntersectsCommitIds()
+    {
+        GitTableHandle trees = new GitTableHandle("default", "trees", TupleDomain.all());
+        ConstraintApplicationResult<ConnectorTableHandle> first = metadata.applyFilter(SESSION, trees, commitIdsConstraint(TREES_COMMIT_ID, COMMIT_A, COMMIT_B)).orElseThrow();
+        assertThat(first.getRemainingFilter()).isEqualTo(TupleDomain.all());
+        ConstraintApplicationResult<ConnectorTableHandle> second = metadata.applyFilter(SESSION, first.getHandle(), commitIdsConstraint(TREES_COMMIT_ID, COMMIT_B, COMMIT_C)).orElseThrow();
+
+        TupleDomain<GitColumnHandle> constraint = ((GitTableHandle) second.getHandle()).constraint();
+        assertThat(GitMetadata.getCommitIds(constraint, "commit_id")).contains(List.of(COMMIT_B));
+    }
+
+    @Test
+    public void testApplyFilterKeepsOtherColumnsUnenforced()
+    {
+        GitTableHandle trees = new GitTableHandle("default", "trees", TupleDomain.all());
+        Domain objectId = singleValue(VARCHAR, utf8Slice(COMMIT_C));
+        Constraint constraint = new Constraint(TupleDomain.withColumnDomains(Map.of(
+                TREES_COMMIT_ID, singleValue(VARCHAR, utf8Slice(COMMIT_A)),
+                TREES_OBJECT_ID, objectId)));
+
+        ConstraintApplicationResult<ConnectorTableHandle> result = metadata.applyFilter(SESSION, trees, constraint).orElseThrow();
+        assertThat(result.getRemainingFilter()).isEqualTo(TupleDomain.withColumnDomains(Map.of(TREES_OBJECT_ID, objectId)));
+        assertThat(GitMetadata.getCommitIds(((GitTableHandle) result.getHandle()).constraint(), "commit_id")).contains(List.of(COMMIT_A));
+    }
+
+    @Test
+    public void testGetCommitIdsSkipsInvalidIds()
+    {
+        TupleDomain<GitColumnHandle> constraint = TupleDomain.withColumnDomains(Map.of(
+                TREES_COMMIT_ID, multipleValues(VARCHAR, List.of(utf8Slice(COMMIT_A), utf8Slice(COMMIT_B.toUpperCase(ENGLISH)), utf8Slice(COMMIT_C.substring(0, 7))))));
+        assertThat(GitMetadata.getCommitIds(constraint, "commit_id")).contains(List.of(COMMIT_A));
+        assertThat(GitMetadata.getCommitIds(TupleDomain.none(), "commit_id")).contains(List.of());
+        assertThat(GitMetadata.getCommitIds(TupleDomain.all(), "commit_id")).isEmpty();
+    }
+
+    private static Constraint commitIdsConstraint(GitColumnHandle column, String... commitIds)
+    {
+        List<Object> values = Stream.of(commitIds).map(Slices::utf8Slice).collect(toImmutableList());
+        return new Constraint(TupleDomain.withColumnDomains(Map.of(column, multipleValues(VARCHAR, values))));
     }
 }
