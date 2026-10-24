@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ConnectorSplit;
+import io.trino.spi.connector.SchemaTableName;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,16 +27,16 @@ import static io.airlift.slice.SizeOf.instanceSize;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
-public record GitSplit(String schemaName, String tableName, Optional<List<String>> commitIds, long refreshGeneration)
+public record GitSplit(SchemaTableName table, Optional<List<String>> commitIds, Snapshot snapshot)
         implements ConnectorSplit
 {
     private static final int INSTANCE_SIZE = instanceSize(GitSplit.class);
 
     public GitSplit
     {
-        requireNonNull(schemaName, "schemaName is null");
-        requireNonNull(tableName, "tableName is null");
+        requireNonNull(table, "table is null");
         commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
+        requireNonNull(snapshot, "snapshot is null");
     }
 
     // only used by the scheduler on the coordinator
@@ -44,15 +45,15 @@ public record GitSplit(String schemaName, String tableName, Optional<List<String
     public Optional<String> getAffinityKey()
     {
         // every worker reading a repository needs its own clone, so read it on as few workers as possible
-        return Optional.of(schemaName);
+        return Optional.of(table.getSchemaName());
     }
 
     @Override
     public long getRetainedSizeInBytes()
     {
         return INSTANCE_SIZE
-                + estimatedSizeOf(schemaName)
-                + estimatedSizeOf(tableName)
-                + sizeOf(commitIds, ids -> estimatedSizeOf(ids, SizeOf::estimatedSizeOf));
+                + table.getRetainedSizeInBytes()
+                + sizeOf(commitIds, ids -> estimatedSizeOf(ids, SizeOf::estimatedSizeOf))
+                + snapshot.getRetainedSizeInBytes();
     }
 }

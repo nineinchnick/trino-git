@@ -15,11 +15,12 @@ package pl.net.was.trino.git;
 
 import io.trino.spi.connector.RecordCursor;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Ref;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface RecordCursorProvider
 {
-    RecordCursor create(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds);
+    RecordCursor create(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds);
 }

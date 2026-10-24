@@ -16,6 +16,7 @@ package pl.net.was.trino.git;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -43,12 +44,12 @@ public final class Identities
 {
     private Identities() {}
 
-    public static List<Group> group(Repository repository, Mailmap mailmap)
+    public static List<Group> group(Repository repository, List<Ref> refs, Mailmap mailmap)
     {
         UnionFind<Key> groups = new UnionFind<>();
         Set<Identity> mapped = new HashSet<>();
         try (RevWalk revWalk = new RevWalk(repository)) {
-            Iterator<RevCommit> commits = walkCommits(repository, revWalk, Optional.empty());
+            Iterator<RevCommit> commits = walkCommits(revWalk, refs, Optional.empty());
             while (commits.hasNext()) {
                 RevCommit commit = commits.next();
                 for (PersonIdent person : List.of(commit.getAuthorIdent(), commit.getCommitterIdent())) {

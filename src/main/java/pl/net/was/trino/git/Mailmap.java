@@ -14,7 +14,9 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableListMultimap;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -50,15 +52,19 @@ public final class Mailmap
         this.entries = requireNonNull(entries, "entries is null");
     }
 
-    public static Mailmap read(Repository repository)
+    public static Mailmap read(Repository repository, List<Ref> refs)
             throws IOException
     {
         // like git in a bare repository, read the file from HEAD
+        Optional<ObjectId> headId = refs.stream()
+                .filter(ref -> ref.getName().equals(HEAD) && ref.getObjectId() != null)
+                .map(Ref::getObjectId)
+                .findFirst();
+        if (headId.isEmpty()) {
+            return EMPTY;
+        }
         try (RevWalk walk = new RevWalk(repository)) {
-            if (repository.resolve(HEAD) == null) {
-                return EMPTY;
-            }
-            RevCommit head = walk.parseCommit(repository.resolve(HEAD));
+            RevCommit head = walk.parseCommit(headId.orElseThrow());
             try (TreeWalk treeWalk = TreeWalk.forPath(repository, ".mailmap", head.getTree())) {
                 if (treeWalk == null) {
                     return EMPTY;

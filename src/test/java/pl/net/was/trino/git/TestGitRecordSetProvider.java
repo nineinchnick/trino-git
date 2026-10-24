@@ -16,6 +16,7 @@ package pl.net.was.trino.git;
 import com.google.common.collect.ImmutableMap;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
+import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.predicate.TupleDomain;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +51,7 @@ public class TestGitRecordSetProvider
         RecordSet recordSet = recordSetProvider.getRecordSet(
                 GitTransactionHandle.INSTANCE,
                 SESSION,
-                new GitSplit("default", "commits", Optional.empty(), 0),
+                new GitSplit(new SchemaTableName("default", "commits"), Optional.empty(), Snapshot.latest(0)),
                 new GitTableHandle("default", "commits", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),

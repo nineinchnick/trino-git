@@ -47,7 +47,7 @@ public class ObjectsRecordCursor
 
     private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
-    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public ObjectsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs)
     {
         this.columnHandles = columnHandles;
 
@@ -69,7 +69,7 @@ public class ObjectsRecordCursor
 
         walk = new ObjectWalk(repo.getRepository());
         try {
-            for (Ref ref : repo.getRepository().getRefDatabase().getRefs()) {
+            for (Ref ref : refs) {
                 if (ref.getObjectId() != null) {
                     // refs can point to annotated tags, and these, like any ref, to trees or blobs
                     walk.markStart(walk.peel(walk.parseAny(ref.getObjectId())));

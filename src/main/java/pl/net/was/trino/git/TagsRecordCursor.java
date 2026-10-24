@@ -19,7 +19,6 @@ import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -28,6 +27,7 @@ import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -36,6 +36,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static io.trino.spi.type.DateTimeEncoding.packDateTimeWithZone;
 import static io.trino.spi.type.TimeZoneKey.getTimeZoneKey;
 import static java.util.Arrays.asList;
+import static org.eclipse.jgit.lib.Constants.R_TAGS;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class TagsRecordCursor
@@ -50,7 +51,7 @@ public class TagsRecordCursor
 
     private List<Object> fields;
 
-    public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public TagsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs)
     {
         this.columnHandles = columnHandles;
 
@@ -62,12 +63,10 @@ public class TagsRecordCursor
         parseTag = columnHandles.stream()
                 .anyMatch(column -> column.columnName().equals("commit_id") || column.columnName().equals("tag_time"));
         walk = parseTag ? new RevWalk(repo.getRepository()) : null;
-        try {
-            tags = repo.tagList().call().iterator();
-        }
-        catch (GitAPIException e) {
-            throw new TrinoException(GIT_READ_ERROR, "Failed to list tags", e);
-        }
+        tags = refs.stream()
+                .filter(ref -> ref.getName().startsWith(R_TAGS))
+                .sorted(Comparator.comparing(Ref::getName))
+                .iterator();
     }
 
     @Override

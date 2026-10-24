@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import io.trino.spi.connector.RecordCursor;
+import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.predicate.TupleDomain;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeResult;
@@ -99,10 +100,10 @@ public class TestGitDiffStats
     private List<List<Object>> read(Optional<List<String>> commitIds)
     {
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("default", "diff_stats", commitIds, 0),
+                new GitSplit(new SchemaTableName("default", "diff_stats"), commitIds, Snapshot.latest(0)),
                 new GitTableHandle("default", "diff_stats", TupleDomain.all()),
                 COLUMNS,
-                repositoryManager.getRepository("default", 0));
+                repositoryManager.getRepository("default", Snapshot.latest(0)));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

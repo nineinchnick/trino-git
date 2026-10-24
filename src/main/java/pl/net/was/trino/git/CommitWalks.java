@@ -18,7 +18,6 @@ import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -36,13 +35,13 @@ final class CommitWalks
     private CommitWalks() {}
 
     /**
-     * Returns the selected commits, or all commits reachable from any ref, if none are selected.
+     * Returns the selected commits, or all commits reachable from any of the refs, if none are selected.
      */
-    static Iterator<RevCommit> walkCommits(Repository repository, RevWalk revWalk, Optional<List<String>> commitIds)
+    static Iterator<RevCommit> walkCommits(RevWalk revWalk, List<Ref> refs, Optional<List<String>> commitIds)
     {
         if (commitIds.isEmpty()) {
             try {
-                for (Ref ref : repository.getRefDatabase().getRefs()) {
+                for (Ref ref : refs) {
                     markStart(revWalk, ref);
                 }
             }

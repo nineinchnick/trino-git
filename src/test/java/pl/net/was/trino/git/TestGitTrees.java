@@ -53,6 +53,7 @@ public class TestGitTrees
                             new GitColumnHandle("mode", VARCHAR, 2),
                             new GitColumnHandle("depth", INTEGER, 3)),
                     git,
+                    git.getRepository().getRefDatabase().getRefs(),
                     Optional.empty())) {
                 while (cursor.advanceNextPosition()) {
                     rows.add(List.of(

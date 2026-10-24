@@ -53,13 +53,13 @@ public class TestCommitWalks
             git.checkout().setName("main").call();
 
             try (RevWalk revWalk = new RevWalk(git.getRepository())) {
-                assertThat(ImmutableList.copyOf(CommitWalks.walkCommits(git.getRepository(), revWalk, Optional.empty())))
+                assertThat(ImmutableList.copyOf(CommitWalks.walkCommits(revWalk, git.getRepository().getRefDatabase().getRefs(), Optional.empty())))
                         .containsExactlyInAnyOrder(first, second);
             }
             // ids from filters that are missing or aren't commits don't match any commit
             try (RevWalk revWalk = new RevWalk(git.getRepository())) {
                 List<String> commitIds = List.of(first.getName(), blob.getName(), "0123456789012345678901234567890123456789");
-                assertThat(ImmutableList.copyOf(CommitWalks.walkCommits(git.getRepository(), revWalk, Optional.of(commitIds))))
+                assertThat(ImmutableList.copyOf(CommitWalks.walkCommits(revWalk, git.getRepository().getRefDatabase().getRefs(), Optional.of(commitIds))))
                         .containsExactly(first);
             }
         }

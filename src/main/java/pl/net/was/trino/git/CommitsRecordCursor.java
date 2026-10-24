@@ -22,6 +22,7 @@ import io.trino.spi.type.DateTimeEncoding;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 
@@ -49,7 +50,7 @@ public class CommitsRecordCursor
 
     private RevCommit commit;
 
-    public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public CommitsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
 
@@ -88,7 +89,7 @@ public class CommitsRecordCursor
         }
 
         revWalk = new RevWalk(repo.getRepository());
-        commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+        commits = walkCommits(revWalk, refs, commitIds);
     }
 
     private static long packTime(PersonIdent ident)
