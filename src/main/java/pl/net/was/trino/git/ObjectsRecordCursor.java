@@ -157,9 +157,7 @@ public class ObjectsRecordCursor
     }
 
     @Override
-    public void close()
-    {
-    }
+    public void close() {}
 
     private Slice getObjectId()
     {

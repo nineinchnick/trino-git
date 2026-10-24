@@ -271,13 +271,13 @@ public class GitMetadata
         if (handle.getTableName().equals(GitClient.Table.trees.name())) {
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
-                    (columnHandle, domain) -> !columnHandle.equals(columns.get("commit_id")));
+                    (columnHandle, _) -> !columnHandle.equals(columns.get("commit_id")));
         }
         else if (handle.getTableName().equals(GitClient.Table.commits.name())) {
             // TODO merge both conditions, mapping table name to column (FK?)
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
-                    (columnHandle, domain) -> !columnHandle.equals(columns.get("object_id")));
+                    (columnHandle, _) -> !columnHandle.equals(columns.get("object_id")));
         }
 
         if ((oldCommits.isEmpty() && commitIds.isEmpty()) ||

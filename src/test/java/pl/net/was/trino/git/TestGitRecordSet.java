@@ -249,8 +249,7 @@ public class TestGitRecordSet
                                 cursor.getLong(3)));
             }
             assertThat(data).isEqualTo(Map.of(
-                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4",
-                    List.of(
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of(
                             "080dfdf0aac7d302dc31d57f62942bb6533944f7",
                             1L,
                             0L)));

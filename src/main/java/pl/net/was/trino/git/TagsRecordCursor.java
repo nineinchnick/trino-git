@@ -63,7 +63,7 @@ public class TagsRecordCursor
             tags = repo.tagList().call().iterator();
         }
         catch (GitAPIException ignored) {
-            //pass
+            // pass
         }
     }
 

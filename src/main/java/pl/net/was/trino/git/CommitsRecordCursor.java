@@ -198,7 +198,5 @@ public class CommitsRecordCursor
     }
 
     @Override
-    public void close()
-    {
-    }
+    public void close() {}
 }

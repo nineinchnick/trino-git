@@ -208,9 +208,7 @@ public class TreesRecordCursor
     }
 
     @Override
-    public void close()
-    {
-    }
+    public void close() {}
 
     private String getCommitId()
     {
