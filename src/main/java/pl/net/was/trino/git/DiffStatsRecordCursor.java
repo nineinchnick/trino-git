@@ -23,7 +23,11 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.diff.EditList;
+import org.eclipse.jgit.lib.AbbreviatedObjectId;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.patch.FileHeader;
+import org.eclipse.jgit.patch.FileHeader.PatchType;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
@@ -47,7 +51,6 @@ public class DiffStatsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
-    private final int oldCommitIdField;
     private final Map<Integer, Function<DiffStatsRecordCursor, Integer>> intFieldGetters = new HashMap<>();
     private final Map<Integer, Function<DiffStatsRecordCursor, String>> strFieldGetters = new HashMap<>();
 
@@ -60,7 +63,7 @@ public class DiffStatsRecordCursor
     private RevCommit currentCommit;
     private Optional<RevCommit> parentCommit;
     private DiffEntry entry;
-    private EditList edits;
+    private Optional<EditList> edits;
 
     private final Map<DiffEntry.ChangeType, String> changeTypeNames = Map.of(
             DiffEntry.ChangeType.ADD, "Add",
@@ -77,7 +80,6 @@ public class DiffStatsRecordCursor
         for (int i = 0; i < columnHandles.size(); i++) {
             nameToIndex.put(columnHandles.get(i).columnName(), i);
         }
-        oldCommitIdField = nameToIndex.getOrDefault("old_commit_id", -1);
 
         Map<String, Function<DiffStatsRecordCursor, Integer>> intGetters = Map.of(
                 "similarity_score", c -> c.entry.getScore(),
@@ -95,6 +97,7 @@ public class DiffStatsRecordCursor
                 "commit_id", DiffStatsRecordCursor::getCommitId,
                 "old_commit_id", DiffStatsRecordCursor::getOldCommitId,
                 "object_id", DiffStatsRecordCursor::getObjectId,
+                "old_object_id", DiffStatsRecordCursor::getOldObjectId,
                 "path_name", DiffStatsRecordCursor::getPathName,
                 "old_path_name", DiffStatsRecordCursor::getOldPathName,
                 "change_type", c -> getChangeType(c.entry.getChangeType()));
@@ -153,7 +156,9 @@ public class DiffStatsRecordCursor
             }
 
             entry = entries.next();
-            edits = formatter.toFileHeader(entry).toEditList();
+            FileHeader header = formatter.toFileHeader(entry);
+            // line counts are unknown for binary files
+            edits = header.getPatchType() == PatchType.UNIFIED ? Optional.of(header.toEditList()) : Optional.empty();
         }
         catch (IOException e) {
             throw new TrinoException(GIT_READ_ERROR, "Failed to compare commit %s with its parent".formatted(currentCommit.getName()), e);
@@ -207,7 +212,10 @@ public class DiffStatsRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return field == oldCommitIdField && parentCommit.isEmpty();
+        if (intFieldGetters.containsKey(field)) {
+            return intFieldGetters.get(field).apply(this) == null;
+        }
+        return strFieldGetters.get(field).apply(this) == null;
     }
 
     @Override
@@ -229,39 +237,47 @@ public class DiffStatsRecordCursor
 
     private String getOldCommitId()
     {
-        return parentCommit.orElseThrow().getName();
+        return parentCommit.map(RevCommit::getName).orElse(null);
     }
 
     private String getObjectId()
     {
-        return entry.getNewId().name();
+        return getId(entry.getNewId());
+    }
+
+    private String getOldObjectId()
+    {
+        return getId(entry.getOldId());
     }
 
     private String getPathName()
     {
-        return entry.getNewPath();
+        return getPath(entry.getNewPath());
     }
 
     private String getOldPathName()
     {
-        return entry.getOldPath();
+        return getPath(entry.getOldPath());
     }
 
-    private int getAddedLines()
+    private static String getId(AbbreviatedObjectId id)
     {
-        int result = 0;
-        for (Edit edit : edits) {
-            result += edit.getLengthB();
-        }
-        return result;
+        // added files have no old id, and deleted files have no new id
+        return id.toObjectId().equals(ObjectId.zeroId()) ? null : id.name();
     }
 
-    private int getDeletedLines()
+    private static String getPath(String path)
     {
-        int result = 0;
-        for (Edit edit : edits) {
-            result += edit.getLengthA();
-        }
-        return result;
+        return path.equals(DiffEntry.DEV_NULL) ? null : path;
+    }
+
+    private Integer getAddedLines()
+    {
+        return edits.map(edits -> edits.stream().mapToInt(Edit::getLengthB).sum()).orElse(null);
+    }
+
+    private Integer getDeletedLines()
+    {
+        return edits.map(edits -> edits.stream().mapToInt(Edit::getLengthA).sum()).orElse(null);
     }
 }
