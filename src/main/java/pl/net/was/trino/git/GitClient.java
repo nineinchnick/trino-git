@@ -112,7 +112,8 @@ public class GitClient
                     new GitColumn("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
             Table.trees.name(), List.of(
                     new GitColumn(TreesColumns.commit_id.name(), VarcharType.VARCHAR),
-                    new GitColumn("object_type", VarcharType.VARCHAR),
+                    new GitColumn("file_mode", VarcharType.VARCHAR),
+                    new GitColumn("mode", VarcharType.VARCHAR),
                     new GitColumn("object_id", VarcharType.VARCHAR),
                     new GitColumn("file_name", VarcharType.VARCHAR),
                     new GitColumn("path_name", VarcharType.VARCHAR),

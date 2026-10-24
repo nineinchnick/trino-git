@@ -11,7 +11,7 @@ SELECT
     coalesce(sum(s.added_lines), 0) AS added_lines,
     coalesce(sum(s.deleted_lines), 0) AS deleted_lines,
     count(s.commit_id) AS changed_files,
-    avg(s.similarity_score) FILTER (WHERE s.change_type IN ('Rename', 'Copy')) AS similarity_score,
+    avg(s.similarity_score) FILTER (WHERE s.change_type IN ('renamed', 'copied')) AS similarity_score,
     coalesce(array_agg(s.change_type) FILTER (WHERE s.change_type IS NOT NULL), CAST(ARRAY[] AS array(varchar))) AS change_types
 FROM
     commits c

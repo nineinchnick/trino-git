@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import io.trino.testing.AbstractTestQueryFramework;
 import io.trino.testing.QueryRunner;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -220,23 +219,25 @@ final class TestGitConnectorQueries
             throws IOException
     {
         RevCommit commit = repository.getEmptyCommit();
-        assertThat(query("SELECT commit_id, object_type, object_id, file_name, path_name, depth FROM trees WHERE commit_id = '%s'".formatted(id(commit))))
+        assertThat(query("SELECT commit_id, file_mode, mode, object_id, file_name, path_name, depth FROM trees WHERE commit_id = '%s'".formatted(id(commit))))
                 .skippingTypesCheck()
                 .matches(
                         """
                         VALUES
-                            ('%1$s', 'Normal File', '%2$s', 'README.md', 'README.md', 0),
-                            ('%1$s', 'Normal File', '%3$s', 'guide.md', 'docs/guide.md', 1),
-                            ('%1$s', 'Normal File', '%4$s', 'feature.txt', 'feature.txt', 0),
-                            ('%1$s', 'Normal File', '%5$s', 'image.bin', 'image.bin', 0),
-                            ('%1$s', 'Normal File', '%6$s', 'new-name.txt', 'new-name.txt', 0)
+                            ('%1$s', 'file', '100644', '%2$s', 'README.md', 'README.md', 0),
+                            ('%1$s', 'directory', '040000', '%7$s', 'docs', 'docs', 0),
+                            ('%1$s', 'file', '100644', '%3$s', 'guide.md', 'docs/guide.md', 1),
+                            ('%1$s', 'file', '100644', '%4$s', 'feature.txt', 'feature.txt', 0),
+                            ('%1$s', 'file', '100644', '%5$s', 'image.bin', 'image.bin', 0),
+                            ('%1$s', 'file', '100644', '%6$s', 'new-name.txt', 'new-name.txt', 0)
                         """.formatted(
                                 id(commit),
                                 blobId(commit, README),
                                 blobId(commit, GUIDE),
                                 blobId(commit, FEATURE_FILE),
                                 blobId(commit, BINARY),
-                                blobId(commit, RENAMED_NEW)));
+                                blobId(commit, RENAMED_NEW),
+                                blobId(commit, "docs")));
     }
 
     @Test
@@ -247,13 +248,13 @@ final class TestGitConnectorQueries
                 .matches(
                         """
                         VALUES
-                            ('%s', BIGINT '4'),
-                            ('%s', BIGINT '4'),
                             ('%s', BIGINT '5'),
                             ('%s', BIGINT '5'),
-                            ('%s', BIGINT '4'),
+                            ('%s', BIGINT '6'),
+                            ('%s', BIGINT '6'),
                             ('%s', BIGINT '5'),
-                            ('%s', BIGINT '5')
+                            ('%s', BIGINT '6'),
+                            ('%s', BIGINT '6')
                         """.formatted(
                                 id(repository.getInitialCommit()),
                                 id(repository.getUpdateCommit()),
@@ -309,7 +310,7 @@ final class TestGitConnectorQueries
         assertThat(query("SELECT commit_id, old_commit_id, path_name, old_path_name, change_type, added_lines, deleted_lines FROM diff_stats WHERE commit_id = '%s'".formatted(
                 id(repository.getUpdateCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES ('%s', '%s', 'README.md', 'README.md', 'Modify', 3, 0)".formatted(
+                .matches("VALUES ('%s', '%s', 'README.md', 'README.md', 'modified', 3, 0)".formatted(
                         id(repository.getUpdateCommit()),
                         id(repository.getInitialCommit())));
     }
@@ -333,10 +334,10 @@ final class TestGitConnectorQueries
                 .matches(
                         """
                         VALUES
-                            (NULL, 'README.md', 'Add', 1, 0),
-                            (NULL, 'docs/guide.md', 'Add', 3, 0),
-                            (NULL, 'old-name.txt', 'Add', 3, 0),
-                            (NULL, 'to-delete.txt', 'Add', 1, 0)
+                            (NULL, 'README.md', 'added', 1, 0),
+                            (NULL, 'docs/guide.md', 'added', 3, 0),
+                            (NULL, 'old-name.txt', 'added', 3, 0),
+                            (NULL, 'to-delete.txt', 'added', 1, 0)
                         """);
     }
 
@@ -346,7 +347,7 @@ final class TestGitConnectorQueries
         assertThat(query("SELECT old_commit_id, path_name, change_type, added_lines, deleted_lines FROM diff_stats WHERE commit_id = '%s'".formatted(
                 id(repository.getMergeCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES ('%s', 'feature.txt', 'Add', 1, 0)".formatted(id(repository.getDeleteCommit())));
+                .matches("VALUES ('%s', 'feature.txt', 'added', 1, 0)".formatted(id(repository.getDeleteCommit())));
     }
 
     @Test
@@ -358,8 +359,8 @@ final class TestGitConnectorQueries
                 .matches(
                         """
                         VALUES
-                            ('%1$s', 'new-name.txt', 'Rename'),
-                            ('%1$s', 'image.bin', 'Add')
+                            ('%1$s', 'new-name.txt', 'renamed'),
+                            ('%1$s', 'image.bin', 'added')
                         """.formatted(id(repository.getUpdateCommit())));
     }
 
@@ -370,7 +371,7 @@ final class TestGitConnectorQueries
         assertThat(query("SELECT object_id, path_name, old_path_name, change_type FROM diff_stats WHERE commit_id = '%s'".formatted(
                 id(repository.getFeatureCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES ('%s', 'feature.txt', NULL, 'Add')".formatted(blobId(repository.getFeatureCommit(), FEATURE_FILE)));
+                .matches("VALUES ('%s', 'feature.txt', NULL, 'added')".formatted(blobId(repository.getFeatureCommit(), FEATURE_FILE)));
     }
 
     @Test
@@ -378,7 +379,7 @@ final class TestGitConnectorQueries
     {
         assertThat(query("SELECT change_type, added_lines, deleted_lines FROM diff_stats WHERE path_name = 'image.bin'"))
                 .skippingTypesCheck()
-                .matches("VALUES ('Add', CAST(NULL AS integer), CAST(NULL AS integer))");
+                .matches("VALUES ('added', CAST(NULL AS integer), CAST(NULL AS integer))");
     }
 
     @Test
@@ -388,7 +389,7 @@ final class TestGitConnectorQueries
         assertThat(query("SELECT object_id, old_object_id, path_name, old_path_name, change_type FROM diff_stats WHERE commit_id = '%s'".formatted(
                 id(repository.getDeleteCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES (NULL, '%s', NULL, 'to-delete.txt', 'Delete')".formatted(blobId(repository.getInitialCommit(), DELETED)));
+                .matches("VALUES (NULL, '%s', NULL, 'to-delete.txt', 'deleted')".formatted(blobId(repository.getInitialCommit(), DELETED)));
     }
 
     @Test
@@ -410,10 +411,10 @@ final class TestGitConnectorQueries
     {
         assertThat(query("SELECT similarity_score, array_sort(change_types) FROM commit_stats WHERE object_id = '%s'".formatted(id(repository.getRenameCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES (DOUBLE '100', ARRAY['Add', 'Rename'])");
+                .matches("VALUES (DOUBLE '100', ARRAY['added', 'renamed'])");
         assertThat(query("SELECT similarity_score, change_types FROM commit_stats WHERE object_id = '%s'".formatted(id(repository.getUpdateCommit()))))
                 .skippingTypesCheck()
-                .matches("VALUES (CAST(NULL AS double), ARRAY['Modify'])");
+                .matches("VALUES (CAST(NULL AS double), ARRAY['modified'])");
     }
 
     @Test

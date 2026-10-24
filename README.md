@@ -51,12 +51,12 @@ git.url=https://github.com/nineinchnick/trino-git.git
 
 The catalog supports these properties:
 
-| Property              | Description                                                                                     | Default                       |
-|-----------------------|-------------------------------------------------------------------------------------------------|-------------------------------|
-| `git.url`             | URL of the repository. Must not contain credentials. Previously called `metadata-uri`.         |                               |
-| `git.username`        | Username used to authenticate to the repository.                                               |                               |
-| `git.password`        | Password or access token used to authenticate to the repository.                               |                               |
-| `git.cache-directory` | Directory where every node clones the repository. Only the user running Trino may access it.   | `${java.io.tmpdir}/trino-git` |
+| Property              | Description                                                                                  | Default                       |
+|-----------------------|----------------------------------------------------------------------------------------------|-------------------------------|
+| `git.url`             | URL of the repository. Must not contain credentials. Previously called `metadata-uri`.       |                               |
+| `git.username`        | Username used to authenticate to the repository.                                             |                               |
+| `git.password`        | Password or access token used to authenticate to the repository.                             |                               |
+| `git.cache-directory` | Directory where every node clones the repository. Only the user running Trino may access it. | `${java.io.tmpdir}/trino-git` |
 
 Keep credentials out of the catalog file by reading them from environment variables, for example
 `git.password=${ENV:GIT_TOKEN}`. For GitHub, use a token as the password and any non-empty username.
@@ -114,7 +114,7 @@ Branches of the remote repository.
 Files changed in every commit compared with its first parent, with renames detected.
 Merge commits are compared only with their first parent, like `git log -p --first-parent`,
 and root commits with an empty tree, so all their files are added.
-Copies are not detected, so `change_type` is never `Copy`.
+Copies are not detected, so `change_type` is never `copied`.
 
 | Column             | Type      | Description                                                         |
 |--------------------|-----------|---------------------------------------------------------------------|
@@ -124,7 +124,7 @@ Copies are not detected, so `change_type` is never `Copy`.
 | `old_object_id`    | `varchar` | Id of the old file contents, `NULL` for an added file               |
 | `path_name`        | `varchar` | New file path, `NULL` for a deleted file                            |
 | `old_path_name`    | `varchar` | Old file path, `NULL` for an added file                             |
-| `change_type`      | `varchar` | One of `Add`, `Modify`, `Delete`, `Rename`, `Copy`                  |
+| `change_type`      | `varchar` | One of `added`, `modified`, `deleted`, `renamed`, `copied`          |
 | `similarity_score` | `integer` | Similarity of the old and new file for renames and copies, 0 to 100 |
 | `added_lines`      | `integer` | Number of added lines, `NULL` for binary files                      |
 | `deleted_lines`    | `integer` | Number of deleted lines, `NULL` for binary files                    |
@@ -140,26 +140,27 @@ Contents of every file (blob) reachable from any branch or tag.
 
 ## `tags`
 
-| Column      | Type                          | Description                                                                 |
-|-------------|-------------------------------|-----------------------------------------------------------------------------|
-| `object_id` | `varchar`                     | Id of the object the tag points to: a tag object or a commit                |
-| `commit_id` | `varchar`                     | Id of the tagged commit, `NULL` if the tag points to a tree or a blob       |
-| `name`      | `varchar`                     | Full ref name, like `refs/tags/v1.0`                                        |
-| `tag_time`  | `timestamp(0) with time zone` | Time of an annotated tag, `NULL` for lightweight tags and tags without one  |
+| Column      | Type                          | Description                                                                |
+|-------------|-------------------------------|----------------------------------------------------------------------------|
+| `object_id` | `varchar`                     | Id of the object the tag points to: a tag object or a commit               |
+| `commit_id` | `varchar`                     | Id of the tagged commit, `NULL` if the tag points to a tree or a blob      |
+| `name`      | `varchar`                     | Full ref name, like `refs/tags/v1.0`                                       |
+| `tag_time`  | `timestamp(0) with time zone` | Time of an annotated tag, `NULL` for lightweight tags and tags without one |
 
 ## `trees`
 
-All files in every commit.
+All files and directories in every commit. Directories come before their contents.
 
-| Column        | Type      | Description                                                   |
-|---------------|-----------|---------------------------------------------------------------|
-| `commit_id`   | `varchar` | Commit id                                                     |
-| `object_type` | `varchar` | One of `Normal File`, `Executable File`, `Symlink`, `Gitlink` |
-| `object_id`   | `varchar` | Id of the file contents                                       |
-| `file_name`   | `varchar` | File name                                                     |
-| `path_name`   | `varchar` | Full file path                                                |
-| `attributes`  | `varchar` | Git attributes of the file, from `.gitattributes`             |
-| `depth`       | `integer` | Number of parent directories of the file                      |
+| Column       | Type      | Description                                                          |
+|--------------|-----------|----------------------------------------------------------------------|
+| `commit_id`  | `varchar` | Commit id                                                            |
+| `file_mode`  | `varchar` | One of `file`, `executable`, `symlink`, `submodule`, `directory`     |
+| `mode`       | `varchar` | Raw file mode in octal, like `100644`, the same as in `git ls-tree`  |
+| `object_id`  | `varchar` | Id of the file contents, the directory tree, or the submodule commit |
+| `file_name`  | `varchar` | File name                                                            |
+| `path_name`  | `varchar` | Full file path                                                       |
+| `attributes` | `varchar` | Git attributes of the file, from `.gitattributes`                    |
+| `depth`      | `integer` | Number of parent directories of the file                             |
 
 ## `idents`
 

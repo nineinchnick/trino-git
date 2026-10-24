@@ -65,13 +65,6 @@ public class DiffStatsRecordCursor
     private DiffEntry entry;
     private Optional<EditList> edits;
 
-    private final Map<DiffEntry.ChangeType, String> changeTypeNames = Map.of(
-            DiffEntry.ChangeType.ADD, "Add",
-            DiffEntry.ChangeType.MODIFY, "Modify",
-            DiffEntry.ChangeType.DELETE, "Delete",
-            DiffEntry.ChangeType.RENAME, "Rename",
-            DiffEntry.ChangeType.COPY, "Copy");
-
     public DiffStatsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
@@ -221,13 +214,15 @@ public class DiffStatsRecordCursor
     @Override
     public void close() {}
 
-    private String getChangeType(DiffEntry.ChangeType changeType)
+    private static String getChangeType(DiffEntry.ChangeType changeType)
     {
-        if (!changeTypeNames.containsKey(changeType)) {
-            // there are a few others, see FileMode javadoc for details
-            throw new IllegalArgumentException("Unknown type of change encountered: " + changeType);
-        }
-        return changeTypeNames.get(changeType);
+        return switch (changeType) {
+            case ADD -> "added";
+            case MODIFY -> "modified";
+            case DELETE -> "deleted";
+            case RENAME -> "renamed";
+            case COPY -> "copied";
+        };
     }
 
     private String getCommitId()
