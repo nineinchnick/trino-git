@@ -33,7 +33,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 
 import static io.trino.spi.type.TimestampWithTimeZoneType.createTimestampWithTimeZoneType;
@@ -52,7 +51,7 @@ public class TestGitMetadata
     public void setUp()
             throws IOException, GitAPIException, URISyntaxException
     {
-        commitsTableHandle = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
+        commitsTableHandle = new GitTableHandle("default", "commits", Optional.empty());
 
         String url = "fake.example";
         TestGitClient.setupRepo(URI.create(url));
@@ -93,7 +92,7 @@ public class TestGitMetadata
                 "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
 
         // unknown table
-        assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty())))
+        assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty())))
                 .isInstanceOf(TableNotFoundException.class);
     }
 
@@ -115,9 +114,9 @@ public class TestGitMetadata
                 new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
 
         // unknown tables should produce null
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty()))).isNull();
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty(), OptionalLong.empty()))).isNull();
-        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty(), OptionalLong.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("example", "unknown", Optional.empty()))).isNull();
+        assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "numbers", Optional.empty()))).isNull();
     }
 
     @Test

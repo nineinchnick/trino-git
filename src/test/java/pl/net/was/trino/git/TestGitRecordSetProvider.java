@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
@@ -51,7 +50,7 @@ public class TestGitRecordSetProvider
                 GitTransactionHandle.INSTANCE,
                 SESSION,
                 new GitSplit("commits", uri, Optional.empty()),
-                new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty()),
+                new GitTableHandle("default", "commits", Optional.empty()),
                 List.of(
                         new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                         new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));

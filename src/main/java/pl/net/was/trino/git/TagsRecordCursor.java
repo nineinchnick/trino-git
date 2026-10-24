@@ -53,11 +53,11 @@ public class TagsRecordCursor
 
         fieldToColumnIndex = new int[columnHandles.size()];
         for (int i = 0; i < columnHandles.size(); i++) {
-            fieldToColumnIndex[i] = columnHandles.get(i).getOrdinalPosition();
+            fieldToColumnIndex[i] = columnHandles.get(i).ordinalPosition();
         }
 
         parseTag = columnHandles.stream()
-                .anyMatch(column -> column.getColumnName().equals("tag_time"));
+                .anyMatch(column -> column.columnName().equals("tag_time"));
         walk = parseTag ? new RevWalk(repo.getRepository()) : null;
         try {
             tags = repo.tagList().call().iterator();
@@ -83,7 +83,7 @@ public class TagsRecordCursor
     public Type getType(int field)
     {
         checkArgument(field < columnHandles.size(), "Invalid field index");
-        return columnHandles.get(field).getColumnType();
+        return columnHandles.get(field).columnType();
     }
 
     @Override

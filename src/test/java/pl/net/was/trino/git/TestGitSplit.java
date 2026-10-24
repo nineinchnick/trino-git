@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Optional;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
@@ -46,8 +47,15 @@ public class TestGitSplit
         JsonCodec<GitSplit> codec = jsonCodec(GitSplit.class);
         String json = codec.toJson(split);
         GitSplit copy = codec.fromJson(json);
-        assertThat(copy.getTableName()).isEqualTo(split.getTableName());
+        assertThat(copy).isEqualTo(split);
 
         assertThat(copy.isRemotelyAccessible()).isTrue();
+    }
+
+    @Test
+    public void testRetainedSize()
+    {
+        GitSplit withCommits = new GitSplit("tableName", split.uri(), Optional.of(List.of("a", "b")));
+        assertThat(withCommits.getRetainedSizeInBytes()).isGreaterThan(split.getRetainedSizeInBytes());
     }
 }

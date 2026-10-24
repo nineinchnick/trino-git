@@ -52,7 +52,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -100,7 +99,7 @@ public class GitMetadata
             return null;
         }
 
-        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName(), Optional.empty(), OptionalLong.empty());
+        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName(), Optional.empty());
     }
 
     @Override
@@ -132,7 +131,7 @@ public class GitMetadata
     {
         GitTableHandle gitTableHandle = (GitTableHandle) tableHandle;
 
-        GitTable table = gitClient.getTable(gitTableHandle.getSchemaName(), gitTableHandle.getTableName());
+        GitTable table = gitClient.getTable(gitTableHandle.schemaName(), gitTableHandle.tableName());
         if (table == null) {
             throw new TableNotFoundException(gitTableHandle.toSchemaTableName());
         }
@@ -222,7 +221,7 @@ public class GitMetadata
     public TableStatistics getTableStatistics(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         GitTableHandle gitTableHandle = (GitTableHandle) tableHandle;
-        String tableName = gitTableHandle.getTableName();
+        String tableName = gitTableHandle.tableName();
 
         Map<String, ColumnHandle> columns = getColumnHandles(session, tableHandle);
         TableStatistics.Builder builder = TableStatistics.builder();
@@ -252,19 +251,19 @@ public class GitMetadata
     {
         GitTableHandle handle = (GitTableHandle) table;
 
-        Optional<List<String>> oldCommits = handle.getCommitIds();
+        Optional<List<String>> oldCommits = handle.commitIds();
 
         Optional<List<String>> commitIds = Optional.empty();
         TupleDomain<ColumnHandle> unenforcedConstraint = constraint.getSummary();
 
         Map<String, ColumnHandle> columns = getColumnHandles(session, handle);
 
-        if (handle.getTableName().equals(GitClient.Table.trees.name())) {
+        if (handle.tableName().equals(GitClient.Table.trees.name())) {
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
                     (columnHandle, _) -> !columnHandle.equals(columns.get("commit_id")));
         }
-        else if (handle.getTableName().equals(GitClient.Table.commits.name())) {
+        else if (handle.tableName().equals(GitClient.Table.commits.name())) {
             // TODO merge both conditions, mapping table name to column (FK?)
             commitIds = getCommitIds(constraint.getSummary());
             unenforcedConstraint = constraint.getSummary().filter(
@@ -280,15 +279,17 @@ public class GitMetadata
             oldCommits = commitIds;
         }
         else if (commitIds.isPresent()) {
-            oldCommits.orElseThrow().addAll(commitIds.orElseThrow());
+            oldCommits = Optional.of(ImmutableList.<String>builder()
+                    .addAll(oldCommits.orElseThrow())
+                    .addAll(commitIds.orElseThrow())
+                    .build());
         }
 
         return Optional.of(new ConstraintApplicationResult<>(
                 new GitTableHandle(
-                        handle.getSchemaName(),
-                        handle.getTableName(),
-                        oldCommits,
-                        handle.getLimit()),
+                        handle.schemaName(),
+                        handle.tableName(),
+                        oldCommits),
                 unenforcedConstraint,
                 constraint.getExpression(),
                 true));
@@ -304,7 +305,7 @@ public class GitMetadata
             System.out.println(entry.getKey() + "/" + entry.getValue());
             GitColumnHandle column = ((GitColumnHandle) entry.getKey());
             // TODO this is ambiguous and should be passed as a param, since every call to getCommitIds has a table handle in scope
-            if (!column.getColumnName().equals("commit_id") && !column.getColumnName().equals("object_id")) {
+            if (!column.columnName().equals("commit_id") && !column.columnName().equals("object_id")) {
                 continue;
             }
             Domain domain = entry.getValue();
