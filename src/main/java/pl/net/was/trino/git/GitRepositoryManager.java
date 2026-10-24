@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.hash.Hashing;
+import io.trino.spi.TrinoException;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -23,13 +24,15 @@ import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
+import static pl.net.was.trino.git.GitErrorCode.GIT_FETCH_ERROR;
+import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
 
 public class GitRepositoryManager
 {
@@ -41,7 +44,7 @@ public class GitRepositoryManager
             localPath = ensureDir(url);
         }
         catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new TrinoException(GIT_OPEN_ERROR, "Failed to create the directory for the repository", e);
         }
         if (!Files.exists(localPath)) {
             CloneCommand repo = Git.cloneRepository()
@@ -56,7 +59,7 @@ public class GitRepositoryManager
                 return repo.call();
             }
             catch (GitAPIException e) {
-                throw new RuntimeException(e);
+                throw new TrinoException(GIT_CLONE_ERROR, "Failed to clone the repository", e);
             }
         }
         Repository fileRepo;
@@ -66,7 +69,7 @@ public class GitRepositoryManager
                     .build();
         }
         catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new TrinoException(GIT_OPEN_ERROR, "Failed to open the repository", e);
         }
         Git repo = new Git(fileRepo);
         try {
@@ -76,7 +79,7 @@ public class GitRepositoryManager
             }
         }
         catch (GitAPIException e) {
-            throw new RuntimeException(e);
+            throw new TrinoException(GIT_FETCH_ERROR, "Failed to fetch the repository", e);
         }
         return repo;
     }
