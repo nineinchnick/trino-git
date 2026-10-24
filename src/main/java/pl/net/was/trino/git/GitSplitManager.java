@@ -53,7 +53,7 @@ public class GitSplitManager
             Set<ColumnHandle> dynamicFilterColumns,
             Constraint constraint)
     {
-        return new GitDynamicFilteringSplitSource((GitTableHandle) connectorTableHandle, config.getUri());
+        return new GitDynamicFilteringSplitSource((GitTableHandle) connectorTableHandle, config.getUrl());
     }
 
     private static ConnectorSplitSource getSplitSource(

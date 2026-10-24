@@ -46,7 +46,7 @@ You can also use a path to a local repo, if it exists on every node.
 
 ```
 connector.name=git
-metadata-uri=https://github.com/nineinchnick/trino-git.git
+git.url=https://github.com/nineinchnick/trino-git.git
 ```
 
 After restarting Trino, the `git` catalog has the tables and views described below in the `default` schema.

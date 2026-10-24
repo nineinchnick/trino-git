@@ -85,7 +85,7 @@ public final class GitQueryRunner
 
         DistributedQueryRunner queryRunner = createGitQueryRunner(
                 Map.of("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081")),
-                Map.of("metadata-uri", url));
+                Map.of("git.url", url));
 
         Logger log = Logger.get(GitQueryRunner.class);
         log.info("======== SERVER STARTED ========");
