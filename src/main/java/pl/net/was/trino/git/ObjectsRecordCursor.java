@@ -15,36 +15,35 @@ package pl.net.was.trino.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.internal.storage.file.Pack;
-import org.eclipse.jgit.internal.storage.file.PackIndex;
-import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.ObjectWalk;
+import org.eclipse.jgit.revwalk.RevObject;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.eclipse.jgit.lib.Constants.OBJ_BLOB;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class ObjectsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
 
-    private final FileRepository fileRepo;
-    private final Iterator<Pack> packs;
-    private Iterator<PackIndex.MutableEntry> entries;
-    private ObjectId objectId;
-    private ObjectLoader loader;
+    private final ObjectWalk walk;
+    private boolean commitsWalked;
+    private RevObject object;
+    private Optional<Slice> contents;
 
     private final Map<Integer, Function<ObjectsRecordCursor, Slice>> strFieldGetters = new HashMap<>();
 
@@ -68,9 +67,18 @@ public class ObjectsRecordCursor
             }
         }
 
-        fileRepo = (FileRepository) repo.getRepository();
-        Collection<Pack> packs = fileRepo.getObjectDatabase().getPacks();
-        this.packs = packs.iterator();
+        walk = new ObjectWalk(repo.getRepository());
+        try {
+            for (Ref ref : repo.getRepository().getRefDatabase().getRefs()) {
+                if (ref.getObjectId() != null) {
+                    // refs can point to annotated tags, and these, like any ref, to trees or blobs
+                    walk.markStart(walk.peel(walk.parseAny(ref.getObjectId())));
+                }
+            }
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read refs", e);
+        }
     }
 
     @Override
@@ -95,27 +103,26 @@ public class ObjectsRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
-        if (packs == null) {
-            return false;
-        }
-        if (entries == null || !entries.hasNext()) {
-            if (!packs.hasNext()) {
-                return false;
-            }
-            entries = packs.next().iterator();
-        }
-
-        objectId = entries.next().toObjectId();
         try {
-            loader = fileRepo.open(objectId);
-            if (loader.getType() != OBJ_BLOB) {
-                return advanceNextPosition();
+            if (!commitsWalked) {
+                // an object walk returns trees and blobs only after all commits
+                while (walk.next() != null) {
+                    // skip commits
+                }
+                commitsWalked = true;
             }
+            do {
+                object = walk.nextObject();
+                if (object == null) {
+                    return false;
+                }
+            }
+            while (object.getType() != OBJ_BLOB);
+            contents = null;
         }
         catch (IOException e) {
-            return advanceNextPosition();
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read objects", e);
         }
-
         return true;
     }
 
@@ -153,20 +160,33 @@ public class ObjectsRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return false;
+        return strFieldGetters.get(field).apply(this) == null;
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        walk.close();
+    }
 
     private Slice getObjectId()
     {
-        return Slices.utf8Slice(objectId.getName());
+        return Slices.utf8Slice(object.getName());
     }
 
     private Slice getContents()
     {
-        byte[] bytes = loader.getBytes();
-        return Slices.wrappedBuffer(bytes, 0, bytes.length);
+        if (contents != null) {
+            return contents.orElse(null);
+        }
+        try {
+            ObjectLoader loader = walk.getObjectReader().open(object, OBJ_BLOB);
+            // blobs larger than core.streamFileThreshold can't be loaded into memory at once
+            contents = loader.isLarge() ? Optional.empty() : Optional.of(Slices.wrappedBuffer(loader.getCachedBytes()));
+            return contents.orElse(null);
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read object " + object.getName(), e);
+        }
     }
 }
