@@ -30,8 +30,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
@@ -41,13 +45,17 @@ import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
 
 public class GitRepositoryManager
 {
+    private static final Set<PosixFilePermission> OWNER_ONLY = PosixFilePermissions.fromString("rwx------");
+
     private final URI url;
     private final Optional<CredentialsProvider> credentialsProvider;
+    private final Path cacheDirectory;
 
     @Inject
     public GitRepositoryManager(GitConfig config)
     {
         this.url = requireNonNull(config.getUrl(), "url is null");
+        this.cacheDirectory = config.getCacheDirectory().toPath();
         this.credentialsProvider = config.getUsername()
                 .map(username -> new UsernamePasswordCredentialsProvider(username, config.getPassword().orElse("")));
     }
@@ -56,10 +64,10 @@ public class GitRepositoryManager
     {
         Path localPath;
         try {
-            localPath = ensureDir(url.toString());
+            localPath = getLocalPath(cacheDirectory, url);
         }
         catch (IOException e) {
-            throw new TrinoException(GIT_OPEN_ERROR, "Failed to create the directory for the repository", e);
+            throw new TrinoException(GIT_OPEN_ERROR, "Failed to create the directory for the repository: " + e.getMessage(), e);
         }
         if (!Files.exists(localPath)) {
             CloneCommand repo = Git.cloneRepository()
@@ -97,16 +105,32 @@ public class GitRepositoryManager
         return repo;
     }
 
-    public static Path ensureDir(String prefix)
+    public static Path getLocalPath(Path cacheDirectory, URI url)
             throws IOException
     {
-        String tmpDirStr = System.getProperty("java.io.tmpdir");
-        if (tmpDirStr == null) {
-            throw new IOException(
-                    "System property 'java.io.tmpdir' does not specify a tmp dir");
-        }
+        createCacheDirectory(cacheDirectory);
+        return cacheDirectory.resolve(Hashing.sha256().hashString(url.toString(), UTF_8).toString());
+    }
 
-        Path tmpDir = Files.createDirectories(Path.of(tmpDirStr));
-        return tmpDir.resolve(Hashing.sha256().hashString(prefix, UTF_8).toString());
+    private static void createCacheDirectory(Path cacheDirectory)
+            throws IOException
+    {
+        boolean isPosix = cacheDirectory.getFileSystem().supportedFileAttributeViews().contains("posix");
+        if (!Files.exists(cacheDirectory)) {
+            if (isPosix) {
+                Files.createDirectories(cacheDirectory, PosixFilePermissions.asFileAttribute(OWNER_ONLY));
+            }
+            else {
+                Files.createDirectories(cacheDirectory);
+            }
+            return;
+        }
+        UserPrincipal currentUser = cacheDirectory.getFileSystem().getUserPrincipalLookupService().lookupPrincipalByName(System.getProperty("user.name"));
+        if (!Files.getOwner(cacheDirectory).equals(currentUser)) {
+            throw new IOException("Cache directory %s is not owned by the current user".formatted(cacheDirectory));
+        }
+        if (isPosix && !OWNER_ONLY.containsAll(Files.getPosixFilePermissions(cacheDirectory))) {
+            throw new IOException("Cache directory %s must be accessible only by its owner".formatted(cacheDirectory));
+        }
     }
 }
