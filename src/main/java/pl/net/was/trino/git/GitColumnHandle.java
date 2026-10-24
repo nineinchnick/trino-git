@@ -14,7 +14,6 @@
 package pl.net.was.trino.git;
 
 import io.trino.spi.connector.ColumnHandle;
-import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.Type;
 
 import static java.util.Objects.requireNonNull;
@@ -26,10 +25,5 @@ public record GitColumnHandle(String columnName, Type columnType, int ordinalPos
     {
         requireNonNull(columnName, "columnName is null");
         requireNonNull(columnType, "columnType is null");
-    }
-
-    public ColumnMetadata getColumnMetadata()
-    {
-        return new ColumnMetadata(columnName, columnType);
     }
 }

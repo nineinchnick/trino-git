@@ -41,7 +41,7 @@ public class GitTable
 
         ImmutableList.Builder<ColumnMetadata> columnsMetadata = ImmutableList.builder();
         for (GitColumn column : this.columns) {
-            columnsMetadata.add(new ColumnMetadata(column.getName(), column.getType()));
+            columnsMetadata.add(column.getColumnMetadata());
         }
         this.columnsMetadata = columnsMetadata.build();
     }

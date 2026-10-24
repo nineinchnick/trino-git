@@ -13,67 +13,30 @@
  */
 package pl.net.was.trino.git;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.Type;
 
-import java.util.Objects;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.Objects.requireNonNull;
 
-public final class GitColumn
+public record GitColumn(String name, Type type, String comment)
 {
-    private final String name;
-    private final Type type;
-
-    @JsonCreator
-    public GitColumn(
-            @JsonProperty("name") String name,
-            @JsonProperty("type") Type type)
+    public GitColumn
     {
         checkArgument(!isNullOrEmpty(name), "name is null or is empty");
-        this.name = name;
-        this.type = requireNonNull(type, "type is null");
+        requireNonNull(type, "type is null");
+        requireNonNull(comment, "comment is null");
     }
 
-    @JsonProperty
-    public String getName()
+    public ColumnMetadata getColumnMetadata()
     {
-        return name;
-    }
-
-    @JsonProperty
-    public Type getType()
-    {
-        return type;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(name, type);
-    }
-
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-
-        GitColumn other = (GitColumn) obj;
-        return Objects.equals(this.name, other.name) &&
-                Objects.equals(this.type, other.type);
-    }
-
-    @Override
-    public String toString()
-    {
-        return name + ":" + type;
+        return ColumnMetadata.builder()
+                .setName(name)
+                .setType(type)
+                .setComment(Optional.of(comment))
+                .build();
     }
 }

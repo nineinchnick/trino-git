@@ -53,6 +53,7 @@ import static io.trino.testing.TestingConnectorSession.SESSION;
 import static java.util.Locale.ENGLISH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 @Execution(ExecutionMode.SAME_THREAD)
 public class TestGitMetadata
@@ -118,16 +119,20 @@ public class TestGitMetadata
         // known table
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(SESSION, commitsTableHandle);
         assertThat(tableMetadata.getTable().getSchemaName()).isEqualTo("default");
-        assertThat(tableMetadata.getColumns()).isEqualTo(List.of(
-                new ColumnMetadata("object_id", createUnboundedVarcharType()),
-                new ColumnMetadata("author_name", createUnboundedVarcharType()),
-                new ColumnMetadata("author_email", createUnboundedVarcharType()),
-                new ColumnMetadata("committer_name", createUnboundedVarcharType()),
-                new ColumnMetadata("committer_email", createUnboundedVarcharType()),
-                new ColumnMetadata("message", createUnboundedVarcharType()),
-                new ColumnMetadata("parents", new ArrayType(createUnboundedVarcharType())),
-                new ColumnMetadata("tree_id", createUnboundedVarcharType()),
-                new ColumnMetadata("commit_time", createTimestampWithTimeZoneType(0))));
+        assertThat(tableMetadata.getColumns())
+                .extracting(ColumnMetadata::getName, ColumnMetadata::getType)
+                .containsExactly(
+                        tuple("object_id", createUnboundedVarcharType()),
+                        tuple("author_name", createUnboundedVarcharType()),
+                        tuple("author_email", createUnboundedVarcharType()),
+                        tuple("committer_name", createUnboundedVarcharType()),
+                        tuple("committer_email", createUnboundedVarcharType()),
+                        tuple("message", createUnboundedVarcharType()),
+                        tuple("parents", new ArrayType(createUnboundedVarcharType())),
+                        tuple("tree_id", createUnboundedVarcharType()),
+                        tuple("commit_time", createTimestampWithTimeZoneType(0)));
+        assertThat(tableMetadata.getColumns())
+                .allSatisfy(column -> assertThat(column.getComment()).isNotEmpty());
 
         // unknown tables should produce null
         assertThat(metadata.getTableMetadata(SESSION, new GitTableHandle("unknown", "unknown", TupleDomain.all()))).isNull();
@@ -159,14 +164,12 @@ public class TestGitMetadata
         ColumnMetadata actualColumn = metadata.getColumnMetadata(
                 SESSION,
                 commitsTableHandle,
-                new GitColumnHandle("text", createUnboundedVarcharType(), 0));
-        assertThat(actualColumn).isEqualTo(new ColumnMetadata("text", createUnboundedVarcharType()));
-
-        // example connector assumes that the table handle and column handle are
-        // properly formed, so it will return a metadata object for any
-        // GitTableHandle and GitColumnHandle passed in.  This is on because
-        // it is not possible for the Trino Metadata system to create the handles
-        // directly.
+                new GitColumnHandle("message", createUnboundedVarcharType(), 5));
+        assertThat(actualColumn).isEqualTo(ColumnMetadata.builder()
+                .setName("message")
+                .setType(createUnboundedVarcharType())
+                .setComment(Optional.of("Full commit message"))
+                .build());
     }
 
     @Test
