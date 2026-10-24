@@ -28,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.util.Arrays.asList;
@@ -49,7 +48,7 @@ public class TestGitRecordSet
     public void testGetColumnTypes()
     {
         GitSplit split = new GitSplit("commits", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
@@ -74,7 +73,7 @@ public class TestGitRecordSet
     public void testCommitsCursorSimple()
     {
         GitSplit split = new GitSplit("commits", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
@@ -99,7 +98,7 @@ public class TestGitRecordSet
     public void testBranchesCursorSimple()
     {
         GitSplit split = new GitSplit("branches", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "branches", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "branches", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
@@ -121,7 +120,7 @@ public class TestGitRecordSet
     public void testTagsCursorSimple()
     {
         GitSplit split = new GitSplit("tags", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
@@ -145,7 +144,7 @@ public class TestGitRecordSet
     public void testTagsCursorWithTagTime()
     {
         GitSplit split = new GitSplit("tags", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1),
@@ -173,7 +172,7 @@ public class TestGitRecordSet
     public void testTreesCursorSimple()
     {
         GitSplit split = new GitSplit("trees", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "trees", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "trees", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1)));
@@ -197,7 +196,7 @@ public class TestGitRecordSet
     public void testObjectsCursorSimple()
     {
         GitSplit split = new GitSplit("objects", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "objects", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "objects", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("contents", VarbinaryType.VARBINARY, 1)));
@@ -223,7 +222,7 @@ public class TestGitRecordSet
     public void testDiffStatsCursorSimple()
     {
         GitSplit split = new GitSplit("diff_stats", uri, Optional.empty());
-        GitTableHandle table = new GitTableHandle("default", "diff_stats", Optional.empty(), OptionalLong.empty());
+        GitTableHandle table = new GitTableHandle("default", "diff_stats", Optional.empty());
         RecordSet recordSet = new GitRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("old_commit_id", createUnboundedVarcharType(), 1),

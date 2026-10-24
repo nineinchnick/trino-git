@@ -13,89 +13,28 @@
  */
 package pl.net.was.trino.git;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import static java.util.Objects.requireNonNull;
 
-public final class GitTableHandle
+public record GitTableHandle(String schemaName, String tableName, Optional<List<String>> commitIds)
         implements ConnectorTableHandle
 {
-    private final String schemaName;
-    private final String tableName;
-    private final Optional<List<String>> commitIds;
-    private final OptionalLong limit;
-
-    @JsonCreator
-    public GitTableHandle(
-            @JsonProperty("schemaName") String schemaName,
-            @JsonProperty("tableName") String tableName,
-            @JsonProperty("commitIds") Optional<List<String>> commitIds,
-            @JsonProperty("limit") OptionalLong limit)
+    public GitTableHandle
     {
-        this.schemaName = requireNonNull(schemaName, "schemaName is null");
-        this.tableName = requireNonNull(tableName, "tableName is null");
-        this.commitIds = requireNonNull(commitIds, "commitIds is null");
-        this.limit = requireNonNull(limit, "limit is null");
-    }
-
-    @JsonProperty
-    public String getSchemaName()
-    {
-        return schemaName;
-    }
-
-    @JsonProperty
-    public String getTableName()
-    {
-        return tableName;
+        requireNonNull(schemaName, "schemaName is null");
+        requireNonNull(tableName, "tableName is null");
+        commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
     }
 
     public SchemaTableName toSchemaTableName()
     {
         return new SchemaTableName(schemaName, tableName);
-    }
-
-    @JsonProperty
-    public Optional<List<String>> getCommitIds()
-    {
-        return commitIds;
-    }
-
-    @JsonProperty
-    public OptionalLong getLimit()
-    {
-        return limit;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(schemaName, tableName);
-    }
-
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-
-        GitTableHandle other = (GitTableHandle) obj;
-        return Objects.equals(this.schemaName, other.schemaName) &&
-                Objects.equals(this.tableName, other.tableName) &&
-                Objects.equals(this.commitIds, other.commitIds) &&
-                Objects.equals(this.limit, other.limit);
     }
 
     @Override

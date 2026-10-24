@@ -51,7 +51,7 @@ public class BranchesRecordCursor
 
         fieldToColumnIndex = new int[columnHandles.size()];
         for (int i = 0; i < columnHandles.size(); i++) {
-            fieldToColumnIndex[i] = columnHandles.get(i).getOrdinalPosition();
+            fieldToColumnIndex[i] = columnHandles.get(i).ordinalPosition();
         }
 
         try {
@@ -87,7 +87,7 @@ public class BranchesRecordCursor
     public Type getType(int field)
     {
         checkArgument(field < columnHandles.size(), "Invalid field index");
-        return columnHandles.get(field).getColumnType();
+        return columnHandles.get(field).columnType();
     }
 
     @Override

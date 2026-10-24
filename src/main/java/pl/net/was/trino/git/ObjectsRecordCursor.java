@@ -54,7 +54,7 @@ public class ObjectsRecordCursor
 
         Map<String, Integer> nameToIndex = new HashMap<>();
         for (int i = 0; i < columnHandles.size(); i++) {
-            nameToIndex.put(columnHandles.get(i).getColumnName(), i);
+            nameToIndex.put(columnHandles.get(i).columnName(), i);
         }
 
         Map<String, Function<ObjectsRecordCursor, Slice>> getters = Map.of(
@@ -89,7 +89,7 @@ public class ObjectsRecordCursor
     public Type getType(int field)
     {
         checkArgument(field < columnHandles.size(), "Invalid field index");
-        return columnHandles.get(field).getColumnType();
+        return columnHandles.get(field).columnType();
     }
 
     @Override

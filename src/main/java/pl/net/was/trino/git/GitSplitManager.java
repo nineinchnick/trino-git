@@ -63,7 +63,7 @@ public class GitSplitManager
     {
         TupleDomain<ColumnHandle> constraint = dynamicFilterSnapshot.currentPredicate().simplify(100);
 
-        List<GitSplit> splits = List.of(new GitSplit(table.getTableName(), uri, getCommitIds(constraint)));
+        List<GitSplit> splits = List.of(new GitSplit(table.tableName(), uri, getCommitIds(constraint)));
 
         return new FixedSplitSource(splits);
     }

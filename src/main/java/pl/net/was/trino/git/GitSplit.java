@@ -13,65 +13,37 @@
  */
 package pl.net.was.trino.git;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.trino.spi.HostAddress;
+import com.google.common.collect.ImmutableList;
+import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ConnectorSplit;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
+import static io.airlift.slice.SizeOf.estimatedSizeOf;
+import static io.airlift.slice.SizeOf.instanceSize;
+import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
-public class GitSplit
+public record GitSplit(String tableName, URI uri, Optional<List<String>> commitIds)
         implements ConnectorSplit
 {
-    // split needs to track the URI from config to use it in RecordSet
-    private final URI uri;
-    // split needs to track for which table it was created for to use it in RecordSetProvider
-    private final String tableName;
-    private final Optional<List<String>> commitIds;
+    private static final int INSTANCE_SIZE = instanceSize(GitSplit.class);
 
-    @JsonCreator
-    public GitSplit(
-            @JsonProperty("tableName") String tableName,
-            @JsonProperty("uri") URI uri,
-            @JsonProperty("commitIds") Optional<List<String>> commitIds)
+    public GitSplit
     {
-        this.tableName = requireNonNull(tableName, "table name is null");
-        this.uri = requireNonNull(uri, "uri is null");
-        this.commitIds = requireNonNull(commitIds, "commitIds is null");
-    }
-
-    @JsonProperty
-    public String getTableName()
-    {
-        return tableName;
-    }
-
-    @JsonProperty
-    public URI getUri()
-    {
-        return uri;
-    }
-
-    @JsonProperty
-    public Optional<List<String>> getCommitIds()
-    {
-        return commitIds;
+        requireNonNull(tableName, "tableName is null");
+        requireNonNull(uri, "uri is null");
+        commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
     }
 
     @Override
-    public boolean isRemotelyAccessible()
+    public long getRetainedSizeInBytes()
     {
-        // only http or https is remotely accessible
-        return true;
-    }
-
-    @Override
-    public List<HostAddress> getAddresses()
-    {
-        return List.of();
+        return INSTANCE_SIZE
+                + estimatedSizeOf(tableName)
+                + estimatedSizeOf(uri.toString())
+                + sizeOf(commitIds, ids -> estimatedSizeOf(ids, SizeOf::estimatedSizeOf));
     }
 }

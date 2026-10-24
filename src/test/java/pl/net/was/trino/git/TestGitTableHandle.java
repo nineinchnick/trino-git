@@ -18,14 +18,13 @@ import io.airlift.testing.EquivalenceTester;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
-import java.util.OptionalLong;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitTableHandle
 {
-    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName", Optional.empty(), OptionalLong.empty());
+    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName", Optional.empty());
 
     @Test
     public void testJsonRoundTrip()
@@ -41,14 +40,14 @@ public class TestGitTableHandle
     {
         EquivalenceTester.equivalenceTester()
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "table", Optional.empty(), OptionalLong.empty()),
-                        new GitTableHandle("schema", "table", Optional.empty(), OptionalLong.empty()))
+                        new GitTableHandle("schema", "table", Optional.empty()),
+                        new GitTableHandle("schema", "table", Optional.empty()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schemaX", "table", Optional.empty(), OptionalLong.empty()),
-                        new GitTableHandle("schemaX", "table", Optional.empty(), OptionalLong.empty()))
+                        new GitTableHandle("schemaX", "table", Optional.empty()),
+                        new GitTableHandle("schemaX", "table", Optional.empty()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "tableX", Optional.empty(), OptionalLong.empty()),
-                        new GitTableHandle("schema", "tableX", Optional.empty(), OptionalLong.empty()))
+                        new GitTableHandle("schema", "tableX", Optional.empty()),
+                        new GitTableHandle("schema", "tableX", Optional.empty()))
                 .check();
     }
 }

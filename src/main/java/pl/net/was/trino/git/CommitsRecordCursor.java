@@ -59,7 +59,7 @@ public class CommitsRecordCursor
 
         Map<String, Integer> nameToIndex = new HashMap<>();
         for (int i = 0; i < columnHandles.size(); i++) {
-            nameToIndex.put(columnHandles.get(i).getColumnName(), i);
+            nameToIndex.put(columnHandles.get(i).columnName(), i);
         }
 
         if (nameToIndex.containsKey("commit_time")) {
@@ -143,7 +143,7 @@ public class CommitsRecordCursor
     public Type getType(int field)
     {
         checkArgument(field < columnHandles.size(), "Invalid field index");
-        return columnHandles.get(field).getColumnType();
+        return columnHandles.get(field).columnType();
     }
 
     @Override
