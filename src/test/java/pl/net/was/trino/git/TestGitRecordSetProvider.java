@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
+import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitRecordSetProvider
@@ -49,7 +50,7 @@ public class TestGitRecordSetProvider
     {
         GitRecordSetProvider recordSetProvider = new GitRecordSetProvider(new GitRepositoryManager(new GitConfig().setUrl(uri)));
         RecordSet recordSet = recordSetProvider.getRecordSet(
-                GitTransactionHandle.INSTANCE,
+                new GitTransactionHandle(randomUUID()),
                 SESSION,
                 new GitSplit(new SchemaTableName("default", "commits"), Optional.empty(), Snapshot.latest(0)),
                 new GitTableHandle("default", "commits", TupleDomain.all()),

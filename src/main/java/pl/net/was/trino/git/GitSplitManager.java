@@ -37,12 +37,12 @@ import static pl.net.was.trino.git.GitMetadata.getCommitIds;
 public class GitSplitManager
         implements ConnectorSplitManager
 {
-    private final RefreshGenerations refreshGenerations;
+    private final PinnedSnapshots pinnedSnapshots;
 
     @Inject
-    public GitSplitManager(RefreshGenerations refreshGenerations)
+    public GitSplitManager(PinnedSnapshots pinnedSnapshots)
     {
-        this.refreshGenerations = requireNonNull(refreshGenerations, "refreshGenerations is null");
+        this.pinnedSnapshots = requireNonNull(pinnedSnapshots, "pinnedSnapshots is null");
     }
 
     @Override
@@ -54,12 +54,12 @@ public class GitSplitManager
             Constraint constraint)
     {
         GitTableHandle table = (GitTableHandle) connectorTableHandle;
-        return new GitDynamicFilteringSplitSource(table, refreshGenerations.get(table.schemaName()));
+        return new GitDynamicFilteringSplitSource(table, pinnedSnapshots.get((GitTransactionHandle) transaction, table.schemaName()));
     }
 
     private static ConnectorSplitSource getSplitSource(
             GitTableHandle table,
-            long refreshGeneration,
+            Snapshot snapshot,
             DynamicFilterSnapshot dynamicFilterSnapshot)
     {
         TupleDomain<GitColumnHandle> constraint = table.constraint()
@@ -67,7 +67,7 @@ public class GitSplitManager
         Optional<List<String>> commitIds = GitClient.Table.fromName(table.tableName()).getCommitIdColumn()
                 .flatMap(commitIdColumn -> getCommitIds(constraint, commitIdColumn));
 
-        List<GitSplit> splits = List.of(new GitSplit(table.toSchemaTableName(), commitIds, Snapshot.latest(refreshGeneration)));
+        List<GitSplit> splits = List.of(new GitSplit(table.toSchemaTableName(), commitIds, snapshot));
 
         return new FixedSplitSource(splits);
     }
@@ -78,13 +78,13 @@ public class GitSplitManager
         private static final long DYNAMIC_FILTERING_WAIT_TIMEOUT_MILLIS = 20_000;
 
         private final GitTableHandle table;
-        private final long refreshGeneration;
+        private final Snapshot snapshot;
         private ConnectorSplitSource delegateSplitSource;
 
-        private GitDynamicFilteringSplitSource(GitTableHandle table, long refreshGeneration)
+        private GitDynamicFilteringSplitSource(GitTableHandle table, Snapshot snapshot)
         {
             this.table = requireNonNull(table, "table is null");
-            this.refreshGeneration = refreshGeneration;
+            this.snapshot = requireNonNull(snapshot, "snapshot is null");
         }
 
         @Override
@@ -97,7 +97,7 @@ public class GitSplitManager
         public synchronized CompletableFuture<List<ConnectorSplit>> getNextBatch(int maxSize, DynamicFilterSnapshot dynamicFilterSnapshot)
         {
             if (delegateSplitSource == null) {
-                delegateSplitSource = getSplitSource(table, refreshGeneration, dynamicFilterSnapshot);
+                delegateSplitSource = getSplitSource(table, snapshot, dynamicFilterSnapshot);
             }
             return delegateSplitSource.getNextBatch(maxSize, dynamicFilterSnapshot);
         }
