@@ -49,23 +49,23 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("commits", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1)));
         assertThat(recordSet.getColumnTypes()).isEqualTo(List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(split, table, List.of(
+        recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 0)));
         assertThat(recordSet.getColumnTypes()).isEqualTo(List.of(createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(split, table, List.of(
+        recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("author_email", createUnboundedVarcharType(), 0)));
         assertThat(recordSet.getColumnTypes()).isEqualTo(List.of(createUnboundedVarcharType(), createUnboundedVarcharType(), createUnboundedVarcharType()));
 
-        recordSet = new GitRecordSet(split, table, List.of());
+        recordSet = createRecordSet(split, table, List.of());
         assertThat(recordSet.getColumnTypes()).isEmpty();
     }
 
@@ -74,7 +74,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("commits", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("author_name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
@@ -99,7 +99,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("branches", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "branches", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
         try (RecordCursor cursor = recordSet.cursor()) {
@@ -121,7 +121,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("tags", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
         try (RecordCursor cursor = recordSet.cursor()) {
@@ -145,7 +145,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("tags", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("name", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
@@ -173,7 +173,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("trees", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "trees", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 1)));
         try (RecordCursor cursor = recordSet.cursor()) {
@@ -197,7 +197,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("objects", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "objects", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("contents", VarbinaryType.VARBINARY, 1)));
         try (RecordCursor cursor = recordSet.cursor()) {
@@ -223,7 +223,7 @@ public class TestGitRecordSet
     {
         GitSplit split = new GitSplit("diff_stats", uri, Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "diff_stats", Optional.empty());
-        RecordSet recordSet = new GitRecordSet(split, table, List.of(
+        RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
                 new GitColumnHandle("old_commit_id", createUnboundedVarcharType(), 1),
                 new GitColumnHandle("added_lines", IntegerType.INTEGER, 2),
@@ -253,5 +253,10 @@ public class TestGitRecordSet
                             1L,
                             0L)));
         }
+    }
+
+    private static GitRecordSet createRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)
+    {
+        return new GitRecordSet(split, table, columnHandles, new GitRepositoryManager().getRepository(split.uri()));
     }
 }
