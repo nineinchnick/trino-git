@@ -53,7 +53,7 @@ public class GitSplitManager
     {
         TupleDomain<GitColumnHandle> constraint = table.constraint()
                 .intersect(dynamicFilterSnapshot.currentPredicate().simplify(100).transformKeys(GitColumnHandle.class::cast));
-        Optional<List<String>> commitIds = GitClient.Table.valueOf(table.tableName()).getCommitIdColumn()
+        Optional<List<String>> commitIds = GitClient.Table.fromName(table.tableName()).getCommitIdColumn()
                 .flatMap(commitIdColumn -> getCommitIds(constraint, commitIdColumn));
 
         List<GitSplit> splits = List.of(new GitSplit(table.tableName(), commitIds));
