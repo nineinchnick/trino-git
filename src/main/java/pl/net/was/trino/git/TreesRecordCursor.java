@@ -19,24 +19,20 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.FileMode;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static pl.net.was.trino.git.CommitWalks.walkCommits;
 
 public class TreesRecordCursor
         implements RecordCursor
@@ -86,33 +82,8 @@ public class TreesRecordCursor
             }
         }
 
-        RefDatabase refDb = repo.getRepository().getRefDatabase();
         RevWalk revWalk = new RevWalk(repo.getRepository());
-        if (commitIds.isEmpty()) {
-            try {
-                Collection<Ref> allRefs = refDb.getRefs();
-                for (Ref ref : allRefs) {
-                    revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
-                }
-            }
-            catch (IOException ignored) {
-                // pass
-            }
-            commits = revWalk.iterator();
-        }
-        else {
-            commits = commitIds.orElseThrow().stream().map(id -> {
-                try {
-                    RevCommit commit = revWalk.parseCommit(ObjectId.fromString(id));
-                    // annotated tags are peeled to the commit they point to, which has a different id
-                    return commit.getId().getName().equals(id) ? commit : null;
-                }
-                catch (IOException ignored) {
-                    // ignore invalid commits
-                    return null;
-                }
-            }).filter(Objects::nonNull).iterator();
-        }
+        commits = walkCommits(repo.getRepository(), revWalk, commitIds);
     }
 
     private String getFileMode(FileMode fileMode)
