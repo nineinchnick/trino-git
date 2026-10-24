@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import io.airlift.json.JsonCodec;
+import io.trino.spi.connector.SchemaTableName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitSplit
 {
-    private final GitSplit split = new GitSplit("default", "tableName", Optional.empty(), 0);
+    private final GitSplit split = new GitSplit(new SchemaTableName("default", "tableName"), Optional.empty(), Snapshot.latest(0));
 
     @Test
     public void testAddresses()
@@ -47,7 +48,7 @@ public class TestGitSplit
     @Test
     public void testRetainedSize()
     {
-        GitSplit withCommits = new GitSplit("default", "tableName", Optional.of(List.of("a", "b")), 0);
+        GitSplit withCommits = new GitSplit(new SchemaTableName("default", "tableName"), Optional.of(List.of("a", "b")), Snapshot.latest(0));
         assertThat(withCommits.getRetainedSizeInBytes()).isGreaterThan(split.getRetainedSizeInBytes());
     }
 }

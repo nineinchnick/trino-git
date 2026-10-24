@@ -21,6 +21,7 @@ import io.trino.spi.block.BlockBuilder;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Ref;
 import pl.net.was.trino.git.Identities.Group;
 
 import java.io.IOException;
@@ -39,17 +40,17 @@ public class IdentsRecordCursor
     private final Iterator<Group> groups;
     private Group group;
 
-    public IdentsRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public IdentsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs)
     {
         this.columnHandles = columnHandles;
         Mailmap mailmap;
         try {
-            mailmap = Mailmap.read(repo.getRepository());
+            mailmap = Mailmap.read(repo.getRepository(), refs);
         }
         catch (IOException e) {
             throw new TrinoException(GIT_READ_ERROR, "Failed to read .mailmap", e);
         }
-        groups = Identities.group(repo.getRepository(), mailmap).iterator();
+        groups = Identities.group(repo.getRepository(), refs, mailmap).iterator();
     }
 
     @Override

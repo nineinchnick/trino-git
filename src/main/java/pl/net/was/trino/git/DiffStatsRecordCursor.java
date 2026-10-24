@@ -26,6 +26,7 @@ import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.lib.AbbreviatedObjectId;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.patch.FileHeader;
 import org.eclipse.jgit.patch.FileHeader.PatchType;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -65,7 +66,7 @@ public class DiffStatsRecordCursor
     private DiffEntry entry;
     private Optional<EditList> edits;
 
-    public DiffStatsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public DiffStatsRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
 
@@ -103,7 +104,7 @@ public class DiffStatsRecordCursor
         }
 
         revWalk = new RevWalk(repo.getRepository());
-        commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+        commits = walkCommits(revWalk, refs, commitIds);
 
         reader = repo.getRepository().newObjectReader();
         formatter = new DiffFormatter(NullOutputStream.INSTANCE);

@@ -19,13 +19,12 @@ import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +32,7 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.eclipse.jgit.lib.Constants.HEAD;
+import static org.eclipse.jgit.lib.Constants.R_HEADS;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class BranchesRecordCursor
@@ -49,7 +49,7 @@ public class BranchesRecordCursor
 
     private List<String> fields;
 
-    public BranchesRecordCursor(List<GitColumnHandle> columnHandles, Git repo)
+    public BranchesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs)
     {
         this.columnHandles = columnHandles;
 
@@ -58,16 +58,14 @@ public class BranchesRecordCursor
             fieldToColumnIndex[i] = columnHandles.get(i).ordinalPosition();
         }
 
-        try {
-            branches = repo.branchList().setListMode(ListBranchCommand.ListMode.ALL).call().iterator();
-        }
-        catch (GitAPIException e) {
-            throw new TrinoException(GIT_READ_ERROR, "Failed to list branches", e);
-        }
+        branches = refs.stream()
+                .filter(ref -> ref.getName().startsWith(R_HEADS))
+                .sorted(Comparator.comparing(Ref::getName))
+                .iterator();
 
         walk = new RevWalk(repo.getRepository());
         try {
-            head = getCommit(repo.getRepository().exactRef(HEAD));
+            head = getCommit(refs.stream().filter(ref -> ref.getName().equals(HEAD)).findFirst().orElse(null));
         }
         catch (IOException e) {
             throw new TrinoException(GIT_READ_ERROR, "Failed to read HEAD", e);

@@ -21,6 +21,7 @@ import org.eclipse.jgit.lib.RefUpdate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -67,11 +68,13 @@ public class TestGitObjects
     }
 
     private static Map<String, String> readObjects(Git git)
+            throws IOException
     {
         Map<String, String> objects = new HashMap<>();
         try (RecordCursor cursor = new ObjectsRecordCursor(
                 List.of(new GitColumnHandle("object_id", VARCHAR, 0), new GitColumnHandle("contents", VARBINARY, 1)),
-                git)) {
+                git,
+                git.getRepository().getRefDatabase().getRefs())) {
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(1)).isFalse();
                 objects.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());

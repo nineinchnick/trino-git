@@ -23,6 +23,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.errors.TransportException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
@@ -128,12 +129,12 @@ public class GitRepositoryManager
      * than git.fetch-interval ago, or a refresh was requested since. The repository is shared, so closing the
      * returned object doesn't close it.
      */
-    public Git getRepository(String schemaName, long refreshGeneration)
+    public Git getRepository(String schemaName, Snapshot snapshot)
     {
         URI url = repositories.get(schemaName);
         checkArgument(url != null, "Unknown repository: %s", schemaName);
         OpenRepository cached = openRepositories.get(schemaName);
-        if (cached != null && cached.isFresh(fetchIntervalNanos, refreshGeneration)) {
+        if (cached != null && cached.isFresh(fetchIntervalNanos, snapshot)) {
             return Git.wrap(cached.repository());
         }
         Path localPath;
@@ -152,13 +153,13 @@ public class GitRepositoryManager
             long fetchedNanos = System.nanoTime();
             if (openRepository != null) {
                 // another thread could have fetched it while this one was waiting for the lock
-                if (!openRepository.isFresh(fetchIntervalNanos, refreshGeneration)) {
+                if (!openRepository.isFresh(fetchIntervalNanos, snapshot)) {
                     fetchExisting(Git.wrap(openRepository.repository()), url);
-                    openRepository = new OpenRepository(openRepository.repository(), fetchedNanos, refreshGeneration);
+                    openRepository = new OpenRepository(openRepository.repository(), fetchedNanos, snapshot.refreshGeneration());
                 }
             }
             else {
-                openRepository = new OpenRepository(openOrClone(localPath, url).getRepository(), fetchedNanos, refreshGeneration);
+                openRepository = new OpenRepository(openOrClone(localPath, url).getRepository(), fetchedNanos, snapshot.refreshGeneration());
             }
             openRepositories.put(schemaName, openRepository);
             return Git.wrap(openRepository.repository());
@@ -347,9 +348,30 @@ public class GitRepositoryManager
 
     private record OpenRepository(Repository repository, long fetchedNanos, long refreshGeneration)
     {
-        boolean isFresh(long fetchIntervalNanos, long requestedRefreshGeneration)
+        boolean isFresh(long fetchIntervalNanos, Snapshot snapshot)
         {
-            return System.nanoTime() - fetchedNanos < fetchIntervalNanos && refreshGeneration >= requestedRefreshGeneration;
+            return System.nanoTime() - fetchedNanos < fetchIntervalNanos
+                    && refreshGeneration >= snapshot.refreshGeneration()
+                    && hasPinnedCommits(snapshot);
+        }
+
+        private boolean hasPinnedCommits(Snapshot snapshot)
+        {
+            if (snapshot.refs().isEmpty()) {
+                return true;
+            }
+            try {
+                for (String id : snapshot.refs().orElseThrow().values()) {
+                    if (!repository.getObjectDatabase().has(ObjectId.fromString(id))) {
+                        return false;
+                    }
+                }
+            }
+            catch (IOException _) {
+                // fetch again, and fail when reading the repository if it's broken
+                return false;
+            }
+            return true;
         }
     }
 }

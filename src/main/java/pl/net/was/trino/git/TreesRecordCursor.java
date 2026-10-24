@@ -20,6 +20,7 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
@@ -55,7 +56,7 @@ public class TreesRecordCursor
             FileMode.GITLINK, "submodule",
             FileMode.TREE, "directory");
 
-    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
+    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds)
     {
         this.columnHandles = columnHandles;
 
@@ -85,7 +86,7 @@ public class TreesRecordCursor
         }
 
         revWalk = new RevWalk(repo.getRepository());
-        commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+        commits = walkCommits(revWalk, refs, commitIds);
         // subtrees are entered explicitly, to return directories before their contents
         treeWalk = new TreeWalk(repo.getRepository());
     }

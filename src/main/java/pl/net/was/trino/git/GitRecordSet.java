@@ -14,17 +14,21 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableList;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Ref;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class GitRecordSet
         implements RecordSet
@@ -33,6 +37,7 @@ public class GitRecordSet
     private final List<Type> columnTypes;
     private final String tableName;
     private final Git repo;
+    private final List<Ref> refs;
     private final Optional<List<String>> commitIds;
 
     public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles, Git repo)
@@ -45,10 +50,15 @@ public class GitRecordSet
             types.add(column.columnType());
         }
         this.columnTypes = types.build();
-        this.tableName = split.tableName();
+        this.tableName = split.table().getTableName();
         this.commitIds = split.commitIds();
-
         this.repo = requireNonNull(repo, "repo is null");
+        try {
+            this.refs = split.snapshot().getRefs(repo.getRepository());
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to read refs", e);
+        }
     }
 
     @Override
@@ -61,15 +71,15 @@ public class GitRecordSet
     public RecordCursor cursor()
     {
         Map<String, RecordCursorProvider> map = Map.of(
-                "branches", (columnHandles, repo, _) -> new BranchesRecordCursor(columnHandles, repo),
+                "branches", (columnHandles, repo, refs, _) -> new BranchesRecordCursor(columnHandles, repo, refs),
                 "commits", CommitsRecordCursor::new,
                 "diff_stats", DiffStatsRecordCursor::new,
-                "idents", (columnHandles, repo, _) -> new IdentsRecordCursor(columnHandles, repo),
-                "objects", (columnHandles, repo, _) -> new ObjectsRecordCursor(columnHandles, repo),
-                "tags", (columnHandles, repo, _) -> new TagsRecordCursor(columnHandles, repo),
+                "idents", (columnHandles, repo, refs, _) -> new IdentsRecordCursor(columnHandles, repo, refs),
+                "objects", (columnHandles, repo, refs, _) -> new ObjectsRecordCursor(columnHandles, repo, refs),
+                "tags", (columnHandles, repo, refs, _) -> new TagsRecordCursor(columnHandles, repo, refs),
                 "trees", TreesRecordCursor::new);
         RecordCursorProvider recordCursorProvider = map.get(tableName);
         checkArgument(recordCursorProvider != null, "Unknown table: %s", tableName);
-        return recordCursorProvider.create(columnHandles, repo, commitIds);
+        return recordCursorProvider.create(columnHandles, repo, refs, commitIds);
     }
 }
