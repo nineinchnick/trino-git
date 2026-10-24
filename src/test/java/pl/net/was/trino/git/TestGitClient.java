@@ -44,7 +44,10 @@ public class TestGitClient
         assertThat(client.getSchemaNames()).isEqualTo(Set.of("default"));
     }
 
-    public static void setupRepo(URI uri)
+    /**
+     * Creates a repository with known contents and returns its URL, to be cloned by the connector.
+     */
+    public static URI setupRepo(URI uri)
             throws IOException, GitAPIException
     {
         // make sure the global Git config is not being used
@@ -56,13 +59,7 @@ public class TestGitClient
         }
 
         // ensure the repo dir exists, remove and recreate if necessary
-        Path localPath;
-        try {
-            localPath = GitRepositoryManager.getLocalPath(new GitConfig().getCacheDirectory().toPath(), uri);
-        }
-        catch (IOException ignored) {
-            return;
-        }
+        Path localPath = GitRepositoryManager.getLocalPath(Path.of(System.getProperty("java.io.tmpdir"), "trino-git-sources"), uri);
         if (Files.exists(localPath)) {
             deleteRecursively(localPath, ALLOW_INSECURE);
         }
@@ -106,5 +103,6 @@ public class TestGitClient
 
         // ensure all loose objects are packed
         git.gc().call();
+        return localPath.toUri();
     }
 }

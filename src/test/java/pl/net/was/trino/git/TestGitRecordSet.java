@@ -35,13 +35,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitRecordSet
 {
-    private static final URI uri = URI.create("fake.invalid");
+    private static URI uri;
 
     @BeforeAll
     public static void setUp()
             throws IOException, GitAPIException
     {
-        TestGitClient.setupRepo(uri);
+        uri = TestGitClient.setupRepo(URI.create("fake.invalid"));
     }
 
     @Test
@@ -110,9 +110,11 @@ public class TestGitRecordSet
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(0)).isFalse();
                 assertThat(cursor.isNull(1)).isFalse();
-                data.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());
+                data.put(cursor.getSlice(1).toStringUtf8(), cursor.getSlice(0).toStringUtf8());
             }
-            assertThat(data).isEqualTo(Map.of("c3b14e59f88d0d6597b98ee93cf61e7556d540a4", "refs/heads/master"));
+            assertThat(data).isEqualTo(Map.of(
+                    "refs/heads/master", "c3b14e59f88d0d6597b98ee93cf61e7556d540a4",
+                    "refs/remotes/origin/master", "c3b14e59f88d0d6597b98ee93cf61e7556d540a4"));
         }
     }
 

@@ -33,13 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitRecordSetProvider
 {
-    private static final URI uri = URI.create("fake.invalid");
+    private static URI uri;
 
     @BeforeAll
     public static void setUp()
             throws IOException, GitAPIException
     {
-        TestGitClient.setupRepo(uri);
+        uri = TestGitClient.setupRepo(URI.create("fake.invalid"));
     }
 
     @Test
