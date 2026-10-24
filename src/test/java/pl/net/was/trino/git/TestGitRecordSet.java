@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -265,17 +266,18 @@ public class TestGitRecordSet
             Map<String, List<Object>> data = new LinkedHashMap<>();
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(0)).isFalse();
-                assertThat(cursor.isNull(1)).isFalse();
                 assertThat(cursor.isNull(2)).isFalse();
                 assertThat(cursor.isNull(3)).isFalse();
                 data.put(
                         cursor.getSlice(0).toStringUtf8(),
-                        List.of(
-                                cursor.getSlice(1).toStringUtf8(),
+                        Arrays.asList(
+                                cursor.isNull(1) ? null : cursor.getSlice(1).toStringUtf8(),
                                 cursor.getLong(2),
                                 cursor.getLong(3)));
             }
             assertThat(data).isEqualTo(Map.of(
+                    // the root commit adds an empty file
+                    "080dfdf0aac7d302dc31d57f62942bb6533944f7", Arrays.asList(null, 0L, 0L),
                     "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of(
                             "080dfdf0aac7d302dc31d57f62942bb6533944f7",
                             1L,

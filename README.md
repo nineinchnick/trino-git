@@ -111,12 +111,14 @@ Branches of the remote repository.
 
 ## `diff_stats`
 
-Files changed in every commit, with renames detected.
+Files changed in every commit compared with its first parent, with renames detected.
+Merge commits are compared only with their first parent, like `git log -p --first-parent`,
+and root commits with an empty tree, so all their files are added.
 
 | Column             | Type      | Description                                                         |
 |--------------------|-----------|---------------------------------------------------------------------|
 | `commit_id`        | `varchar` | Commit id                                                           |
-| `old_commit_id`    | `varchar` | Id of the commit it is compared with, see Known issues              |
+| `old_commit_id`    | `varchar` | Id of the first parent commit, or null for a root commit             |
 | `object_id`        | `varchar` | Id of the new file contents                                         |
 | `path_name`        | `varchar` | New file path                                                       |
 | `old_path_name`    | `varchar` | Old file path                                                       |
@@ -176,7 +178,6 @@ The connector also provides two views:
 # Known issues
 
 * The `idents` view does not parse. See [#261](https://github.com/nineinchnick/trino-git/issues/261).
-* `diff_stats` compares every commit with the next commit it reads, not with its parent, so it has wrong results for repositories with more than one branch. See [#258](https://github.com/nineinchnick/trino-git/issues/258).
 * `objects` only has objects from pack files. See [#265](https://github.com/nineinchnick/trino-git/issues/265).
 
 # Build

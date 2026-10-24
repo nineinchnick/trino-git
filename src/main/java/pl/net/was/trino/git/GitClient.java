@@ -41,8 +41,7 @@ public class GitClient
     {
         branches(Optional.empty()),
         commits(Optional.of("object_id")),
-        // TODO read only matching commits once diff_stats compares commits with their parents
-        diff_stats(Optional.empty()),
+        diff_stats(Optional.of("commit_id")),
         tags(Optional.empty()),
         trees(Optional.of("commit_id")),
         objects(Optional.empty());
