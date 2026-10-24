@@ -20,7 +20,9 @@ import io.airlift.configuration.LegacyConfig;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
+import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Optional;
 
 public class GitConfig
@@ -28,6 +30,7 @@ public class GitConfig
     private URI url;
     private String username;
     private String password;
+    private File cacheDirectory = Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile();
 
     @NotNull
     public URI getUrl()
@@ -78,6 +81,20 @@ public class GitConfig
     public GitConfig setPassword(String password)
     {
         this.password = password;
+        return this;
+    }
+
+    @NotNull
+    public File getCacheDirectory()
+    {
+        return cacheDirectory;
+    }
+
+    @Config("git.cache-directory")
+    @ConfigDescription("Directory where repositories are cloned, accessible only by the user running Trino")
+    public GitConfig setCacheDirectory(File cacheDirectory)
+    {
+        this.cacheDirectory = cacheDirectory;
         return this;
     }
 }

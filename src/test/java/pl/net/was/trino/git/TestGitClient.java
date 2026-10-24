@@ -58,7 +58,7 @@ public class TestGitClient
         // ensure the repo dir exists, remove and recreate if necessary
         Path localPath;
         try {
-            localPath = GitRepositoryManager.ensureDir(uri.toString());
+            localPath = GitRepositoryManager.getLocalPath(new GitConfig().getCacheDirectory().toPath(), uri);
         }
         catch (IOException ignored) {
             return;

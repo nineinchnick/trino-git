@@ -18,6 +18,7 @@ import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static io.airlift.configuration.testing.ConfigAssertions.assertDeprecatedEquivalence;
@@ -35,7 +36,8 @@ public class TestGitConfig
         assertRecordedDefaults(recordDefaults(GitConfig.class)
                 .setUrl(null)
                 .setUsername(null)
-                .setPassword(null));
+                .setPassword(null)
+                .setCacheDirectory(Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile()));
     }
 
     @Test
@@ -45,12 +47,14 @@ public class TestGitConfig
                 .put("git.url", "https://example.com/repo.git")
                 .put("git.username", "user")
                 .put("git.password", "secret")
+                .put("git.cache-directory", "/var/cache/trino-git")
                 .buildOrThrow();
 
         GitConfig expected = new GitConfig()
                 .setUrl(URI.create("https://example.com/repo.git"))
                 .setUsername("user")
-                .setPassword("secret");
+                .setPassword("secret")
+                .setCacheDirectory(Path.of("/var/cache/trino-git").toFile());
 
         assertFullMapping(properties, expected);
     }
