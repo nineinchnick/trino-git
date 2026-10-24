@@ -22,7 +22,9 @@ import io.trino.spi.type.BigintType;
 import io.trino.spi.type.BooleanType;
 import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.IntegerType;
+import io.trino.spi.type.MapType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
+import io.trino.spi.type.TypeOperators;
 import io.trino.spi.type.VarbinaryType;
 import io.trino.spi.type.VarcharType;
 
@@ -39,6 +41,8 @@ import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
+    private static final TypeOperators TYPE_OPERATORS = new TypeOperators();
+
     private final Set<String> schemaNames;
 
     public enum Table
@@ -152,7 +156,7 @@ public class GitClient
                     new GitColumn("object_id", VarcharType.VARCHAR, "Id of the file contents, the directory tree, or the submodule commit"),
                     new GitColumn("file_name", VarcharType.VARCHAR, "File name"),
                     new GitColumn("path_name", VarcharType.VARCHAR, "Full file path"),
-                    new GitColumn("attributes", VarcharType.VARCHAR, "Git attributes of the file, from .gitattributes"),
+                    new GitColumn("attributes", new MapType(VarcharType.VARCHAR, VarcharType.VARCHAR, TYPE_OPERATORS), "Git attributes of the file from .gitattributes, true or false for attributes that are set or unset"),
                     new GitColumn("depth", IntegerType.INTEGER, "Number of parent directories of the file")),
             Table.OBJECTS.getName(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR, "Blob id"),

@@ -17,8 +17,10 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
+import io.trino.spi.type.MapType;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.attributes.Attribute;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -27,6 +29,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +38,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.trino.spi.block.MapValueBuilder.buildMapValue;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 import static java.util.Collections.emptyIterator;
 import static pl.net.was.trino.git.CommitWalks.walkCommits;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
@@ -77,8 +82,7 @@ public class TreesRecordCursor
                 "mode", TreesRecordCursor::getMode,
                 "object_id", TreesRecordCursor::getObjectId,
                 "file_name", TreesRecordCursor::getFileName,
-                "path_name", TreesRecordCursor::getPathName,
-                "attributes", TreesRecordCursor::getAttributes);
+                "path_name", TreesRecordCursor::getPathName);
 
         for (Map.Entry<String, Function<TreesRecordCursor, String>> entry : getters.entrySet()) {
             String k = entry.getKey();
@@ -183,7 +187,20 @@ public class TreesRecordCursor
     @Override
     public Object getObject(int field)
     {
-        throw new UnsupportedOperationException();
+        checkArgument(columnHandles.get(field).columnName().equals("attributes"), "Invalid field index");
+        Collection<Attribute> attributes = treeWalk.getAttributes().getAll();
+        return buildMapValue((MapType) columnHandles.get(field).columnType(), attributes.size(), (keyBuilder, valueBuilder) -> {
+            for (Attribute attribute : attributes) {
+                VARCHAR.writeString(keyBuilder, attribute.getKey());
+                VARCHAR.writeString(valueBuilder, switch (attribute.getState()) {
+                    case SET -> "true";
+                    case UNSET -> "false";
+                    case CUSTOM -> attribute.getValue();
+                    // unspecified attributes are not returned by getAll()
+                    case UNSPECIFIED -> throw new IllegalStateException("Unexpected unspecified attribute " + attribute.getKey());
+                });
+            }
+        });
     }
 
     @Override
@@ -229,10 +246,5 @@ public class TreesRecordCursor
     private String getPathName()
     {
         return treeWalk.getPathString();
-    }
-
-    private String getAttributes()
-    {
-        return treeWalk.getAttributes().toString();
     }
 }

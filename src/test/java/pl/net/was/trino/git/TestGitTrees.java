@@ -13,7 +13,10 @@
  */
 package pl.net.was.trino.git;
 
+import io.trino.spi.block.SqlMap;
 import io.trino.spi.connector.RecordCursor;
+import io.trino.spi.type.MapType;
+import io.trino.spi.type.TypeOperators;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -22,7 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.trino.spi.type.IntegerType.INTEGER;
@@ -73,5 +78,51 @@ public class TestGitTrees
                     List.of("link", "symlink", "120000", 0L),
                     List.of("run.sh", "executable", "100755", 0L));
         }
+    }
+
+    @Test
+    public void testAttributes(@TempDir Path tempDir)
+            throws Exception
+    {
+        Path source = tempDir.resolve("source");
+        try (Git git = Git.init().setDirectory(source.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(source.resolve(".gitattributes"), "*.sh text eol=lf\n*.bin -diff\n");
+            Files.writeString(source.resolve("run.sh"), "#!/bin/sh");
+            Files.writeString(source.resolve("data.bin"), "data");
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("attributes").setSign(false).call();
+        }
+        // read from a bare clone, like the connector does
+        GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig()
+                .setUrl(source.toUri())
+                .setCacheDirectory(tempDir.resolve("cache").toFile()));
+        MapType mapType = new MapType(VARCHAR, VARCHAR, new TypeOperators());
+        Map<String, Map<String, String>> attributes = new HashMap<>();
+        try (Git repo = repositoryManager.getRepository("default", Snapshot.latest(0));
+                RecordCursor cursor = new TreesRecordCursor(
+                        List.of(new GitColumnHandle("path_name", VARCHAR, 0), new GitColumnHandle("attributes", mapType, 1)),
+                        repo,
+                        repo.getRepository().getRefDatabase().getRefs(),
+                        Optional.empty(),
+                        Optional.empty())) {
+            while (cursor.advanceNextPosition()) {
+                attributes.put(cursor.getSlice(0).toStringUtf8(), toMap((SqlMap) cursor.getObject(1)));
+            }
+        }
+        repositoryManager.close();
+        assertThat(attributes).isEqualTo(Map.of(
+                ".gitattributes", Map.of(),
+                "run.sh", Map.of("text", "true", "eol", "lf"),
+                "data.bin", Map.of("diff", "false")));
+    }
+
+    private static Map<String, String> toMap(SqlMap sqlMap)
+    {
+        Map<String, String> map = new HashMap<>();
+        for (int i = 0; i < sqlMap.getSize(); i++) {
+            map.put(VARCHAR.getSlice(sqlMap.getRawKeyBlock(), sqlMap.getRawOffset() + i).toStringUtf8(),
+                    VARCHAR.getSlice(sqlMap.getRawValueBlock(), sqlMap.getRawOffset() + i).toStringUtf8());
+        }
+        return map;
     }
 }

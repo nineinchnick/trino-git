@@ -158,16 +158,16 @@ Contents of every file (blob) reachable from any branch or tag.
 
 All files and directories in every commit. Directories come before their contents.
 
-| Column       | Type      | Description                                                          |
-|--------------|-----------|----------------------------------------------------------------------|
-| `commit_id`  | `varchar` | Commit id                                                            |
-| `file_mode`  | `varchar` | One of `file`, `executable`, `symlink`, `submodule`, `directory`     |
-| `mode`       | `varchar` | Raw file mode in octal, like `100644`, the same as in `git ls-tree`  |
-| `object_id`  | `varchar` | Id of the file contents, the directory tree, or the submodule commit |
-| `file_name`  | `varchar` | File name                                                            |
-| `path_name`  | `varchar` | Full file path                                                       |
-| `attributes` | `varchar` | Git attributes of the file, from `.gitattributes`                    |
-| `depth`      | `integer` | Number of parent directories of the file                             |
+| Column       | Type                    | Description                                                                                              |
+|--------------|-------------------------|----------------------------------------------------------------------------------------------------------|
+| `commit_id`  | `varchar`               | Commit id                                                                                                |
+| `file_mode`  | `varchar`               | One of `file`, `executable`, `symlink`, `submodule`, `directory`                                         |
+| `mode`       | `varchar`               | Raw file mode in octal, like `100644`, the same as in `git ls-tree`                                      |
+| `object_id`  | `varchar`               | Id of the file contents, the directory tree, or the submodule commit                                     |
+| `file_name`  | `varchar`               | File name                                                                                                |
+| `path_name`  | `varchar`               | Full file path                                                                                           |
+| `attributes` | `map(varchar, varchar)` | Git attributes of the file from `.gitattributes`, `true` or `false` for attributes that are set or unset |
+| `depth`      | `integer`               | Number of parent directories of the file                                                                 |
 
 ## `idents`
 
