@@ -63,6 +63,7 @@ public class GitRecordSet
                 "branches", (columnHandles, repo, _) -> new BranchesRecordCursor(columnHandles, repo),
                 "commits", CommitsRecordCursor::new,
                 "diff_stats", DiffStatsRecordCursor::new,
+                "idents", (columnHandles, repo, _) -> new IdentsRecordCursor(columnHandles, repo),
                 "objects", (columnHandles, repo, _) -> new ObjectsRecordCursor(columnHandles, repo),
                 "tags", (columnHandles, repo, _) -> new TagsRecordCursor(columnHandles, repo),
                 "trees", TreesRecordCursor::new);
