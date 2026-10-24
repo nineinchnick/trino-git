@@ -203,7 +203,6 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/81")
     void testTagsCommitId()
     {
         assertThat(query("SELECT name, commit_id FROM tags"))

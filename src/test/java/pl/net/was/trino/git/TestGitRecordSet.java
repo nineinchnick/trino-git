@@ -152,7 +152,7 @@ public class TestGitRecordSet
         GitTableHandle table = new GitTableHandle("default", "tags", TupleDomain.all());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
-                new GitColumnHandle("name", createUnboundedVarcharType(), 1)));
+                new GitColumnHandle("name", createUnboundedVarcharType(), 2)));
         try (RecordCursor cursor = recordSet.cursor()) {
             assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
             assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());
@@ -176,8 +176,8 @@ public class TestGitRecordSet
         GitTableHandle table = new GitTableHandle("default", "tags", TupleDomain.all());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
-                new GitColumnHandle("name", createUnboundedVarcharType(), 1),
-                new GitColumnHandle("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 2)));
+                new GitColumnHandle("name", createUnboundedVarcharType(), 2),
+                new GitColumnHandle("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, 3)));
         try (RecordCursor cursor = recordSet.cursor()) {
             assertThat(cursor.getType(0)).isEqualTo(createUnboundedVarcharType());
             assertThat(cursor.getType(1)).isEqualTo(createUnboundedVarcharType());

@@ -138,11 +138,12 @@ Contents of every file (blob).
 
 ## `tags`
 
-| Column      | Type                          | Description                                                  |
-|-------------|-------------------------------|--------------------------------------------------------------|
-| `object_id` | `varchar`                     | Id of the object the tag points to: a tag object or a commit |
-| `name`      | `varchar`                     | Full ref name, like `refs/tags/v1.0`                         |
-| `tag_time`  | `timestamp(0) with time zone` | Time of an annotated tag, `NULL` for lightweight tags        |
+| Column      | Type                          | Description                                                                 |
+|-------------|-------------------------------|-----------------------------------------------------------------------------|
+| `object_id` | `varchar`                     | Id of the object the tag points to: a tag object or a commit                |
+| `commit_id` | `varchar`                     | Id of the tagged commit, `NULL` if the tag points to a tree or a blob       |
+| `name`      | `varchar`                     | Full ref name, like `refs/tags/v1.0`                                        |
+| `tag_time`  | `timestamp(0) with time zone` | Time of an annotated tag, `NULL` for lightweight tags and tags without one  |
 
 ## `trees`
 

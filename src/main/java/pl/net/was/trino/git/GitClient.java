@@ -100,6 +100,7 @@ public class GitClient
                     new GitColumn("deleted_lines", IntegerType.INTEGER)),
             Table.tags.name(), List.of(
                     new GitColumn("object_id", VarcharType.VARCHAR),
+                    new GitColumn("commit_id", VarcharType.VARCHAR),
                     new GitColumn("name", VarcharType.VARCHAR),
                     new GitColumn("tag_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS)),
             Table.trees.name(), List.of(
