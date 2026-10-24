@@ -88,7 +88,8 @@ public class GitClient
                     new GitColumn("message", VarcharType.VARCHAR, "Full commit message"),
                     new GitColumn("parents", new ArrayType(VarcharType.VARCHAR), "Ids of the parent commits"),
                     new GitColumn("tree_id", VarcharType.VARCHAR, "Id of the root tree"),
-                    new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Commit time")),
+                    new GitColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Time when the commit was made, in the committer's time zone"),
+                    new GitColumn("author_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS, "Time when the change was originally made, in the author's time zone, which differs from commit_time after a rebase or a cherry-pick")),
             Table.idents.name(), List.of(
                     new GitColumn("email", VarcharType.VARCHAR, "Main email"),
                     new GitColumn("name", VarcharType.VARCHAR, "Main name"),
@@ -134,6 +135,7 @@ public class GitClient
                     new ConnectorViewDefinition.ViewColumn("parents", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("tree_id", VarcharType.VARCHAR.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("commit_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS.getTypeId(), Optional.empty()),
+                    new ConnectorViewDefinition.ViewColumn("author_time", TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS.getTypeId(), Optional.empty()),
 
                     new ConnectorViewDefinition.ViewColumn("added_lines", BigintType.BIGINT.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("deleted_lines", BigintType.BIGINT.getTypeId(), Optional.empty()),

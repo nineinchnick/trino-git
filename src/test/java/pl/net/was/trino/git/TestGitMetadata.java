@@ -106,7 +106,8 @@ public class TestGitMetadata
                 "message", new GitColumnHandle("message", createUnboundedVarcharType(), 5),
                 "parents", new GitColumnHandle("parents", new ArrayType(createUnboundedVarcharType()), 6),
                 "tree_id", new GitColumnHandle("tree_id", createUnboundedVarcharType(), 7),
-                "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
+                "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8),
+                "author_time", new GitColumnHandle("author_time", createTimestampWithTimeZoneType(0), 9)));
 
         // unknown table
         assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", TupleDomain.all())))
@@ -130,7 +131,8 @@ public class TestGitMetadata
                         tuple("message", createUnboundedVarcharType()),
                         tuple("parents", new ArrayType(createUnboundedVarcharType())),
                         tuple("tree_id", createUnboundedVarcharType()),
-                        tuple("commit_time", createTimestampWithTimeZoneType(0)));
+                        tuple("commit_time", createTimestampWithTimeZoneType(0)),
+                        tuple("author_time", createTimestampWithTimeZoneType(0)));
         assertThat(tableMetadata.getColumns())
                 .allSatisfy(column -> assertThat(column.getComment()).isNotEmpty());
 

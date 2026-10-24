@@ -8,6 +8,7 @@ SELECT
     c.parents,
     c.tree_id,
     c.commit_time,
+    c.author_time,
     coalesce(sum(s.added_lines), 0) AS added_lines,
     coalesce(sum(s.deleted_lines), 0) AS deleted_lines,
     count(s.commit_id) AS changed_files,
@@ -26,4 +27,5 @@ GROUP BY
     c.message,
     c.parents,
     c.tree_id,
-    c.commit_time
+    c.commit_time,
+    c.author_time

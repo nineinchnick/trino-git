@@ -97,17 +97,20 @@ Branches of the remote repository.
 
 ## `commits`
 
-| Column            | Type                          | Description               |
-|-------------------|-------------------------------|---------------------------|
-| `object_id`       | `varchar`                     | Commit id                 |
-| `author_name`     | `varchar`                     | Author name               |
-| `author_email`    | `varchar`                     | Author email              |
-| `committer_name`  | `varchar`                     | Committer name            |
-| `committer_email` | `varchar`                     | Committer email           |
-| `message`         | `varchar`                     | Full commit message       |
-| `parents`         | `array(varchar)`              | Ids of the parent commits |
-| `tree_id`         | `varchar`                     | Id of the root tree       |
-| `commit_time`     | `timestamp(0) with time zone` | Commit time               |
+| Column            | Type                          | Description                                                                                                                         |
+|-------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `object_id`       | `varchar`                     | Commit id                                                                                                                           |
+| `author_name`     | `varchar`                     | Author name                                                                                                                         |
+| `author_email`    | `varchar`                     | Author email                                                                                                                        |
+| `committer_name`  | `varchar`                     | Committer name                                                                                                                      |
+| `committer_email` | `varchar`                     | Committer email                                                                                                                     |
+| `message`         | `varchar`                     | Full commit message                                                                                                                 |
+| `parents`         | `array(varchar)`              | Ids of the parent commits                                                                                                           |
+| `tree_id`         | `varchar`                     | Id of the root tree                                                                                                                 |
+| `commit_time`     | `timestamp(0) with time zone` | Time when the commit was made, in the committer's time zone                                                                         |
+| `author_time`     | `timestamp(0) with time zone` | Time when the change was originally made, in the author's time zone, which differs from commit_time after a rebase or a cherry-pick |
+
+Time zone offsets that are out of range, which some old repositories have, like `+5000`, are read as UTC.
 
 ## `diff_stats`
 
