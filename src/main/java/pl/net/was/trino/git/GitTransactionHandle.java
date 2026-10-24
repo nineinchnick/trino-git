@@ -15,8 +15,15 @@ package pl.net.was.trino.git;
 
 import io.trino.spi.connector.ConnectorTransactionHandle;
 
-public enum GitTransactionHandle
+import java.util.UUID;
+
+import static java.util.Objects.requireNonNull;
+
+public record GitTransactionHandle(UUID uuid)
         implements ConnectorTransactionHandle
 {
-    INSTANCE
+    public GitTransactionHandle
+    {
+        requireNonNull(uuid, "uuid is null");
+    }
 }

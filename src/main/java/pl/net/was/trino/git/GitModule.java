@@ -34,6 +34,7 @@ public class GitModule
         binder.bind(GitRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(GitRepositoryManager.class).in(Scopes.SINGLETON);
         binder.bind(RefreshGenerations.class).in(Scopes.SINGLETON);
+        binder.bind(PinnedSnapshots.class).in(Scopes.SINGLETON);
         newSetBinder(binder, Procedure.class).addBinding().toProvider(RefreshProcedure.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(GitConfig.class);
     }

@@ -28,6 +28,7 @@ import io.trino.spi.transaction.IsolationLevel;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.UUID.randomUUID;
 
 public class GitConnector
         implements Connector
@@ -37,6 +38,7 @@ public class GitConnector
     private final GitSplitManager splitManager;
     private final GitRecordSetProvider recordSetProvider;
     private final Set<Procedure> procedures;
+    private final PinnedSnapshots pinnedSnapshots;
 
     @Inject
     public GitConnector(
@@ -44,19 +46,33 @@ public class GitConnector
             GitMetadata metadata,
             GitSplitManager splitManager,
             GitRecordSetProvider recordSetProvider,
-            Set<Procedure> procedures)
+            Set<Procedure> procedures,
+            PinnedSnapshots pinnedSnapshots)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
         this.procedures = ImmutableSet.copyOf(requireNonNull(procedures, "procedures is null"));
+        this.pinnedSnapshots = requireNonNull(pinnedSnapshots, "pinnedSnapshots is null");
     }
 
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly, boolean autoCommit)
     {
-        return GitTransactionHandle.INSTANCE;
+        return new GitTransactionHandle(randomUUID());
+    }
+
+    @Override
+    public void commit(ConnectorTransactionHandle transactionHandle)
+    {
+        pinnedSnapshots.release((GitTransactionHandle) transactionHandle);
+    }
+
+    @Override
+    public void rollback(ConnectorTransactionHandle transactionHandle)
+    {
+        pinnedSnapshots.release((GitTransactionHandle) transactionHandle);
     }
 
     @Override

@@ -201,7 +201,8 @@ The connector also provides a view:
 * When joining `trees` with `commits`, put `commits` on the right side of the join, like
   `trees t JOIN commits c ON t.commit_id = c.object_id`. The connector doesn't provide table statistics, so Trino doesn't
   reorder such joins, and only this order lets Trino read the trees of the matching commits instead of all of them.
-* Queries can return data up to `git.fetch-interval` old, and different nodes can have fetched at different times.
+* Queries can return data up to `git.fetch-interval` old. All tables in one query read the same commits: the coordinator
+  pins the refs of every repository when a query first reads it, so the coordinator keeps a clone too.
 
 # Build
 
