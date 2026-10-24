@@ -13,18 +13,21 @@
  */
 package pl.net.was.trino.git;
 
+import io.trino.spi.TrinoException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 final class CommitWalks
 {
@@ -37,13 +40,12 @@ final class CommitWalks
     {
         if (commitIds.isEmpty()) {
             try {
-                Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
-                for (Ref ref : allRefs) {
-                    revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+                for (Ref ref : repository.getRefDatabase().getRefs()) {
+                    markStart(revWalk, ref);
                 }
             }
-            catch (IOException ignored) {
-                // pass
+            catch (IOException e) {
+                throw new TrinoException(GIT_READ_ERROR, "Failed to read refs", e);
             }
             return revWalk.iterator();
         }
@@ -58,5 +60,19 @@ final class CommitWalks
                 return null;
             }
         }).filter(Objects::nonNull).iterator();
+    }
+
+    private static void markStart(RevWalk revWalk, Ref ref)
+            throws IOException
+    {
+        // symbolic refs to unborn branches, like HEAD in an empty repository, don't point to any object
+        if (ref.getObjectId() == null) {
+            return;
+        }
+        // refs can point to annotated tags, and these, like any ref, to trees or blobs
+        RevObject object = revWalk.peel(revWalk.parseAny(ref.getObjectId()));
+        if (object instanceof RevCommit commit) {
+            revWalk.markStart(commit);
+        }
     }
 }

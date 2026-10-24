@@ -241,7 +241,6 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/262")
     void testTreesForAllCommits()
     {
         assertThat(query("SELECT commit_id, count(*) FROM trees GROUP BY commit_id"))
@@ -279,7 +278,6 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/262")
     void testTreesFilterByObjectId()
             throws IOException
     {
