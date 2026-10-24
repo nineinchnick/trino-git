@@ -336,8 +336,8 @@ public class GitMetadata
                 DiscreteValues discreteValues = valueSet.getDiscreteValues();
                 return Optional.of(discreteValues.getValues().stream().map(value -> ((Slice) value).toStringUtf8()).collect(Collectors.toList()));
             }
-            if (valueSet instanceof SortedRangeSet) {
-                Ranges ranges = ((SortedRangeSet) valueSet).getRanges();
+            if (valueSet instanceof SortedRangeSet sortedRangeSet) {
+                Ranges ranges = sortedRangeSet.getRanges();
                 List<Range> rangeList = ranges.getOrderedRanges();
                 if (rangeList.stream().allMatch(Range::isSingleValue)) {
                     List<String> values = rangeList.stream()

@@ -40,7 +40,6 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 @Execution(ExecutionMode.SAME_THREAD)
 public class TestGitMetadata
@@ -93,12 +92,8 @@ public class TestGitMetadata
                 "commit_time", new GitColumnHandle("commit_time", createTimestampWithTimeZoneType(0), 8)));
 
         // unknown table
-        try {
-            metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty()));
-            fail("Expected getColumnHandle of unknown table to throw a TableNotFoundException");
-        }
-        catch (TableNotFoundException expected) {
-        }
+        assertThatThrownBy(() -> metadata.getColumnHandles(SESSION, new GitTableHandle("unknown", "unknown", Optional.empty(), OptionalLong.empty())))
+                .isInstanceOf(TableNotFoundException.class);
     }
 
     @Test
@@ -137,12 +132,8 @@ public class TestGitMetadata
                 new SchemaTableName("default", "trees")));
 
         // unknown schema
-        try {
-            metadata.listTables(SESSION, Optional.of("unknown"));
-            fail("Expected listTables of unknown schema to throw a SchemaNotFoundException");
-        }
-        catch (SchemaNotFoundException expected) {
-        }
+        assertThatThrownBy(() -> metadata.listTables(SESSION, Optional.of("unknown")))
+                .isInstanceOf(SchemaNotFoundException.class);
     }
 
     @Test

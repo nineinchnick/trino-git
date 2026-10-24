@@ -24,7 +24,6 @@ import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.transaction.IsolationLevel;
 
 import static java.util.Objects.requireNonNull;
-import static pl.net.was.trino.git.GitTransactionHandle.INSTANCE;
 
 public class GitConnector
         implements Connector
@@ -50,7 +49,7 @@ public class GitConnector
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly, boolean autoCommit)
     {
-        return INSTANCE;
+        return GitTransactionHandle.INSTANCE;
     }
 
     @Override
