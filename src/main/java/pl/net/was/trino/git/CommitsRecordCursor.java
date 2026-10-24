@@ -20,8 +20,6 @@ import io.trino.spi.block.BlockBuilder;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.DateTimeEncoding;
 import io.trino.spi.type.Type;
-import io.trino.spi.type.TypeUtils;
-import io.trino.spi.type.VarcharType;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
@@ -40,6 +38,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 
 public class CommitsRecordCursor
         implements RecordCursor
@@ -120,11 +119,10 @@ public class CommitsRecordCursor
 
     public static Block getParents(RevCommit c)
     {
-        Type elementType = VarcharType.VARCHAR;
         RevCommit[] parents = c.getParents();
-        BlockBuilder builder = elementType.createBlockBuilder(null, parents.length);
+        BlockBuilder builder = VARCHAR.createBlockBuilder(null, parents.length);
         for (RevCommit p : parents) {
-            TypeUtils.writeNativeValue(elementType, builder, p.getName());
+            VARCHAR.writeString(builder, p.getName());
         }
         return builder.build();
     }
