@@ -73,7 +73,7 @@ public class TestGitTags
                         new GitColumnHandle("commit_id", VARCHAR, 1),
                         new GitColumnHandle("name", VARCHAR, 2),
                         new GitColumnHandle("tag_time", TIMESTAMP_TZ_SECONDS, 3)),
-                repositoryManager.getRepository());
+                repositoryManager.getRepository("default"));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

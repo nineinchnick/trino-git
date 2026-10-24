@@ -40,7 +40,7 @@ public class TestGitClient
     @Test
     public void testMetadata()
     {
-        GitClient client = new GitClient();
+        GitClient client = new GitClient(new GitConfig().setUrl(URI.create("https://example.com/repo.git")));
         assertThat(client.getSchemaNames()).isEqualTo(Set.of("default"));
     }
 

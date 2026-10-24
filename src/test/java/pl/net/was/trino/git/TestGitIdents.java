@@ -54,7 +54,7 @@ public class TestGitIdents
                 .setUrl(source.toUri())
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         List<List<Object>> rows = new ArrayList<>();
-        try (Git repo = repositoryManager.getRepository();
+        try (Git repo = repositoryManager.getRepository("default");
                 RecordCursor cursor = new IdentsRecordCursor(
                         List.of(
                                 new GitColumnHandle("email", VARCHAR, 0),
