@@ -49,6 +49,8 @@
         <air.check.fail-checkstyle>true</air.check.fail-checkstyle>
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
         <air.build.jvmsize>4g</air.build.jvmsize>
+        <!-- the query runner uses the Vector API, which is still an incubator module -->
+        <air.test.jvm.additional-arguments>--add-modules=jdk.incubator.vector --sun-misc-unsafe-memory-access=allow</air.test.jvm.additional-arguments>
 
         <dep.trino.version>484</dep.trino.version>
         <dep.airlift.version>451</dep.airlift.version>
