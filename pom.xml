@@ -60,11 +60,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
@@ -91,6 +86,12 @@
             <groupId>io.airlift</groupId>
             <artifactId>json</artifactId>
             <version>${dep.airlift.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-plugin-toolkit</artifactId>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <dependency>
