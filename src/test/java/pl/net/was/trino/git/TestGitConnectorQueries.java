@@ -328,24 +328,31 @@ final class TestGitConnectorQueries
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/258")
     void testDiffStatsRootCommit()
     {
-        assertThat(query("SELECT path_name, change_type, added_lines, deleted_lines FROM diff_stats WHERE commit_id = '%s'".formatted(
+        assertThat(query("SELECT old_commit_id, path_name, change_type, added_lines, deleted_lines FROM diff_stats WHERE commit_id = '%s'".formatted(
                 id(repository.getInitialCommit()))))
                 .skippingTypesCheck()
                 .matches(
                         """
                         VALUES
-                            ('README.md', 'Add', 1, 0),
-                            ('docs/guide.md', 'Add', 3, 0),
-                            ('old-name.txt', 'Add', 3, 0),
-                            ('to-delete.txt', 'Add', 1, 0)
+                            (NULL, 'README.md', 'Add', 1, 0),
+                            (NULL, 'docs/guide.md', 'Add', 3, 0),
+                            (NULL, 'old-name.txt', 'Add', 3, 0),
+                            (NULL, 'to-delete.txt', 'Add', 1, 0)
                         """);
     }
 
     @Test
-    @Disabled("https://github.com/nineinchnick/trino-git/issues/258")
+    void testDiffStatsMergeCommitComparesWithFirstParent()
+    {
+        assertThat(query("SELECT old_commit_id, path_name, change_type, added_lines, deleted_lines FROM diff_stats WHERE commit_id = '%s'".formatted(
+                id(repository.getMergeCommit()))))
+                .skippingTypesCheck()
+                .matches("VALUES ('%s', 'feature.txt', 'Add', 1, 0)".formatted(id(repository.getDeleteCommit())));
+    }
+
+    @Test
     void testDiffStatsComparesWithParent()
     {
         assertThat(query("SELECT old_commit_id, path_name, change_type FROM diff_stats WHERE commit_id = '%s'".formatted(
