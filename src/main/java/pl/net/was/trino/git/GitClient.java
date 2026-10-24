@@ -13,7 +13,9 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
+import com.google.inject.Inject;
 import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.BigintType;
@@ -30,14 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 public class GitClient
 {
+    private final Set<String> schemaNames;
+
     public static enum Table
     {
         branches(Optional.empty()),
@@ -141,9 +143,15 @@ public class GitClient
                     new ConnectorViewDefinition.ViewColumn("similarity_score", DoubleType.DOUBLE.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("change_types", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())));
 
+    @Inject
+    public GitClient(GitConfig config)
+    {
+        this.schemaNames = ImmutableSet.copyOf(config.getAllRepositories().keySet());
+    }
+
     public Set<String> getSchemaNames()
     {
-        return Stream.of("default").collect(Collectors.toSet());
+        return schemaNames;
     }
 
     public Set<String> getTableNames(String schema)

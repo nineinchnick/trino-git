@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableMap;
 import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
 import io.airlift.configuration.ConfigSecuritySensitive;
@@ -23,16 +24,25 @@ import jakarta.validation.constraints.NotNull;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class GitConfig
 {
+    public static final String DEFAULT_SCHEMA = "default";
+
+    private static final Pattern SCHEMA_NAME = Pattern.compile("[a-z0-9_]+");
+
     private URI url;
+    private Map<String, URI> repositories = ImmutableMap.of();
     private String username;
     private String password;
     private File cacheDirectory = Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile();
 
-    @NotNull
     public URI getUrl()
     {
         return url;
@@ -40,21 +50,65 @@ public class GitConfig
 
     @Config("git.url")
     @LegacyConfig("metadata-uri")
-    @ConfigDescription("URL of the git repository")
+    @ConfigDescription("URL of the git repository, available as the default schema")
     public GitConfig setUrl(URI url)
     {
         this.url = url;
         return this;
     }
 
-    @AssertTrue(message = "git.url must not contain credentials, use git.username and git.password instead")
+    public Map<String, URI> getRepositories()
+    {
+        return repositories;
+    }
+
+    @Config("git.repositories")
+    @ConfigDescription("Comma separated schema=url pairs, for every git repository available as a schema")
+    public GitConfig setRepositories(List<String> repositories)
+    {
+        ImmutableMap.Builder<String, URI> builder = ImmutableMap.builder();
+        for (String entry : repositories) {
+            // URLs can contain = too, so only the first one separates the schema name
+            int separator = entry.indexOf('=');
+            checkArgument(separator > 0, "Invalid repository, expected schema=url: %s", entry);
+            String schemaName = entry.substring(0, separator).strip();
+            checkArgument(SCHEMA_NAME.matcher(schemaName).matches(), "Invalid schema name, it can contain only lowercase letters, digits and underscores: %s", schemaName);
+            builder.put(schemaName, URI.create(entry.substring(separator + 1).strip()));
+        }
+        this.repositories = builder.buildOrThrow();
+        return this;
+    }
+
+    /**
+     * Repositories by the name of the schema they are available as.
+     */
+    public Map<String, URI> getAllRepositories()
+    {
+        if (url == null) {
+            return repositories;
+        }
+        return ImmutableMap.<String, URI>builder()
+                .put(DEFAULT_SCHEMA, url)
+                .putAll(repositories)
+                .buildKeepingLast();
+    }
+
+    @AssertTrue(message = "git.url or git.repositories must be set")
+    public boolean isAnyRepositoryConfigured()
+    {
+        return url != null || !repositories.isEmpty();
+    }
+
+    @AssertTrue(message = "git.repositories can't contain the default schema when git.url is set")
+    public boolean isDefaultSchemaUnique()
+    {
+        return url == null || !repositories.containsKey(DEFAULT_SCHEMA);
+    }
+
+    @AssertTrue(message = "git.url and git.repositories must not contain credentials, use git.username and git.password instead")
     public boolean isUrlWithoutCredentials()
     {
-        // usernames in SSH URLs, like ssh://git@example.com/repo.git, are not secret
-        if (url == null || url.getUserInfo() == null) {
-            return true;
-        }
-        return !"http".equalsIgnoreCase(url.getScheme()) && !"https".equalsIgnoreCase(url.getScheme()) && !url.getUserInfo().contains(":");
+        return getAllRepositories().values().stream().allMatch(GitConfig::isWithoutCredentials);
     }
 
     public Optional<String> getUsername()
@@ -96,5 +150,14 @@ public class GitConfig
     {
         this.cacheDirectory = cacheDirectory;
         return this;
+    }
+
+    private static boolean isWithoutCredentials(URI url)
+    {
+        // usernames in SSH URLs, like ssh://git@example.com/repo.git, are not secret
+        if (url.getUserInfo() == null) {
+            return true;
+        }
+        return !"http".equalsIgnoreCase(url.getScheme()) && !"https".equalsIgnoreCase(url.getScheme()) && !url.getUserInfo().contains(":");
     }
 }

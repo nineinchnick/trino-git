@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Hashing;
 import com.google.inject.Inject;
 import io.trino.spi.TrinoException;
@@ -48,12 +49,14 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipal;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Throwables.getCausalChain;
 import static com.google.common.base.Throwables.getRootCause;
 import static com.google.common.io.MoreFiles.deleteRecursively;
@@ -62,7 +65,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
-import static java.util.Objects.requireNonNull;
 import static java.util.UUID.randomUUID;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_FETCH_SECTION;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_KEY_AUTOGC;
@@ -92,21 +94,23 @@ public class GitRepositoryManager
             new RefSpec("+refs/heads/*:refs/heads/*"),
             new RefSpec("+refs/tags/*:refs/tags/*"));
 
-    private final URI url;
+    private final Map<String, URI> repositories;
     private final Optional<CredentialsProvider> credentialsProvider;
     private final Path cacheDirectory;
 
     @Inject
     public GitRepositoryManager(GitConfig config)
     {
-        this.url = requireNonNull(config.getUrl(), "url is null");
+        this.repositories = ImmutableMap.copyOf(config.getAllRepositories());
         this.cacheDirectory = config.getCacheDirectory().toPath();
         this.credentialsProvider = config.getUsername()
                 .map(username -> new UsernamePasswordCredentialsProvider(username, config.getPassword().orElse("")));
     }
 
-    public Git getRepository()
+    public Git getRepository(String schemaName)
     {
+        URI url = repositories.get(schemaName);
+        checkArgument(url != null, "Unknown repository: %s", schemaName);
         Path localPath;
         try {
             localPath = getLocalPath(cacheDirectory, url);
@@ -119,7 +123,7 @@ public class GitRepositoryManager
         lock.lock();
         try (FileChannel channel = FileChannel.open(localPath.resolveSibling(localPath.getFileName() + ".lock"), CREATE, WRITE);
                 FileLock _ = channel.lock()) {
-            return openOrClone(localPath);
+            return openOrClone(localPath, url);
         }
         catch (IOException e) {
             throw new TrinoException(GIT_OPEN_ERROR, "Failed to lock the repository", e);
@@ -129,11 +133,11 @@ public class GitRepositoryManager
         }
     }
 
-    private Git openOrClone(Path localPath)
+    private Git openOrClone(Path localPath, URI url)
             throws IOException
     {
         if (Files.exists(localPath)) {
-            Optional<Git> existing = openExisting(localPath);
+            Optional<Git> existing = openExisting(localPath, url);
             if (existing.isPresent()) {
                 Git repo = existing.orElseThrow();
                 try {
@@ -141,7 +145,7 @@ public class GitRepositoryManager
                 }
                 catch (GitAPIException e) {
                     repo.close();
-                    throw repositoryError(GIT_FETCH_ERROR, "fetch", e);
+                    throw repositoryError(url, GIT_FETCH_ERROR, "fetch", e);
                 }
                 catch (RuntimeException e) {
                     repo.close();
@@ -170,18 +174,18 @@ public class GitRepositoryManager
             Files.move(temporaryPath, localPath, ATOMIC_MOVE);
         }
         catch (GitAPIException | URISyntaxException e) {
-            throw repositoryError(GIT_CLONE_ERROR, "clone", e);
+            throw repositoryError(url, GIT_CLONE_ERROR, "clone", e);
         }
         finally {
             if (Files.exists(temporaryPath)) {
                 deleteRecursively(temporaryPath, ALLOW_INSECURE);
             }
         }
-        return openExisting(localPath)
+        return openExisting(localPath, url)
                 .orElseThrow(() -> new TrinoException(GIT_OPEN_ERROR, "Failed to open the cloned repository"));
     }
 
-    private TrinoException repositoryError(GitErrorCode errorCode, String action, Exception e)
+    private static TrinoException repositoryError(URI url, GitErrorCode errorCode, String action, Exception e)
     {
         // JGit exceptions are often wrapped multiple times, and only the innermost one says what is wrong
         List<Throwable> causes = getCausalChain(e);
@@ -207,7 +211,7 @@ public class GitRepositoryManager
                 && AUTHENTICATION_ERRORS.stream().anyMatch(message::contains);
     }
 
-    private Optional<Git> openExisting(Path localPath)
+    private Optional<Git> openExisting(Path localPath, URI url)
     {
         Repository repository;
         try {

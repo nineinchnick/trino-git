@@ -51,12 +51,13 @@ git.url=https://github.com/nineinchnick/trino-git.git
 
 The catalog supports these properties:
 
-| Property              | Description                                                                                  | Default                       |
-|-----------------------|----------------------------------------------------------------------------------------------|-------------------------------|
-| `git.url`             | URL of the repository. Must not contain credentials. Previously called `metadata-uri`.       |                               |
-| `git.username`        | Username used to authenticate to the repository.                                             |                               |
-| `git.password`        | Password or access token used to authenticate to the repository.                             |                               |
-| `git.cache-directory` | Directory where every node clones the repository. Only the user running Trino may access it. | `${java.io.tmpdir}/trino-git` |
+| Property              | Description                                                                                                               | Default                       |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------|-------------------------------|
+| `git.url`             | URL of the repository, available as the `default` schema. Must not contain credentials. Previously called `metadata-uri`. |                               |
+| `git.repositories`    | More repositories, as comma separated `schema=url` pairs, each available as a schema with the same tables.                |                               |
+| `git.username`        | Username used to authenticate to the repository.                                                                          |                               |
+| `git.password`        | Password or access token used to authenticate to the repository.                                                          |                               |
+| `git.cache-directory` | Directory where every node clones the repository. Only the user running Trino may access it.                              | `${java.io.tmpdir}/trino-git` |
 
 Keep credentials out of the catalog file by reading them from environment variables, for example
 `git.password=${ENV:GIT_TOKEN}`. For GitHub, use a token as the password and any non-empty username.
@@ -184,8 +185,8 @@ The connector also provides a view:
 
 # Limitations
 
-* One catalog reads one repository. To query more repositories, create a catalog for each one. See [#273](https://github.com/nineinchnick/trino-git/issues/273).
-* Every worker clones the repository into `git.cache-directory`, and keeps it there.
+* Every worker clones the repositories into `git.cache-directory`, and keeps them there.
+* `git.username` and `git.password` are used for all repositories.
 * When joining `trees` with `commits`, put `commits` on the right side of the join, like
   `trees t JOIN commits c ON t.commit_id = c.object_id`. The connector doesn't provide table statistics, so Trino doesn't
   reorder such joins, and only this order lets Trino read the trees of the matching commits instead of all of them.

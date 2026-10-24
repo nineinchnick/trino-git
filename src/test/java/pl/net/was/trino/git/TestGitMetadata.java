@@ -76,7 +76,7 @@ public class TestGitMetadata
         String url = "fake.example";
         TestGitClient.setupRepo(URI.create(url));
 
-        metadata = new GitMetadata(new CatalogName("test"), new GitClient());
+        metadata = new GitMetadata(new CatalogName("test"), new GitClient(new GitConfig().setUrl(URI.create("https://example.com/repo.git"))));
     }
 
     @Test

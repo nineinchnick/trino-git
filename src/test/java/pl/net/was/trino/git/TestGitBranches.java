@@ -81,7 +81,7 @@ public class TestGitBranches
                         new GitColumnHandle("object_id", VARCHAR, 0),
                         new GitColumnHandle("name", VARCHAR, 1),
                         new GitColumnHandle("is_merged", BOOLEAN, 2)),
-                repositoryManager.getRepository());
+                repositoryManager.getRepository("default"));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

@@ -102,7 +102,7 @@ public class TestGitDiffStats
                 new GitSplit("diff_stats", commitIds),
                 new GitTableHandle("default", "diff_stats", TupleDomain.all()),
                 COLUMNS,
-                repositoryManager.getRepository());
+                repositoryManager.getRepository("default"));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

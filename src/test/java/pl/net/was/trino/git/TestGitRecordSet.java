@@ -287,6 +287,6 @@ public class TestGitRecordSet
 
     private static GitRecordSet createRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)
     {
-        return new GitRecordSet(split, table, columnHandles, new GitRepositoryManager(new GitConfig().setUrl(uri)).getRepository());
+        return new GitRecordSet(split, table, columnHandles, new GitRepositoryManager(new GitConfig().setUrl(uri)).getRepository("default"));
     }
 }
