@@ -56,6 +56,16 @@ final class TestGitConnectorQueries
     }
 
     @Test
+    void testColumnComments()
+    {
+        assertThat(query("SELECT comment FROM information_schema.columns WHERE table_name = 'commits' AND column_name = 'message'"))
+                .skippingTypesCheck()
+                .matches("VALUES 'Full commit message'");
+        assertThat(query("SELECT count(*) FROM information_schema.columns WHERE table_schema = 'default' AND table_name != 'commit_stats' AND comment IS NULL"))
+                .matches("VALUES BIGINT '0'");
+    }
+
+    @Test
     void testCommits()
     {
         assertThat(query("SELECT object_id, author_name, author_email, committer_name, committer_email, message, tree_id, commit_time FROM commits"))

@@ -49,6 +49,7 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.Objects.requireNonNull;
 
 public class GitMetadata
@@ -177,7 +178,11 @@ public class GitMetadata
     @Override
     public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return ((GitColumnHandle) columnHandle).getColumnMetadata();
+        GitTableHandle table = (GitTableHandle) tableHandle;
+        String columnName = ((GitColumnHandle) columnHandle).columnName();
+        return gitClient.getTable(table.schemaName(), table.tableName()).getColumnsMetadata().stream()
+                .filter(column -> column.getName().equals(columnName))
+                .collect(onlyElement());
     }
 
     @Override
