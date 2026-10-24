@@ -16,20 +16,26 @@ package pl.net.was.trino.git;
 import com.google.common.hash.Hashing;
 import com.google.inject.Inject;
 import io.trino.spi.TrinoException;
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.FetchResult;
+import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.RemoteConfig;
+import org.eclipse.jgit.transport.TagOpt;
 import org.eclipse.jgit.transport.TrackingRefUpdate;
+import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
@@ -38,6 +44,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipal;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +59,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.Objects.requireNonNull;
 import static java.util.UUID.randomUUID;
+import static org.eclipse.jgit.lib.Constants.HEAD;
 import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_FETCH_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
@@ -65,6 +73,10 @@ public class GitRepositoryManager
             RefUpdate.Result.REJECTED_MISSING_OBJECT,
             RefUpdate.Result.REJECTED_OTHER_REASON);
     private static final ConcurrentMap<Path, ReentrantLock> LOCKS = new ConcurrentHashMap<>();
+    private static final String REMOTE = "origin";
+    private static final List<RefSpec> REF_SPECS = List.of(
+            new RefSpec("+refs/heads/*:refs/heads/*"),
+            new RefSpec("+refs/tags/*:refs/tags/*"));
 
     private final URI url;
     private final Optional<CredentialsProvider> credentialsProvider;
@@ -109,22 +121,39 @@ public class GitRepositoryManager
         if (Files.exists(localPath)) {
             Optional<Git> existing = openExisting(localPath);
             if (existing.isPresent()) {
-                fetch(existing.orElseThrow());
-                return existing.orElseThrow();
+                Git repo = existing.orElseThrow();
+                try {
+                    fetch(repo);
+                }
+                catch (GitAPIException e) {
+                    repo.close();
+                    throw new TrinoException(GIT_FETCH_ERROR, "Failed to fetch the repository", e);
+                }
+                catch (RuntimeException e) {
+                    repo.close();
+                    throw e;
+                }
+                return repo;
             }
             // a clone that was interrupted, or made from another URL
             deleteRecursively(localPath, ALLOW_INSECURE);
         }
         Path temporaryPath = localPath.resolveSibling(localPath.getFileName() + ".tmp-" + randomUUID());
         try {
-            CloneCommand clone = Git.cloneRepository()
-                    .setURI(url.toString())
-                    .setDirectory(temporaryPath.toFile());
-            credentialsProvider.ifPresent(clone::setCredentialsProvider);
-            clone.call().close();
+            // fetch only branches and tags, a mirror would also include refs like GitHub's refs/pull/*
+            try (Git repo = Git.init().setBare(true).setDirectory(temporaryPath.toFile()).call()) {
+                StoredConfig config = repo.getRepository().getConfig();
+                RemoteConfig remote = new RemoteConfig(config, REMOTE);
+                remote.addURI(new URIish(url.toString()));
+                REF_SPECS.forEach(remote::addFetchRefSpec);
+                remote.setTagOpt(TagOpt.NO_TAGS);
+                remote.update(config);
+                config.save();
+                fetch(repo);
+            }
             Files.move(temporaryPath, localPath, ATOMIC_MOVE);
         }
-        catch (GitAPIException e) {
+        catch (GitAPIException | URISyntaxException e) {
             throw new TrinoException(GIT_CLONE_ERROR, "Failed to clone the repository", e);
         }
         finally {
@@ -141,14 +170,14 @@ public class GitRepositoryManager
         Repository repository;
         try {
             repository = new FileRepositoryBuilder()
-                    .setGitDir(localPath.resolve(".git").toFile())
+                    .setGitDir(localPath.toFile())
                     .setMustExist(true)
                     .build();
         }
         catch (IOException _) {
             return Optional.empty();
         }
-        if (!url.toString().equals(repository.getConfig().getString("remote", "origin", "url"))) {
+        if (!url.toString().equals(repository.getConfig().getString("remote", REMOTE, "url"))) {
             repository.close();
             return Optional.empty();
         }
@@ -156,22 +185,43 @@ public class GitRepositoryManager
     }
 
     private void fetch(Git repo)
+            throws GitAPIException
     {
-        FetchResult result;
-        try {
-            FetchCommand fetch = repo.fetch().setCheckFetchedObjects(true);
-            credentialsProvider.ifPresent(fetch::setCredentialsProvider);
-            result = fetch.call();
-        }
-        catch (GitAPIException e) {
-            repo.close();
-            throw new TrinoException(GIT_FETCH_ERROR, "Failed to fetch the repository", e);
-        }
+        FetchCommand fetch = repo.fetch()
+                .setRemote(REMOTE)
+                .setRefSpecs(REF_SPECS)
+                .setTagOpt(TagOpt.NO_TAGS)
+                .setRemoveDeletedRefs(true)
+                .setCheckFetchedObjects(true);
+        credentialsProvider.ifPresent(fetch::setCredentialsProvider);
+        FetchResult result = fetch.call();
         for (TrackingRefUpdate update : result.getTrackingRefUpdates()) {
             if (FAILED_REF_UPDATES.contains(update.getResult())) {
-                repo.close();
                 throw new TrinoException(GIT_FETCH_ERROR, "Failed to update %s: %s".formatted(update.getLocalName(), update.getResult()));
             }
+        }
+        updateHead(repo, result);
+    }
+
+    private static void updateHead(Git repo, FetchResult result)
+    {
+        Ref remoteHead = result.getAdvertisedRef(HEAD);
+        if (remoteHead == null || !remoteHead.isSymbolic()) {
+            return;
+        }
+        try {
+            Ref localHead = repo.getRepository().exactRef(HEAD);
+            String target = remoteHead.getTarget().getName();
+            if (localHead != null && localHead.isSymbolic() && localHead.getTarget().getName().equals(target)) {
+                return;
+            }
+            RefUpdate.Result update = repo.getRepository().updateRef(HEAD).link(target);
+            if (FAILED_REF_UPDATES.contains(update)) {
+                throw new TrinoException(GIT_FETCH_ERROR, "Failed to update HEAD: " + update);
+            }
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_FETCH_ERROR, "Failed to update HEAD", e);
         }
     }
 

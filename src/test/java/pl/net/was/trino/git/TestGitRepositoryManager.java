@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import com.google.common.collect.Streams;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -34,6 +35,7 @@ import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static io.trino.testing.assertions.TrinoExceptionAssert.assertTrinoExceptionThrownBy;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.jgit.lib.Constants.HEAD;
 import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
 
@@ -145,6 +147,36 @@ public class TestGitRepositoryManager
 
         try (Git repo = new GitRepositoryManager(new GitConfig().setUrl(url)).getRepository()) {
             assertThat(repo.log().all().call()).hasSize(2);
+        }
+    }
+
+    @Test
+    public void testFollowsRemoteBranches()
+            throws Exception
+    {
+        URI url = TestGitClient.setupRepo(URI.create("following-source.invalid"));
+        deleteClone(url);
+        GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(url));
+        repositoryManager.getRepository().close();
+
+        try (Git source = Git.open(Path.of(url).toFile())) {
+            RevCommit commit = source.commit().setMessage("New commit").setAllowEmpty(true).setSign(false).call();
+            source.branchCreate().setName("feature").call();
+            source.getRepository().updateRef(HEAD).link("refs/heads/feature");
+
+            try (Git repo = repositoryManager.getRepository()) {
+                assertThat(repo.getRepository().exactRef("refs/heads/master").getObjectId()).isEqualTo(commit.getId());
+                assertThat(repo.getRepository().exactRef("refs/heads/feature").getObjectId()).isEqualTo(commit.getId());
+                assertThat(repo.getRepository().exactRef(HEAD).getTarget().getName()).isEqualTo("refs/heads/feature");
+                assertThat(repo.getRepository().getRefDatabase().getRefsByPrefix("refs/remotes/")).isEmpty();
+            }
+
+            source.getRepository().updateRef(HEAD).link("refs/heads/master");
+            source.branchDelete().setBranchNames("feature").setForce(true).call();
+            try (Git repo = repositoryManager.getRepository()) {
+                assertThat(repo.getRepository().exactRef("refs/heads/feature")).isNull();
+                assertThat(repo.getRepository().exactRef(HEAD).getTarget().getName()).isEqualTo("refs/heads/master");
+            }
         }
     }
 

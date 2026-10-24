@@ -113,9 +113,7 @@ public class TestGitRecordSet
                 assertThat(cursor.isNull(1)).isFalse();
                 data.put(cursor.getSlice(1).toStringUtf8(), cursor.getSlice(0).toStringUtf8());
             }
-            assertThat(data).isEqualTo(Map.of(
-                    "refs/heads/master", "c3b14e59f88d0d6597b98ee93cf61e7556d540a4",
-                    "refs/remotes/origin/master", "c3b14e59f88d0d6597b98ee93cf61e7556d540a4"));
+            assertThat(data).isEqualTo(Map.of("refs/heads/master", "c3b14e59f88d0d6597b98ee93cf61e7556d540a4"));
         }
     }
 
