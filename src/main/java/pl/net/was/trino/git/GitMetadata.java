@@ -35,14 +35,8 @@ import io.trino.spi.connector.RelationColumnsMetadata;
 import io.trino.spi.connector.SchemaNotFoundException;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.TableNotFoundException;
-import io.trino.spi.predicate.DiscreteValues;
 import io.trino.spi.predicate.Domain;
-import io.trino.spi.predicate.EquatableValueSet;
-import io.trino.spi.predicate.Range;
-import io.trino.spi.predicate.Ranges;
-import io.trino.spi.predicate.SortedRangeSet;
 import io.trino.spi.predicate.TupleDomain;
-import io.trino.spi.predicate.ValueSet;
 import io.trino.spi.statistics.ColumnStatistics;
 import io.trino.spi.statistics.Estimate;
 import io.trino.spi.statistics.TableStatistics;
@@ -53,16 +47,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
-import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class GitMetadata
         implements ConnectorMetadata
 {
+    private static final Predicate<String> OBJECT_ID = Pattern.compile("[0-9a-f]{40}|[0-9a-f]{64}").asMatchPredicate();
+
     private final GitClient gitClient;
     private final CatalogName catalogName;
 
@@ -99,7 +95,7 @@ public class GitMetadata
             return null;
         }
 
-        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName(), Optional.empty());
+        return new GitTableHandle(tableName.getSchemaName(), tableName.getTableName(), TupleDomain.all());
     }
 
     @Override
@@ -250,98 +246,51 @@ public class GitMetadata
     public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
     {
         GitTableHandle handle = (GitTableHandle) table;
-
-        Optional<List<String>> oldCommits = handle.commitIds();
-
-        Optional<List<String>> commitIds = Optional.empty();
-        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.getSummary();
-
-        Map<String, ColumnHandle> columns = getColumnHandles(session, handle);
-
-        if (handle.tableName().equals(GitClient.Table.trees.name())) {
-            commitIds = getCommitIds(constraint.getSummary());
-            unenforcedConstraint = constraint.getSummary().filter(
-                    (columnHandle, _) -> !columnHandle.equals(columns.get("commit_id")));
-        }
-        else if (handle.tableName().equals(GitClient.Table.commits.name())) {
-            // TODO merge both conditions, mapping table name to column (FK?)
-            commitIds = getCommitIds(constraint.getSummary());
-            unenforcedConstraint = constraint.getSummary().filter(
-                    (columnHandle, _) -> !columnHandle.equals(columns.get("object_id")));
-        }
-
-        if ((oldCommits.isEmpty() && commitIds.isEmpty()) ||
-                (oldCommits.isPresent() && commitIds.isPresent() &&
-                        oldCommits.orElseThrow().size() == commitIds.orElseThrow().size() && oldCommits.orElseThrow().containsAll(commitIds.orElseThrow()))) {
+        Optional<String> commitIdColumn = GitClient.Table.valueOf(handle.tableName()).getCommitIdColumn();
+        if (commitIdColumn.isEmpty()) {
             return Optional.empty();
         }
-        if (oldCommits.isEmpty()) {
-            oldCommits = commitIds;
-        }
-        else if (commitIds.isPresent()) {
-            oldCommits = Optional.of(ImmutableList.<String>builder()
-                    .addAll(oldCommits.orElseThrow())
-                    .addAll(commitIds.orElseThrow())
-                    .build());
+
+        TupleDomain<GitColumnHandle> summary = constraint.getSummary().transformKeys(GitColumnHandle.class::cast);
+        TupleDomain<GitColumnHandle> enforced = summary.filter((column, domain) -> isEnforceable(column, domain, commitIdColumn.orElseThrow()));
+        TupleDomain<GitColumnHandle> newConstraint = handle.constraint().intersect(enforced);
+        if (newConstraint.equals(handle.constraint())) {
+            return Optional.empty();
         }
 
+        TupleDomain<ColumnHandle> unenforced = summary
+                .filter((column, domain) -> !isEnforceable(column, domain, commitIdColumn.orElseThrow()))
+                .transformKeys(ColumnHandle.class::cast);
         return Optional.of(new ConstraintApplicationResult<>(
-                new GitTableHandle(
-                        handle.schemaName(),
-                        handle.tableName(),
-                        oldCommits),
-                unenforcedConstraint,
+                new GitTableHandle(handle.schemaName(), handle.tableName(), newConstraint),
+                unenforced,
                 constraint.getExpression(),
                 true));
     }
 
-    public static Optional<List<String>> getCommitIds(TupleDomain<ColumnHandle> constraintSummary)
+    public static Optional<List<String>> getCommitIds(TupleDomain<GitColumnHandle> constraint, String commitIdColumn)
     {
-        if (constraintSummary.isNone() || constraintSummary.isAll()) {
+        if (constraint.isNone()) {
+            return Optional.of(List.of());
+        }
+        Optional<Domain> domain = constraint.getDomains().orElseThrow().entrySet().stream()
+                .filter(entry -> entry.getKey().columnName().equals(commitIdColumn))
+                .map(Map.Entry::getValue)
+                .findFirst();
+        if (domain.isEmpty() || !domain.orElseThrow().isNullableDiscreteSet()) {
             return Optional.empty();
         }
+        // commit ids are never null, and always are lowercase, full length object ids,
+        // so other values can never match and can be ignored
+        return Optional.of(domain.orElseThrow().getNullableDiscreteSet().getNonNullValues().stream()
+                .map(value -> ((Slice) value).toStringUtf8())
+                .filter(OBJECT_ID)
+                .sorted()
+                .collect(toImmutableList()));
+    }
 
-        for (Map.Entry<ColumnHandle, Domain> entry : constraintSummary.getDomains().orElseThrow().entrySet()) {
-            System.out.println(entry.getKey() + "/" + entry.getValue());
-            GitColumnHandle column = ((GitColumnHandle) entry.getKey());
-            // TODO this is ambiguous and should be passed as a param, since every call to getCommitIds has a table handle in scope
-            if (!column.columnName().equals("commit_id") && !column.columnName().equals("object_id")) {
-                continue;
-            }
-            Domain domain = entry.getValue();
-            verify(!domain.isNone(), "Domain is none");
-            if (domain.isAll()) {
-                continue;
-            }
-            if (domain.isOnlyNull()) {
-                return Optional.of(List.of());
-            }
-            if ((!domain.getValues().isNone() && domain.isNullAllowed()) || (domain.getValues().isAll() && !domain.isNullAllowed())) {
-                continue;
-            }
-            if (domain.isSingleValue()) {
-                String value = ((Slice) domain.getSingleValue()).toStringUtf8();
-                return Optional.of(List.of(value));
-            }
-            ValueSet valueSet = domain.getValues();
-            if (valueSet instanceof EquatableValueSet) {
-                DiscreteValues discreteValues = valueSet.getDiscreteValues();
-                return Optional.of(discreteValues.getValues().stream().map(value -> ((Slice) value).toStringUtf8()).collect(Collectors.toList()));
-            }
-            if (valueSet instanceof SortedRangeSet sortedRangeSet) {
-                Ranges ranges = sortedRangeSet.getRanges();
-                List<Range> rangeList = ranges.getOrderedRanges();
-                if (rangeList.stream().allMatch(Range::isSingleValue)) {
-                    List<String> values = rangeList.stream()
-                            .map(range -> ((Slice) range.getSingleValue()).toStringUtf8())
-                            .collect(toImmutableList());
-                    return Optional.of(values);
-                }
-                // ignore unbounded ranges
-                return Optional.empty();
-            }
-            throw new IllegalStateException("Unexpected domain: " + domain);
-        }
-        return Optional.empty();
+    private static boolean isEnforceable(GitColumnHandle column, Domain domain, String commitIdColumn)
+    {
+        return column.columnName().equals(commitIdColumn) && domain.isNullableDiscreteSet();
     }
 }

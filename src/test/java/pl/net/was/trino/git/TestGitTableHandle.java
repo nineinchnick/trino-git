@@ -15,16 +15,15 @@ package pl.net.was.trino.git;
 
 import io.airlift.json.JsonCodec;
 import io.airlift.testing.EquivalenceTester;
+import io.trino.spi.predicate.TupleDomain;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
 
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitTableHandle
 {
-    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName", Optional.empty());
+    private final GitTableHandle tableHandle = new GitTableHandle("schemaName", "tableName", TupleDomain.all());
 
     @Test
     public void testJsonRoundTrip()
@@ -40,14 +39,14 @@ public class TestGitTableHandle
     {
         EquivalenceTester.equivalenceTester()
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "table", Optional.empty()),
-                        new GitTableHandle("schema", "table", Optional.empty()))
+                        new GitTableHandle("schema", "table", TupleDomain.all()),
+                        new GitTableHandle("schema", "table", TupleDomain.all()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schemaX", "table", Optional.empty()),
-                        new GitTableHandle("schemaX", "table", Optional.empty()))
+                        new GitTableHandle("schemaX", "table", TupleDomain.all()),
+                        new GitTableHandle("schemaX", "table", TupleDomain.all()))
                 .addEquivalentGroup(
-                        new GitTableHandle("schema", "tableX", Optional.empty()),
-                        new GitTableHandle("schema", "tableX", Optional.empty()))
+                        new GitTableHandle("schema", "tableX", TupleDomain.all()),
+                        new GitTableHandle("schema", "tableX", TupleDomain.all()))
                 .check();
     }
 }

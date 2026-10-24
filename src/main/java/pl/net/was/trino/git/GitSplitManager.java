@@ -26,6 +26,7 @@ import io.trino.spi.connector.FixedSplitSource;
 import io.trino.spi.predicate.TupleDomain;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -50,9 +51,12 @@ public class GitSplitManager
             GitTableHandle table,
             DynamicFilterSnapshot dynamicFilterSnapshot)
     {
-        TupleDomain<ColumnHandle> constraint = dynamicFilterSnapshot.currentPredicate().simplify(100);
+        TupleDomain<GitColumnHandle> constraint = table.constraint()
+                .intersect(dynamicFilterSnapshot.currentPredicate().simplify(100).transformKeys(GitColumnHandle.class::cast));
+        Optional<List<String>> commitIds = GitClient.Table.valueOf(table.tableName()).getCommitIdColumn()
+                .flatMap(commitIdColumn -> getCommitIds(constraint, commitIdColumn));
 
-        List<GitSplit> splits = List.of(new GitSplit(table.tableName(), getCommitIds(constraint)));
+        List<GitSplit> splits = List.of(new GitSplit(table.tableName(), commitIds));
 
         return new FixedSplitSource(splits);
     }

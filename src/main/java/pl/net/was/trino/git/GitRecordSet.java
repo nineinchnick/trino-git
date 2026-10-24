@@ -45,17 +45,7 @@ public class GitRecordSet
         }
         this.columnTypes = types.build();
         this.tableName = split.tableName();
-        Optional<List<String>> splitCommits = split.commitIds();
-        if (splitCommits.isEmpty()) {
-            splitCommits = table.commitIds();
-        }
-        else if (table.commitIds().isPresent()) {
-            splitCommits = Optional.of(ImmutableList.<String>builder()
-                    .addAll(splitCommits.orElseThrow())
-                    .addAll(table.commitIds().orElseThrow())
-                    .build());
-        }
-        this.commitIds = splitCommits;
+        this.commitIds = split.commitIds();
 
         this.repo = requireNonNull(repo, "repo is null");
     }

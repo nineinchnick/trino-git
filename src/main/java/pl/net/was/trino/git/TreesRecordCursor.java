@@ -103,7 +103,9 @@ public class TreesRecordCursor
         else {
             commits = commitIds.orElseThrow().stream().map(id -> {
                 try {
-                    return revWalk.parseCommit(ObjectId.fromString(id));
+                    RevCommit commit = revWalk.parseCommit(ObjectId.fromString(id));
+                    // annotated tags are peeled to the commit they point to, which has a different id
+                    return commit.getId().getName().equals(id) ? commit : null;
                 }
                 catch (IOException ignored) {
                     // ignore invalid commits
