@@ -53,7 +53,7 @@ public class TestGitRepositoryManager
     public void testCloneMissingRepository()
     {
         GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(URI.create("file:///nonexistent/trino-git/repo")));
-        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default"))
+        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default", 0))
                 .hasErrorCode(GIT_REPOSITORY_NOT_FOUND)
                 .hasMessage("Failed to clone file:///nonexistent/trino-git/repo: repository not found");
     }
@@ -69,10 +69,10 @@ public class TestGitRepositoryManager
                 .setUrl(url)
                 .setFetchInterval(new Duration(0, SECONDS))
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
-        repositoryManager.getRepository("default").close();
+        repositoryManager.getRepository("default", 0).close();
 
         deleteRecursively(source, ALLOW_INSECURE);
-        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default"))
+        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default", 0))
                 .hasErrorCode(GIT_REPOSITORY_NOT_FOUND)
                 .hasMessage("Failed to fetch %s: repository not found".formatted(url));
     }
@@ -96,7 +96,7 @@ public class TestGitRepositoryManager
                 GitRepositoryManager repositoryManager = new GitRepositoryManager(config
                         .setUrl(url)
                         .setCacheDirectory(tempDir.resolve("cache").toFile()));
-                assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default"))
+                assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default", 0))
                         .hasErrorCode(GIT_AUTHENTICATION_ERROR)
                         .hasMessage("Failed to clone %s: authentication failed, check git.username and git.password".formatted(url));
             }
@@ -117,7 +117,7 @@ public class TestGitRepositoryManager
                 .setUrl(url)
                 .setUsername("user")
                 .setPassword("secret-password"));
-        try (Git repo = repositoryManager.getRepository("default")) {
+        try (Git repo = repositoryManager.getRepository("default", 0)) {
             Path config = repo.getRepository().getDirectory().toPath().resolve("config");
             assertThat(Files.readString(config))
                     .contains(url.toString())
@@ -133,7 +133,7 @@ public class TestGitRepositoryManager
         GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig()
                 .setUrl(URI.create("file:///nonexistent/trino-git/repo"))
                 .setCacheDirectory(cacheDirectory.toFile()));
-        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default"))
+        assertTrinoExceptionThrownBy(() -> repositoryManager.getRepository("default", 0))
                 .hasErrorCode(GIT_OPEN_ERROR)
                 .hasMessageContaining("must be accessible only by its owner");
     }
@@ -164,7 +164,7 @@ public class TestGitRepositoryManager
                     // separate instances, like separate catalogs using the same repository
                     GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(url));
                     barrier.await();
-                    try (Git repo = repositoryManager.getRepository("default")) {
+                    try (Git repo = repositoryManager.getRepository("default", 0)) {
                         return Streams.stream(repo.log().all().call()).count();
                     }
                 }));
@@ -187,7 +187,7 @@ public class TestGitRepositoryManager
         Path clone = GitRepositoryManager.getLocalPath(new GitConfig().getCacheDirectory().toPath(), url);
         Files.createDirectories(clone.resolve(".git"));
 
-        try (Git repo = new GitRepositoryManager(new GitConfig().setUrl(url)).getRepository("default")) {
+        try (Git repo = new GitRepositoryManager(new GitConfig().setUrl(url)).getRepository("default", 0)) {
             assertThat(repo.log().all().call()).hasSize(2);
         }
     }
@@ -201,7 +201,7 @@ public class TestGitRepositoryManager
         Path clone = GitRepositoryManager.getLocalPath(new GitConfig().getCacheDirectory().toPath(), url);
         Git.init().setDirectory(clone.toFile()).call().close();
 
-        try (Git repo = new GitRepositoryManager(new GitConfig().setUrl(url)).getRepository("default")) {
+        try (Git repo = new GitRepositoryManager(new GitConfig().setUrl(url)).getRepository("default", 0)) {
             assertThat(repo.log().all().call()).hasSize(2);
         }
     }
@@ -213,14 +213,14 @@ public class TestGitRepositoryManager
         URI url = TestGitClient.setupRepo(URI.create("following-source.invalid"));
         deleteClone(url);
         GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(url).setFetchInterval(new Duration(0, SECONDS)));
-        repositoryManager.getRepository("default").close();
+        repositoryManager.getRepository("default", 0).close();
 
         try (Git source = Git.open(Path.of(url).toFile())) {
             RevCommit commit = source.commit().setMessage("New commit").setAllowEmpty(true).setSign(false).call();
             source.branchCreate().setName("feature").call();
             source.getRepository().updateRef(HEAD).link("refs/heads/feature");
 
-            try (Git repo = repositoryManager.getRepository("default")) {
+            try (Git repo = repositoryManager.getRepository("default", 0)) {
                 assertThat(repo.getRepository().exactRef("refs/heads/master").getObjectId()).isEqualTo(commit.getId());
                 assertThat(repo.getRepository().exactRef("refs/heads/feature").getObjectId()).isEqualTo(commit.getId());
                 assertThat(repo.getRepository().exactRef(HEAD).getTarget().getName()).isEqualTo("refs/heads/feature");
@@ -229,7 +229,7 @@ public class TestGitRepositoryManager
 
             source.getRepository().updateRef(HEAD).link("refs/heads/master");
             source.branchDelete().setBranchNames("feature").setForce(true).call();
-            try (Git repo = repositoryManager.getRepository("default")) {
+            try (Git repo = repositoryManager.getRepository("default", 0)) {
                 assertThat(repo.getRepository().exactRef("refs/heads/feature")).isNull();
                 assertThat(repo.getRepository().exactRef(HEAD).getTarget().getName()).isEqualTo("refs/heads/master");
             }
@@ -247,16 +247,16 @@ public class TestGitRepositoryManager
                     .setUrl(source.toUri())
                     .setCacheDirectory(tempDir.resolve("cache").toFile());
             GitRepositoryManager cachingManager = new GitRepositoryManager(config.setFetchInterval(new Duration(1, HOURS)));
-            Repository repository = cachingManager.getRepository("default").getRepository();
+            Repository repository = cachingManager.getRepository("default", 0).getRepository();
             assertThat(repository.resolve("refs/heads/main")).isEqualTo(first);
 
             RevCommit second = git.commit().setMessage("second").setAllowEmpty(true).setSign(false).call();
             // the open repository is reused, and not fetched again
-            assertThat(cachingManager.getRepository("default").getRepository()).isSameAs(repository);
+            assertThat(cachingManager.getRepository("default", 0).getRepository()).isSameAs(repository);
             assertThat(repository.resolve("refs/heads/main")).isEqualTo(first);
 
             GitRepositoryManager fetchingManager = new GitRepositoryManager(config.setFetchInterval(new Duration(0, SECONDS)));
-            assertThat(fetchingManager.getRepository("default").getRepository().resolve("refs/heads/main")).isEqualTo(second);
+            assertThat(fetchingManager.getRepository("default", 0).getRepository().resolve("refs/heads/main")).isEqualTo(second);
             cachingManager.close();
             fetchingManager.close();
         }

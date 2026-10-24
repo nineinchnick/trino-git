@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitSplit
 {
-    private final GitSplit split = new GitSplit("default", "tableName", Optional.empty());
+    private final GitSplit split = new GitSplit("default", "tableName", Optional.empty(), 0);
 
     @Test
     public void testAddresses()
@@ -47,7 +47,7 @@ public class TestGitSplit
     @Test
     public void testRetainedSize()
     {
-        GitSplit withCommits = new GitSplit("default", "tableName", Optional.of(List.of("a", "b")));
+        GitSplit withCommits = new GitSplit("default", "tableName", Optional.of(List.of("a", "b")), 0);
         assertThat(withCommits.getRetainedSizeInBytes()).isGreaterThan(split.getRetainedSizeInBytes());
     }
 }

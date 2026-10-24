@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.trino.spi.connector.Connector;
@@ -21,7 +22,10 @@ import io.trino.spi.connector.ConnectorRecordSetProvider;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorTransactionHandle;
+import io.trino.spi.procedure.Procedure;
 import io.trino.spi.transaction.IsolationLevel;
+
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -32,18 +36,21 @@ public class GitConnector
     private final GitMetadata metadata;
     private final GitSplitManager splitManager;
     private final GitRecordSetProvider recordSetProvider;
+    private final Set<Procedure> procedures;
 
     @Inject
     public GitConnector(
             LifeCycleManager lifeCycleManager,
             GitMetadata metadata,
             GitSplitManager splitManager,
-            GitRecordSetProvider recordSetProvider)
+            GitRecordSetProvider recordSetProvider,
+            Set<Procedure> procedures)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
+        this.procedures = ImmutableSet.copyOf(requireNonNull(procedures, "procedures is null"));
     }
 
     @Override
@@ -68,6 +75,12 @@ public class GitConnector
     public ConnectorRecordSetProvider getRecordSetProvider()
     {
         return recordSetProvider;
+    }
+
+    @Override
+    public Set<Procedure> getProcedures()
+    {
+        return procedures;
     }
 
     @Override
