@@ -51,7 +51,7 @@ public class TestGitTrees
             git.commit().setMessage("modes").setSign(false).call();
 
             List<List<Object>> rows = new ArrayList<>();
-            try (RecordCursor cursor = new TreesRecordCursor(
+            try (RecordCursor cursor = new TreesTable().createCursor(
                     List.of(
                             new GitColumnHandle("path_name", VARCHAR, 0),
                             new GitColumnHandle("file_mode", VARCHAR, 1),
@@ -99,7 +99,7 @@ public class TestGitTrees
         MapType mapType = new MapType(VARCHAR, VARCHAR, new TypeOperators());
         Map<String, Map<String, String>> attributes = new HashMap<>();
         try (Git repo = repositoryManager.getRepository("default", Snapshot.latest(0));
-                RecordCursor cursor = new TreesRecordCursor(
+                RecordCursor cursor = new TreesTable().createCursor(
                         List.of(new GitColumnHandle("path_name", VARCHAR, 0), new GitColumnHandle("attributes", mapType, 1)),
                         repo,
                         repo.getRepository().getRefDatabase().getRefs(),

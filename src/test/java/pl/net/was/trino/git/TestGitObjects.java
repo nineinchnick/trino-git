@@ -72,10 +72,11 @@ public class TestGitObjects
             throws IOException
     {
         Map<String, String> objects = new HashMap<>();
-        try (RecordCursor cursor = new ObjectsRecordCursor(
+        try (RecordCursor cursor = new ObjectsTable().createCursor(
                 List.of(new GitColumnHandle("object_id", VARCHAR, 0), new GitColumnHandle("contents", VARBINARY, 1)),
                 git,
                 git.getRepository().getRefDatabase().getRefs(),
+                Optional.empty(),
                 Optional.empty())) {
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(1)).isFalse();
