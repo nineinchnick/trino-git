@@ -104,7 +104,7 @@ public class CommitsRecordCursor
             commits = revWalk.iterator();
         }
         else {
-            commits = commitIds.get().stream().map(id -> {
+            commits = commitIds.orElseThrow().stream().map(id -> {
                 try {
                     return revWalk.parseCommit(ObjectId.fromString(id));
                 }

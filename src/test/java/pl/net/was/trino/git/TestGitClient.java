@@ -22,10 +22,11 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.util.SystemReader;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.Set;
 
@@ -55,25 +56,22 @@ public class TestGitClient
         }
 
         // ensure the repo dir exists, remove and recreate if necessary
-        File localPath;
+        Path localPath;
         try {
             localPath = GitRecordSet.ensureDir(uri.toString());
         }
         catch (IOException ignored) {
             return;
         }
-        if (localPath.exists()) {
-            deleteRecursively(localPath.toPath(), ALLOW_INSECURE);
+        if (Files.exists(localPath)) {
+            deleteRecursively(localPath, ALLOW_INSECURE);
         }
 
-        Repository repository = FileRepositoryBuilder.create(new File(localPath, ".git"));
+        Repository repository = FileRepositoryBuilder.create(localPath.resolve(".git").toFile());
         repository.create();
 
         // create a new file
-        File myFile = new File(repository.getDirectory().getParent(), "testfile");
-        if (!myFile.createNewFile()) {
-            throw new IOException("Could not create file " + myFile);
-        }
+        Path myFile = Files.createFile(repository.getWorkTree().toPath().resolve("testfile"));
 
         PersonIdent author = new PersonIdent("test", "test@invalid.com", Instant.ofEpochSecond(1580897313L), UTC);
         // commit the new file
@@ -85,12 +83,8 @@ public class TestGitClient
                 .setCommitter(author)
                 .call();
 
-        try (PrintWriter writer = new PrintWriter(myFile)) {
-            writer.append("Hello, world!");
-        }
-        if (!myFile.setLastModified(1580897600000L)) {
-            throw new IOException("Could not set last modified on file " + myFile);
-        }
+        Files.writeString(myFile, "Hello, world!");
+        Files.setLastModifiedTime(myFile, FileTime.fromMillis(1580897600000L));
 
         // Stage all changed files, omitting new files, and commit with one command
         git.commit()
