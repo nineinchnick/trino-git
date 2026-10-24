@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 public class GitRecordSet
@@ -68,9 +69,7 @@ public class GitRecordSet
                 "tags", (columnHandles, repo, _) -> new TagsRecordCursor(columnHandles, repo),
                 "trees", TreesRecordCursor::new);
         RecordCursorProvider recordCursorProvider = map.get(tableName);
-        if (recordCursorProvider == null) {
-            return null;
-        }
+        checkArgument(recordCursorProvider != null, "Unknown table: %s", tableName);
         return recordCursorProvider.create(columnHandles, repo, commitIds);
     }
 }

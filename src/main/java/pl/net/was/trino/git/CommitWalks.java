@@ -14,6 +14,8 @@
 package pl.net.was.trino.git;
 
 import io.trino.spi.TrinoException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -55,9 +57,12 @@ final class CommitWalks
                 // annotated tags are peeled to the commit they point to, which has a different id
                 return commit.getId().getName().equals(id) ? commit : null;
             }
-            catch (IOException ignored) {
-                // ignore invalid commits
+            catch (MissingObjectException | IncorrectObjectTypeException _) {
+                // ids from filters don't have to exist or point to commits, they just don't match any rows
                 return null;
+            }
+            catch (IOException e) {
+                throw new TrinoException(GIT_READ_ERROR, "Failed to read commit " + id, e);
             }
         }).filter(Objects::nonNull).iterator();
     }
