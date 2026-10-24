@@ -14,24 +14,59 @@
 package pl.net.was.trino.git;
 
 import io.airlift.configuration.Config;
+import io.airlift.configuration.ConfigDescription;
+import io.airlift.configuration.ConfigSecuritySensitive;
+import io.airlift.configuration.LegacyConfig;
 import jakarta.validation.constraints.NotNull;
 
 import java.net.URI;
+import java.util.Optional;
 
 public class GitConfig
 {
-    private URI uri;
+    private URI url;
+    private String username;
+    private String password;
 
     @NotNull
-    public URI getUri()
+    public URI getUrl()
     {
-        return uri;
+        return url;
     }
 
-    @Config("metadata-uri")
-    public GitConfig setUri(URI uri)
+    @Config("git.url")
+    @LegacyConfig("metadata-uri")
+    @ConfigDescription("URL of the git repository")
+    public GitConfig setUrl(URI url)
     {
-        this.uri = uri;
+        this.url = url;
+        return this;
+    }
+
+    public Optional<String> getUsername()
+    {
+        return Optional.ofNullable(username);
+    }
+
+    @Config("git.username")
+    @ConfigDescription("Username used to authenticate to the git repository")
+    public GitConfig setUsername(String username)
+    {
+        this.username = username;
+        return this;
+    }
+
+    public Optional<String> getPassword()
+    {
+        return Optional.ofNullable(password);
+    }
+
+    @Config("git.password")
+    @ConfigSecuritySensitive
+    @ConfigDescription("Password or access token used to authenticate to the git repository")
+    public GitConfig setPassword(String password)
+    {
+        this.password = password;
         return this;
     }
 }
