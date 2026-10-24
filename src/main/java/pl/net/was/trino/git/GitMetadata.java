@@ -37,9 +37,6 @@ import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.TableNotFoundException;
 import io.trino.spi.predicate.Domain;
 import io.trino.spi.predicate.TupleDomain;
-import io.trino.spi.statistics.ColumnStatistics;
-import io.trino.spi.statistics.Estimate;
-import io.trino.spi.statistics.TableStatistics;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -211,35 +208,6 @@ public class GitMetadata
     public Optional<ConnectorViewDefinition> getView(ConnectorSession session, SchemaTableName viewName)
     {
         return Optional.ofNullable(gitClient.getView(catalogName.toString(), viewName.getSchemaName(), viewName.getTableName()));
-    }
-
-    @Override
-    public TableStatistics getTableStatistics(ConnectorSession session, ConnectorTableHandle tableHandle)
-    {
-        GitTableHandle gitTableHandle = (GitTableHandle) tableHandle;
-        String tableName = gitTableHandle.tableName();
-
-        Map<String, ColumnHandle> columns = getColumnHandles(session, tableHandle);
-        TableStatistics.Builder builder = TableStatistics.builder();
-        switch (tableName) {
-            case "commits" -> {
-                builder.setRowCount(Estimate.of(1));
-                builder.setColumnStatistics(columns.get("object_id"), ColumnStatistics.builder()
-                        .setNullsFraction(Estimate.zero())
-                        .setDistinctValuesCount(Estimate.of(1))
-                        .setDataSize(Estimate.of(1000))
-                        .build());
-            }
-            case "trees" -> {
-                builder.setRowCount(Estimate.of(1000000));
-                builder.setColumnStatistics(columns.get("commit_id"), ColumnStatistics.builder()
-                        .setNullsFraction(Estimate.zero())
-                        .setDistinctValuesCount(Estimate.of(1000000))
-                        .setDataSize(Estimate.of(1000000000))
-                        .build());
-            }
-        }
-        return builder.build();
     }
 
     @Override
