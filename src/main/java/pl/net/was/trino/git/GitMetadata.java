@@ -202,7 +202,7 @@ public class GitMetadata
 
         ImmutableList.Builder<SchemaTableName> builder = ImmutableList.builder();
         for (String schemaName : schemaNames) {
-            for (String tableName : gitClient.viewColumns.keySet()) {
+            for (String tableName : gitClient.getViewNames()) {
                 builder.add(new SchemaTableName(schemaName, tableName));
             }
         }
@@ -219,7 +219,7 @@ public class GitMetadata
     public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
     {
         GitTableHandle handle = (GitTableHandle) table;
-        Optional<String> commitIdColumn = GitClient.Table.valueOf(handle.tableName()).getCommitIdColumn();
+        Optional<String> commitIdColumn = GitClient.Table.fromName(handle.tableName()).getCommitIdColumn();
         if (commitIdColumn.isEmpty()) {
             return Optional.empty();
         }
