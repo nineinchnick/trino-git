@@ -13,9 +13,11 @@
  */
 package pl.net.was.trino.git;
 
+import io.trino.spi.block.Block;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.connector.RecordSet;
 import io.trino.spi.predicate.TupleDomain;
+import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
 import io.trino.spi.type.VarbinaryType;
@@ -29,7 +31,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
+import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,6 +96,29 @@ public class TestGitRecordSet
             assertThat(data).isEqualTo(Map.of(
                     "080dfdf0aac7d302dc31d57f62942bb6533944f7", List.of("test", 6475355394048000L),
                     "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of("test", 6475355394048000L)));
+        }
+    }
+
+    @Test
+    public void testCommitsParents()
+    {
+        GitSplit split = new GitSplit("commits", Optional.empty());
+        GitTableHandle table = new GitTableHandle("default", "commits", TupleDomain.all());
+        ArrayType parentsType = new ArrayType(VARCHAR);
+        RecordSet recordSet = createRecordSet(split, table, List.of(
+                new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
+                new GitColumnHandle("parents", parentsType, 1)));
+        try (RecordCursor cursor = recordSet.cursor()) {
+            Map<String, List<String>> data = new LinkedHashMap<>();
+            while (cursor.advanceNextPosition()) {
+                Block parents = (Block) cursor.getObject(1);
+                data.put(cursor.getSlice(0).toStringUtf8(), IntStream.range(0, parents.getPositionCount())
+                        .mapToObj(position -> VARCHAR.getSlice(parents, position).toStringUtf8())
+                        .toList());
+            }
+            assertThat(data).isEqualTo(Map.of(
+                    "080dfdf0aac7d302dc31d57f62942bb6533944f7", List.of(),
+                    "c3b14e59f88d0d6597b98ee93cf61e7556d540a4", List.of("080dfdf0aac7d302dc31d57f62942bb6533944f7")));
         }
     }
 

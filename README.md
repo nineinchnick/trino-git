@@ -172,7 +172,6 @@ The connector also provides two views:
 
 # Known issues
 
-* Selecting `commits.parents` fails, so the `commit_stats` view fails too.
 * The `idents` view does not parse. See [#261](https://github.com/nineinchnick/trino-git/issues/261).
 * `diff_stats` compares every commit with the next commit it reads, not with its parent, so it has wrong results for repositories with more than one branch. See [#258](https://github.com/nineinchnick/trino-git/issues/258).
 * Local branches are not updated after the first clone. See [#263](https://github.com/nineinchnick/trino-git/issues/263).
