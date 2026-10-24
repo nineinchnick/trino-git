@@ -25,6 +25,7 @@ import io.trino.spi.type.VarbinaryType;
 import io.trino.spi.type.VarcharType;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,7 +173,7 @@ public class GitClient
             query = Resources.toString(Resources.getResource(getClass(), "/sql/%s.sql".formatted(viewName)), UTF_8);
         }
         catch (IOException e) {
-            return null;
+            throw new UncheckedIOException(e);
         }
         return new ConnectorViewDefinition(
                 query,

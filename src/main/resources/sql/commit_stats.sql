@@ -8,14 +8,14 @@ SELECT
     c.parents,
     c.tree_id,
     c.commit_time,
-    sum(s.added_lines) AS added_lines,
-    sum(s.deleted_lines) AS deleted_lines,
+    coalesce(sum(s.added_lines), 0) AS added_lines,
+    coalesce(sum(s.deleted_lines), 0) AS deleted_lines,
     count(s.commit_id) AS changed_files,
-    avg(s.similarity_score) AS similarity_score,
-    array_agg(s.change_type) AS change_types
+    avg(s.similarity_score) FILTER (WHERE s.change_type IN ('Rename', 'Copy')) AS similarity_score,
+    coalesce(array_agg(s.change_type) FILTER (WHERE s.change_type IS NOT NULL), CAST(ARRAY[] AS array(varchar))) AS change_types
 FROM
     commits c
-JOIN diff_stats s ON
+LEFT JOIN diff_stats s ON
     s.commit_id = c.object_id
 GROUP BY
     c.object_id,
