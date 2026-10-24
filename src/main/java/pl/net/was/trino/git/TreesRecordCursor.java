@@ -44,6 +44,7 @@ public class TreesRecordCursor
     private final Map<Integer, Function<TreesRecordCursor, String>> strFieldGetters = new HashMap<>();
 
     private final Iterator<RevCommit> commits;
+    private final RevWalk revWalk;
     private final TreeWalk treeWalk;
     private RevCommit commit;
 
@@ -83,7 +84,7 @@ public class TreesRecordCursor
             }
         }
 
-        RevWalk revWalk = new RevWalk(repo.getRepository());
+        revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(repo.getRepository(), revWalk, commitIds);
         // subtrees are entered explicitly, to return directories before their contents
         treeWalk = new TreeWalk(repo.getRepository());
@@ -173,7 +174,11 @@ public class TreesRecordCursor
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        treeWalk.close();
+        revWalk.close();
+    }
 
     private String getCommitId()
     {

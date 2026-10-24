@@ -18,6 +18,8 @@ import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
 import io.airlift.configuration.ConfigSecuritySensitive;
 import io.airlift.configuration.LegacyConfig;
+import io.airlift.units.Duration;
+import io.airlift.units.MinDuration;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
@@ -30,6 +32,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class GitConfig
 {
@@ -42,6 +45,8 @@ public class GitConfig
     private String username;
     private String password;
     private File cacheDirectory = Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile();
+    private Duration fetchInterval = new Duration(1, MINUTES);
+    private Duration timeout = new Duration(5, MINUTES);
 
     public URI getUrl()
     {
@@ -149,6 +154,35 @@ public class GitConfig
     public GitConfig setCacheDirectory(File cacheDirectory)
     {
         this.cacheDirectory = cacheDirectory;
+        return this;
+    }
+
+    @NotNull
+    public Duration getFetchInterval()
+    {
+        return fetchInterval;
+    }
+
+    @Config("git.fetch-interval")
+    @ConfigDescription("Minimum time between fetching new commits from a repository, on every node")
+    public GitConfig setFetchInterval(Duration fetchInterval)
+    {
+        this.fetchInterval = fetchInterval;
+        return this;
+    }
+
+    @NotNull
+    @MinDuration("1s")
+    public Duration getTimeout()
+    {
+        return timeout;
+    }
+
+    @Config("git.timeout")
+    @ConfigDescription("Timeout for network operations when cloning or fetching a repository")
+    public GitConfig setTimeout(Duration timeout)
+    {
+        this.timeout = timeout;
         return this;
     }
 

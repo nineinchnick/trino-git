@@ -56,7 +56,7 @@ public class GitSplitManager
         Optional<List<String>> commitIds = GitClient.Table.fromName(table.tableName()).getCommitIdColumn()
                 .flatMap(commitIdColumn -> getCommitIds(constraint, commitIdColumn));
 
-        List<GitSplit> splits = List.of(new GitSplit(table.tableName(), commitIds));
+        List<GitSplit> splits = List.of(new GitSplit(table.schemaName(), table.tableName(), commitIds));
 
         return new FixedSplitSource(splits);
     }

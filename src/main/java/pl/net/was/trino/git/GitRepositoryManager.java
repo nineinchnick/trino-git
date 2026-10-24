@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Hashing;
 import com.google.inject.Inject;
 import io.trino.spi.TrinoException;
+import jakarta.annotation.PreDestroy;
 import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -61,11 +62,14 @@ import static com.google.common.base.Throwables.getCausalChain;
 import static com.google.common.base.Throwables.getRootCause;
 import static com.google.common.io.MoreFiles.deleteRecursively;
 import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
+import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.UUID.randomUUID;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_FETCH_SECTION;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_KEY_AUTOGC;
 import static org.eclipse.jgit.lib.Constants.HEAD;
@@ -97,6 +101,9 @@ public class GitRepositoryManager
     private final Map<String, URI> repositories;
     private final Optional<CredentialsProvider> credentialsProvider;
     private final Path cacheDirectory;
+    private final long fetchIntervalNanos;
+    private final int timeoutSeconds;
+    private final ConcurrentMap<String, OpenRepository> openRepositories = new ConcurrentHashMap<>();
 
     @Inject
     public GitRepositoryManager(GitConfig config)
@@ -105,12 +112,29 @@ public class GitRepositoryManager
         this.cacheDirectory = config.getCacheDirectory().toPath();
         this.credentialsProvider = config.getUsername()
                 .map(username -> new UsernamePasswordCredentialsProvider(username, config.getPassword().orElse("")));
+        this.fetchIntervalNanos = config.getFetchInterval().roundTo(NANOSECONDS);
+        this.timeoutSeconds = toIntExact(config.getTimeout().roundTo(SECONDS));
     }
 
+    @PreDestroy
+    public void close()
+    {
+        openRepositories.values().forEach(openRepository -> openRepository.repository().close());
+        openRepositories.clear();
+    }
+
+    /**
+     * Returns the repository, cloning it first if necessary, and fetching new commits if the last fetch was more
+     * than git.fetch-interval ago. The repository is shared, so closing the returned object doesn't close it.
+     */
     public Git getRepository(String schemaName)
     {
         URI url = repositories.get(schemaName);
         checkArgument(url != null, "Unknown repository: %s", schemaName);
+        OpenRepository cached = openRepositories.get(schemaName);
+        if (cached != null && System.nanoTime() - cached.fetchedNanos() < fetchIntervalNanos) {
+            return Git.wrap(cached.repository());
+        }
         Path localPath;
         try {
             localPath = getLocalPath(cacheDirectory, url);
@@ -123,7 +147,20 @@ public class GitRepositoryManager
         lock.lock();
         try (FileChannel channel = FileChannel.open(localPath.resolveSibling(localPath.getFileName() + ".lock"), CREATE, WRITE);
                 FileLock _ = channel.lock()) {
-            return openOrClone(localPath, url);
+            OpenRepository openRepository = openRepositories.get(schemaName);
+            long fetchedNanos = System.nanoTime();
+            if (openRepository != null) {
+                // another thread could have fetched it while this one was waiting for the lock
+                if (fetchedNanos - openRepository.fetchedNanos() >= fetchIntervalNanos) {
+                    fetchExisting(Git.wrap(openRepository.repository()), url);
+                    openRepository = new OpenRepository(openRepository.repository(), fetchedNanos);
+                }
+            }
+            else {
+                openRepository = new OpenRepository(openOrClone(localPath, url).getRepository(), fetchedNanos);
+            }
+            openRepositories.put(schemaName, openRepository);
+            return Git.wrap(openRepository.repository());
         }
         catch (IOException e) {
             throw new TrinoException(GIT_OPEN_ERROR, "Failed to lock the repository", e);
@@ -141,14 +178,10 @@ public class GitRepositoryManager
             if (existing.isPresent()) {
                 Git repo = existing.orElseThrow();
                 try {
-                    fetch(repo);
-                }
-                catch (GitAPIException e) {
-                    repo.close();
-                    throw repositoryError(url, GIT_FETCH_ERROR, "fetch", e);
+                    fetchExisting(repo, url);
                 }
                 catch (RuntimeException e) {
-                    repo.close();
+                    repo.getRepository().close();
                     throw e;
                 }
                 return repo;
@@ -211,6 +244,16 @@ public class GitRepositoryManager
                 && AUTHENTICATION_ERRORS.stream().anyMatch(message::contains);
     }
 
+    private void fetchExisting(Git repo, URI url)
+    {
+        try {
+            fetch(repo);
+        }
+        catch (GitAPIException e) {
+            throw repositoryError(url, GIT_FETCH_ERROR, "fetch", e);
+        }
+    }
+
     private Optional<Git> openExisting(Path localPath, URI url)
     {
         Repository repository;
@@ -234,6 +277,7 @@ public class GitRepositoryManager
             throws GitAPIException
     {
         FetchCommand fetch = repo.fetch()
+                .setTimeout(timeoutSeconds)
                 .setRemote(REMOTE)
                 .setRefSpecs(REF_SPECS)
                 .setTagOpt(TagOpt.NO_TAGS)
@@ -299,4 +343,6 @@ public class GitRepositoryManager
             throw new IOException("Cache directory %s must be accessible only by its owner".formatted(cacheDirectory));
         }
     }
+
+    private record OpenRepository(Repository repository, long fetchedNanos) {}
 }

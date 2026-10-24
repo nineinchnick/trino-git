@@ -15,7 +15,9 @@ package pl.net.was.trino.git;
 
 import com.google.common.collect.Streams;
 import com.sun.net.httpserver.HttpServer;
+import io.airlift.units.Duration;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -37,6 +39,8 @@ import static com.google.common.io.MoreFiles.deleteRecursively;
 import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static io.trino.testing.assertions.TrinoExceptionAssert.assertTrinoExceptionThrownBy;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.jgit.lib.Constants.HEAD;
 import static pl.net.was.trino.git.GitErrorCode.GIT_AUTHENTICATION_ERROR;
@@ -63,6 +67,7 @@ public class TestGitRepositoryManager
         URI url = source.toUri();
         GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig()
                 .setUrl(url)
+                .setFetchInterval(new Duration(0, SECONDS))
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         repositoryManager.getRepository("default").close();
 
@@ -207,7 +212,7 @@ public class TestGitRepositoryManager
     {
         URI url = TestGitClient.setupRepo(URI.create("following-source.invalid"));
         deleteClone(url);
-        GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(url));
+        GitRepositoryManager repositoryManager = new GitRepositoryManager(new GitConfig().setUrl(url).setFetchInterval(new Duration(0, SECONDS)));
         repositoryManager.getRepository("default").close();
 
         try (Git source = Git.open(Path.of(url).toFile())) {
@@ -228,6 +233,32 @@ public class TestGitRepositoryManager
                 assertThat(repo.getRepository().exactRef("refs/heads/feature")).isNull();
                 assertThat(repo.getRepository().exactRef(HEAD).getTarget().getName()).isEqualTo("refs/heads/master");
             }
+        }
+    }
+
+    @Test
+    public void testFetchInterval(@TempDir Path tempDir)
+            throws Exception
+    {
+        Path source = tempDir.resolve("source");
+        try (Git git = Git.init().setDirectory(source.toFile()).setInitialBranch("main").call()) {
+            RevCommit first = git.commit().setMessage("first").setAllowEmpty(true).setSign(false).call();
+            GitConfig config = new GitConfig()
+                    .setUrl(source.toUri())
+                    .setCacheDirectory(tempDir.resolve("cache").toFile());
+            GitRepositoryManager cachingManager = new GitRepositoryManager(config.setFetchInterval(new Duration(1, HOURS)));
+            Repository repository = cachingManager.getRepository("default").getRepository();
+            assertThat(repository.resolve("refs/heads/main")).isEqualTo(first);
+
+            RevCommit second = git.commit().setMessage("second").setAllowEmpty(true).setSign(false).call();
+            // the open repository is reused, and not fetched again
+            assertThat(cachingManager.getRepository("default").getRepository()).isSameAs(repository);
+            assertThat(repository.resolve("refs/heads/main")).isEqualTo(first);
+
+            GitRepositoryManager fetchingManager = new GitRepositoryManager(config.setFetchInterval(new Duration(0, SECONDS)));
+            assertThat(fetchingManager.getRepository("default").getRepository().resolve("refs/heads/main")).isEqualTo(second);
+            cachingManager.close();
+            fetchingManager.close();
         }
     }
 

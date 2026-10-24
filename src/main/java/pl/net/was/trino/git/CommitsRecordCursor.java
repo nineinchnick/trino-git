@@ -39,6 +39,7 @@ import static pl.net.was.trino.git.CommitWalks.walkCommits;
 public class CommitsRecordCursor
         implements RecordCursor
 {
+    private final RevWalk revWalk;
     private final List<GitColumnHandle> columnHandles;
     private final Map<Integer, Function<RevCommit, Long>> longFieldGetters = new HashMap<>();
     private final Map<Integer, Function<RevCommit, String>> strFieldGetters = new HashMap<>();
@@ -86,7 +87,7 @@ public class CommitsRecordCursor
             objFieldGetters.put(nameToIndex.get("parents"), CommitsRecordCursor::getParents);
         }
 
-        RevWalk revWalk = new RevWalk(repo.getRepository());
+        revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(repo.getRepository(), revWalk, commitIds);
     }
 
@@ -176,5 +177,8 @@ public class CommitsRecordCursor
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        revWalk.close();
+    }
 }

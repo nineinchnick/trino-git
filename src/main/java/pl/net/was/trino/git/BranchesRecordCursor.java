@@ -179,5 +179,8 @@ public class BranchesRecordCursor
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        walk.close();
+    }
 }

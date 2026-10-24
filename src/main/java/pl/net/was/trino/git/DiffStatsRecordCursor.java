@@ -212,7 +212,12 @@ public class DiffStatsRecordCursor
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        formatter.close();
+        reader.close();
+        revWalk.close();
+    }
 
     private static String getChangeType(DiffEntry.ChangeType changeType)
     {
