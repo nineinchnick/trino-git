@@ -13,6 +13,7 @@
  */
 package pl.net.was.trino.git;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ConnectorSplit;
@@ -25,21 +26,32 @@ import static io.airlift.slice.SizeOf.instanceSize;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
-public record GitSplit(String tableName, Optional<List<String>> commitIds)
+public record GitSplit(String schemaName, String tableName, Optional<List<String>> commitIds)
         implements ConnectorSplit
 {
     private static final int INSTANCE_SIZE = instanceSize(GitSplit.class);
 
     public GitSplit
     {
+        requireNonNull(schemaName, "schemaName is null");
         requireNonNull(tableName, "tableName is null");
         commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
+    }
+
+    // only used by the scheduler on the coordinator
+    @JsonIgnore
+    @Override
+    public Optional<String> getAffinityKey()
+    {
+        // every worker reading a repository needs its own clone, so read it on as few workers as possible
+        return Optional.of(schemaName);
     }
 
     @Override
     public long getRetainedSizeInBytes()
     {
         return INSTANCE_SIZE
+                + estimatedSizeOf(schemaName)
                 + estimatedSizeOf(tableName)
                 + sizeOf(commitIds, ids -> estimatedSizeOf(ids, SizeOf::estimatedSizeOf));
     }

@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableMap;
+import io.airlift.units.Duration;
 import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +29,8 @@ import static io.airlift.configuration.testing.ConfigAssertions.assertRecordedDe
 import static io.airlift.configuration.testing.ConfigAssertions.recordDefaults;
 import static io.airlift.testing.ValidationAssertions.assertFailsValidation;
 import static io.airlift.testing.ValidationAssertions.assertValidates;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
@@ -42,7 +45,9 @@ public class TestGitConfig
                 .setRepositories(List.of())
                 .setUsername(null)
                 .setPassword(null)
-                .setCacheDirectory(Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile()));
+                .setCacheDirectory(Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile())
+                .setFetchInterval(new Duration(1, MINUTES))
+                .setTimeout(new Duration(5, MINUTES)));
     }
 
     @Test
@@ -54,6 +59,8 @@ public class TestGitConfig
                 .put("git.username", "user")
                 .put("git.password", "secret")
                 .put("git.cache-directory", "/var/cache/trino-git")
+                .put("git.fetch-interval", "10m")
+                .put("git.timeout", "30s")
                 .buildOrThrow();
 
         GitConfig expected = new GitConfig()
@@ -61,7 +68,9 @@ public class TestGitConfig
                 .setRepositories(List.of("trino=https://github.com/trinodb/trino.git", "airlift=https://github.com/airlift/airlift.git?a=b"))
                 .setUsername("user")
                 .setPassword("secret")
-                .setCacheDirectory(Path.of("/var/cache/trino-git").toFile());
+                .setCacheDirectory(Path.of("/var/cache/trino-git").toFile())
+                .setFetchInterval(new Duration(10, MINUTES))
+                .setTimeout(new Duration(30, SECONDS));
 
         assertFullMapping(properties, expected);
     }

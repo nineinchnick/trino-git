@@ -193,7 +193,8 @@ final class TestGitConnectorQueries
         try (TestingGitRepository upstream = new TestingGitRepository()) {
             getQueryRunner().createCatalog("git_upstream", "git", ImmutableMap.of(
                     "git.url", upstream.getUri().toString(),
-                    "git.cache-directory", cacheDirectory.toString()));
+                    "git.cache-directory", cacheDirectory.toString(),
+                    "git.fetch-interval", "0s"));
             assertThat(query("SELECT count(*) FROM git_upstream.default.branches WHERE name LIKE '%/feature'"))
                     .matches("VALUES BIGINT '1'");
 

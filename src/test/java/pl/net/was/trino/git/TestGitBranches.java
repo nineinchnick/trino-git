@@ -75,7 +75,7 @@ public class TestGitBranches
                 .setUrl(source.toUri())
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("branches", Optional.empty()),
+                new GitSplit("default", "branches", Optional.empty()),
                 new GitTableHandle("default", "branches", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", VARCHAR, 0),

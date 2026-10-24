@@ -99,7 +99,7 @@ public class TestGitDiffStats
     private List<List<Object>> read(Optional<List<String>> commitIds)
     {
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("diff_stats", commitIds),
+                new GitSplit("default", "diff_stats", commitIds),
                 new GitTableHandle("default", "diff_stats", TupleDomain.all()),
                 COLUMNS,
                 repositoryManager.getRepository("default"));

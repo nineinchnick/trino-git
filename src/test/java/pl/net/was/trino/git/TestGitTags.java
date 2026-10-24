@@ -66,7 +66,7 @@ public class TestGitTags
                 .setUrl(source.toUri())
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("tags", Optional.empty()),
+                new GitSplit("default", "tags", Optional.empty()),
                 new GitTableHandle("default", "tags", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", VARCHAR, 0),
