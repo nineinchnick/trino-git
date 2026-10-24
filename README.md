@@ -168,6 +168,9 @@ The connector also provides two views:
 
 * One catalog reads one repository. To query more repositories, create a catalog for each one. See [#273](https://github.com/nineinchnick/trino-git/issues/273).
 * Every worker clones the repository into `git.cache-directory`, and keeps it there.
+* When joining `trees` with `commits`, put `commits` on the right side of the join, like
+  `trees t JOIN commits c ON t.commit_id = c.object_id`. The connector doesn't provide table statistics, so Trino doesn't
+  reorder such joins, and only this order lets Trino read the trees of the matching commits instead of all of them.
 * Every table scan fetches from the remote repository. See [#264](https://github.com/nineinchnick/trino-git/issues/264).
 
 # Known issues
