@@ -26,10 +26,11 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,7 +63,7 @@ public class GitRecordSet
             splitCommits = table.getCommitIds();
         }
         else if (table.getCommitIds().isPresent()) {
-            splitCommits.get().addAll(table.getCommitIds().get());
+            splitCommits.orElseThrow().addAll(table.getCommitIds().orElseThrow());
         }
         this.commitIds = splitCommits;
 
@@ -95,17 +96,17 @@ public class GitRecordSet
     private Git getRepo(URI uri)
     {
         String url = uri.toString();
-        File localPath;
+        Path localPath;
         try {
             localPath = ensureDir(url);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        if (!localPath.exists()) {
+        if (!Files.exists(localPath)) {
             CloneCommand repo = Git.cloneRepository()
                     .setURI(url)
-                    .setDirectory(localPath);
+                    .setDirectory(localPath.toFile());
             if (uri.getUserInfo() != null && !uri.getUserInfo().isEmpty()) {
                 String[] parts = uri.getUserInfo().split(":", 2);
                 UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
@@ -121,7 +122,7 @@ public class GitRecordSet
         Repository fileRepo;
         try {
             fileRepo = new FileRepositoryBuilder()
-                    .setGitDir(new File(localPath, ".git"))
+                    .setGitDir(localPath.resolve(".git").toFile())
                     .build();
         }
         catch (IOException e) {
@@ -140,7 +141,7 @@ public class GitRecordSet
         return repo;
     }
 
-    public static File ensureDir(String prefix)
+    public static Path ensureDir(String prefix)
             throws IOException
     {
         String tmpDirStr = System.getProperty("java.io.tmpdir");
@@ -149,14 +150,7 @@ public class GitRecordSet
                     "System property 'java.io.tmpdir' does not specify a tmp dir");
         }
 
-        File tmpDir = new File(tmpDirStr);
-        if (!tmpDir.exists()) {
-            boolean created = tmpDir.mkdirs();
-            if (!created) {
-                throw new IOException("Unable to create tmp dir " + tmpDir);
-            }
-        }
-
-        return new File(tmpDir, Hashing.sha256().hashString(prefix, UTF_8).toString());
+        Path tmpDir = Files.createDirectories(Path.of(tmpDirStr));
+        return tmpDir.resolve(Hashing.sha256().hashString(prefix, UTF_8).toString());
     }
 }

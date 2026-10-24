@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
@@ -161,7 +160,7 @@ public class GitClient
         }
         String query;
         try {
-            query = Resources.toString(Resources.getResource(getClass(), format("/sql/%s.sql", viewName)), UTF_8);
+            query = Resources.toString(Resources.getResource(getClass(), "/sql/%s.sql".formatted(viewName)), UTF_8);
         }
         catch (IOException e) {
             return null;

@@ -121,8 +121,8 @@ public class GitMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> optionalSchemaName)
     {
-        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.get())) {
-            throw new SchemaNotFoundException(optionalSchemaName.get());
+        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.orElseThrow())) {
+            throw new SchemaNotFoundException(optionalSchemaName.orElseThrow());
         }
         Set<String> schemaNames = optionalSchemaName.map(Set::of)
                 .orElseGet(() -> Set.copyOf(gitClient.getSchemaNames()));
@@ -206,8 +206,8 @@ public class GitMetadata
     @Override
     public List<SchemaTableName> listViews(ConnectorSession session, Optional<String> optionalSchemaName)
     {
-        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.get())) {
-            throw new SchemaNotFoundException(optionalSchemaName.get());
+        if (optionalSchemaName.isPresent() && !gitClient.getSchemaNames().contains(optionalSchemaName.orElseThrow())) {
+            throw new SchemaNotFoundException(optionalSchemaName.orElseThrow());
         }
         Set<String> schemaNames = optionalSchemaName.map(Set::of)
                 .orElseGet(() -> Set.copyOf(gitClient.getSchemaNames()));
@@ -282,14 +282,14 @@ public class GitMetadata
 
         if ((oldCommits.isEmpty() && commitIds.isEmpty()) ||
                 (oldCommits.isPresent() && commitIds.isPresent() &&
-                        oldCommits.get().size() == commitIds.get().size() && oldCommits.get().containsAll(commitIds.get()))) {
+                        oldCommits.orElseThrow().size() == commitIds.orElseThrow().size() && oldCommits.orElseThrow().containsAll(commitIds.orElseThrow()))) {
             return Optional.empty();
         }
         if (oldCommits.isEmpty()) {
             oldCommits = commitIds;
         }
         else if (commitIds.isPresent()) {
-            oldCommits.get().addAll(commitIds.get());
+            oldCommits.orElseThrow().addAll(commitIds.orElseThrow());
         }
 
         return Optional.of(new ConstraintApplicationResult<>(
@@ -309,7 +309,7 @@ public class GitMetadata
             return Optional.empty();
         }
 
-        for (Map.Entry<ColumnHandle, Domain> entry : constraintSummary.getDomains().get().entrySet()) {
+        for (Map.Entry<ColumnHandle, Domain> entry : constraintSummary.getDomains().orElseThrow().entrySet()) {
             System.out.println(entry.getKey() + "/" + entry.getValue());
             GitColumnHandle column = ((GitColumnHandle) entry.getKey());
             // TODO this is ambiguous and should be passed as a param, since every call to getCommitIds has a table handle in scope
