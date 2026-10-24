@@ -15,6 +15,7 @@ package pl.net.was.trino.git;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 import org.eclipse.jgit.api.Git;
@@ -26,10 +27,11 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefDatabase;
-import org.eclipse.jgit.patch.FileHeader;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.util.io.NullOutputStream;
 
 import java.io.IOException;
@@ -43,21 +45,24 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
 public class DiffStatsRecordCursor
         implements RecordCursor
 {
     private final List<GitColumnHandle> columnHandles;
+    private final int oldCommitIdField;
     private final Map<Integer, Function<DiffStatsRecordCursor, Integer>> intFieldGetters = new HashMap<>();
     private final Map<Integer, Function<DiffStatsRecordCursor, String>> strFieldGetters = new HashMap<>();
 
+    private final RevWalk revWalk;
     private final ObjectReader reader;
     private final DiffFormatter formatter;
     private final Iterator<RevCommit> commits;
     private Iterator<DiffEntry> entries;
 
-    private RevCommit nextCommit;
     private RevCommit currentCommit;
+    private Optional<RevCommit> parentCommit;
     private DiffEntry entry;
     private EditList edits;
 
@@ -76,6 +81,7 @@ public class DiffStatsRecordCursor
         for (int i = 0; i < columnHandles.size(); i++) {
             nameToIndex.put(columnHandles.get(i).columnName(), i);
         }
+        oldCommitIdField = nameToIndex.getOrDefault("old_commit_id", -1);
 
         Map<String, Function<DiffStatsRecordCursor, Integer>> intGetters = Map.of(
                 "similarity_score", c -> c.entry.getScore(),
@@ -105,7 +111,7 @@ public class DiffStatsRecordCursor
         }
 
         RefDatabase refDb = repo.getRepository().getRefDatabase();
-        RevWalk revWalk = new RevWalk(repo.getRepository());
+        revWalk = new RevWalk(repo.getRepository());
 
         if (commitIds.isEmpty()) {
             try {
@@ -165,46 +171,35 @@ public class DiffStatsRecordCursor
             return false;
         }
 
-        if (entries == null || !entries.hasNext()) {
-            if (!commits.hasNext()) {
-                return false;
-            }
-
-            currentCommit = nextCommit;
-            nextCommit = commits.next();
-
-            if (currentCommit == null) {
-                return advanceNextPosition();
-            }
-
-            try {
-                CanonicalTreeParser oldTreeParser = new CanonicalTreeParser();
-                oldTreeParser.reset(reader, currentCommit.getTree().getId());
-                CanonicalTreeParser newTreeParser = new CanonicalTreeParser();
-                newTreeParser.reset(reader, nextCommit.getTree().getId());
-
-                // args are reversed since commits are being iterated from latest to oldest
-                entries = formatter.scan(newTreeParser, oldTreeParser).iterator();
-                if (!entries.hasNext()) {
-                    return advanceNextPosition();
-                }
-            }
-            catch (IOException ignored) {
-                return false;
-            }
-        }
-
-        entry = entries.next();
-
         try {
-            FileHeader header = formatter.toFileHeader(entry);
-            edits = header.toEditList();
-        }
-        catch (IOException ignored) {
-            edits = new EditList();
-        }
+            while (entries == null || !entries.hasNext()) {
+                if (!commits.hasNext()) {
+                    return false;
+                }
+                currentCommit = commits.next();
+                // like `git log -p --first-parent`, merge commits are compared only with the first parent
+                parentCommit = Optional.ofNullable(currentCommit.getParentCount() > 0 ? currentCommit.getParent(0) : null);
+                entries = formatter.scan(getTree(parentCommit), getTree(Optional.of(currentCommit))).iterator();
+            }
 
+            entry = entries.next();
+            edits = formatter.toFileHeader(entry).toEditList();
+        }
+        catch (IOException e) {
+            throw new TrinoException(GIT_READ_ERROR, "Failed to compare commit %s with its parent".formatted(currentCommit.getName()), e);
+        }
         return true;
+    }
+
+    private AbstractTreeIterator getTree(Optional<RevCommit> commit)
+            throws IOException
+    {
+        if (commit.isEmpty()) {
+            return new EmptyTreeIterator();
+        }
+        // parents are not parsed when walking commits
+        revWalk.parseHeaders(commit.orElseThrow());
+        return new CanonicalTreeParser(null, reader, commit.orElseThrow().getTree());
     }
 
     @Override
@@ -242,7 +237,7 @@ public class DiffStatsRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return false;
+        return field == oldCommitIdField && parentCommit.isEmpty();
     }
 
     @Override
@@ -264,7 +259,7 @@ public class DiffStatsRecordCursor
 
     private String getOldCommitId()
     {
-        return nextCommit.getName();
+        return parentCommit.orElseThrow().getName();
     }
 
     private String getObjectId()

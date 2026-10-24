@@ -25,6 +25,7 @@ public enum GitErrorCode
     GIT_CLONE_ERROR(0, EXTERNAL),
     GIT_FETCH_ERROR(1, EXTERNAL),
     GIT_OPEN_ERROR(2, EXTERNAL),
+    GIT_READ_ERROR(3, EXTERNAL),
     /**/;
 
     private final ErrorCode errorCode;
