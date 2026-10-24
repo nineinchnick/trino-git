@@ -304,7 +304,7 @@ VALUES
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
-  ,ARRAY['Add', 'Modify']
+  ,ARRAY['added', 'modified']
   ,'(^|/)license$(?i)'
 )
 ,(
@@ -315,7 +315,7 @@ VALUES
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
-  ,ARRAY['Add']
+  ,ARRAY['added']
   ,'(^|/).gitignore$(?i)'
 )
 ,(
@@ -326,7 +326,7 @@ VALUES
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
-  ,ARRAY['Add']
+  ,ARRAY['added']
   ,'(^|/)(test|docs|doc)/(?i)'
 )
 ,(
@@ -337,7 +337,7 @@ VALUES
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
-  ,ARRAY['Add']
+  ,ARRAY['added']
   ,'(^|/)readme(\..+?)?$(?i)'
 )
 ,(
@@ -348,7 +348,7 @@ VALUES
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
   ,CAST(NULL AS INT)
-  ,ARRAY['Add']
+  ,ARRAY['added']
   ,'(^|/)id_rsa$(?i)'
 )
 ) AS t(id, name, description, changed_from, changed_to, moved_from, moved_to, change_types, path_regex);
@@ -905,8 +905,8 @@ JOIN (
     commit_id,
     change_type,
     path_name,
-    count(*) FILTER (WHERE change_type = 'Rename' AND added_lines = 0 AND deleted_lines = 0) AS renamed,
-    count(*) FILTER (WHERE change_type != 'Rename' OR (added_lines != 0 AND deleted_lines != 0)) AS modified
+    count(*) FILTER (WHERE change_type = 'renamed' AND added_lines = 0 AND deleted_lines = 0) AS renamed,
+    count(*) FILTER (WHERE change_type != 'renamed' OR (added_lines != 0 AND deleted_lines != 0)) AS modified
   FROM diff_stats
   GROUP BY commit_id, change_type, path_name
 ) s ON s.commit_id = c.object_id
@@ -963,7 +963,7 @@ FROM (
     c.author_email,
     array_agg(DISTINCT reverse(split_part(reverse(s.path_name), '.', 1))) AS extensions
   FROM commits c
-  JOIN diff_stats s ON s.commit_id = c.object_id AND s.change_type = 'Add'
+  JOIN diff_stats s ON s.commit_id = c.object_id AND s.change_type = 'added'
   GROUP BY c.commit_time, c.object_id, c.author_email
   UNION
   SELECT

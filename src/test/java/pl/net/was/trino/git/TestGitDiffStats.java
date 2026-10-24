@@ -80,20 +80,20 @@ public class TestGitDiffStats
     public void testComparesCommitsWithFirstParent()
     {
         assertThat(read(Optional.empty())).containsExactlyInAnyOrder(
-                row(root, null, "root.txt", "Add", 1),
-                row(feature, root, "feature.txt", "Add", 1),
-                row(main, root, "main.txt", "Add", 1),
-                row(merge, main, "feature.txt", "Add", 1));
+                row(root, null, "root.txt", "added", 1),
+                row(feature, root, "feature.txt", "added", 1),
+                row(main, root, "main.txt", "added", 1),
+                row(merge, main, "feature.txt", "added", 1));
     }
 
     @Test
     public void testReadsSelectedCommits()
     {
         assertThat(read(Optional.of(List.of(main.getName())))).containsExactly(
-                row(main, root, "main.txt", "Add", 1));
+                row(main, root, "main.txt", "added", 1));
         assertThat(read(Optional.of(List.of(root.getName(), merge.getName())))).containsExactlyInAnyOrder(
-                row(root, null, "root.txt", "Add", 1),
-                row(merge, main, "feature.txt", "Add", 1));
+                row(root, null, "root.txt", "added", 1),
+                row(merge, main, "feature.txt", "added", 1));
     }
 
     private List<List<Object>> read(Optional<List<String>> commitIds)

@@ -48,11 +48,11 @@ public class TreesRecordCursor
     private RevCommit commit;
 
     private final Map<FileMode, String> fileModeNames = Map.of(
-            FileMode.EXECUTABLE_FILE, "Executable File",
-            FileMode.REGULAR_FILE, "Normal File",
-            FileMode.TREE, "Directory",
-            FileMode.SYMLINK, "Symlink",
-            FileMode.GITLINK, "Gitlink");
+            FileMode.REGULAR_FILE, "file",
+            FileMode.EXECUTABLE_FILE, "executable",
+            FileMode.SYMLINK, "symlink",
+            FileMode.GITLINK, "submodule",
+            FileMode.TREE, "directory");
 
     public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, Optional<List<String>> commitIds)
     {
@@ -69,7 +69,8 @@ public class TreesRecordCursor
 
         Map<String, Function<TreesRecordCursor, String>> getters = Map.of(
                 "commit_id", TreesRecordCursor::getCommitId,
-                "object_type", TreesRecordCursor::getObjectType,
+                "file_mode", TreesRecordCursor::getFileMode,
+                "mode", TreesRecordCursor::getMode,
                 "object_id", TreesRecordCursor::getObjectId,
                 "file_name", TreesRecordCursor::getFileName,
                 "path_name", TreesRecordCursor::getPathName,
@@ -84,17 +85,8 @@ public class TreesRecordCursor
 
         RevWalk revWalk = new RevWalk(repo.getRepository());
         commits = walkCommits(repo.getRepository(), revWalk, commitIds);
+        // subtrees are entered explicitly, to return directories before their contents
         treeWalk = new TreeWalk(repo.getRepository());
-        treeWalk.setRecursive(true);
-    }
-
-    private String getFileMode(FileMode fileMode)
-    {
-        if (!fileModeNames.containsKey(fileMode)) {
-            // there are a few others, see FileMode javadoc for details
-            throw new IllegalArgumentException("Unknown type of file encountered: " + fileMode);
-        }
-        return fileModeNames.get(fileMode);
     }
 
     @Override
@@ -124,6 +116,9 @@ public class TreesRecordCursor
         }
 
         try {
+            if (commit != null && treeWalk.isSubtree()) {
+                treeWalk.enterSubtree();
+            }
             // commits can have empty trees, like an orphan branch with an empty first commit
             while (commit == null || !treeWalk.next()) {
                 if (!commits.hasNext()) {
@@ -185,9 +180,16 @@ public class TreesRecordCursor
         return commit.getName();
     }
 
-    private String getObjectType()
+    private String getFileMode()
     {
-        return getFileMode(treeWalk.getFileMode());
+        // there are also deprecated modes, used only by very old versions of git
+        return fileModeNames.getOrDefault(treeWalk.getFileMode(), "unknown");
+    }
+
+    private String getMode()
+    {
+        // like git ls-tree
+        return "%06o".formatted(treeWalk.getRawMode(0));
     }
 
     private String getObjectId()
