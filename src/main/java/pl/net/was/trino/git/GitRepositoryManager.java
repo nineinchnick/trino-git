@@ -59,6 +59,8 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.Objects.requireNonNull;
 import static java.util.UUID.randomUUID;
+import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_FETCH_SECTION;
+import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_KEY_AUTOGC;
 import static org.eclipse.jgit.lib.Constants.HEAD;
 import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_FETCH_ERROR;
@@ -148,6 +150,8 @@ public class GitRepositoryManager
                 REF_SPECS.forEach(remote::addFetchRefSpec);
                 remote.setTagOpt(TagOpt.NO_TAGS);
                 remote.update(config);
+                // JGit runs gc in the background after a fetch, which would race with moving the clone and with other fetches
+                config.setBoolean(CONFIG_FETCH_SECTION, null, CONFIG_KEY_AUTOGC, false);
                 config.save();
                 fetch(repo);
             }
