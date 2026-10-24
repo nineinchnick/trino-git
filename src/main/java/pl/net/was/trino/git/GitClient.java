@@ -14,7 +14,6 @@
 package pl.net.was.trino.git;
 
 import com.google.common.io.Resources;
-import com.google.inject.Inject;
 import io.trino.spi.connector.ConnectorViewDefinition;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.BigintType;
@@ -122,12 +121,6 @@ public class GitClient
                     new ConnectorViewDefinition.ViewColumn("changed_files", BigintType.BIGINT.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("similarity_score", DoubleType.DOUBLE.getTypeId(), Optional.empty()),
                     new ConnectorViewDefinition.ViewColumn("change_types", new ArrayType(VarcharType.VARCHAR).getTypeId(), Optional.empty())));
-
-    @Inject
-    public GitClient(GitConfig config)
-    {
-        requireNonNull(config, "config is null");
-    }
 
     public Set<String> getSchemaNames()
     {

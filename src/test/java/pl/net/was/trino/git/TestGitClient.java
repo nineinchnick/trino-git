@@ -40,7 +40,7 @@ public class TestGitClient
     @Test
     public void testMetadata()
     {
-        GitClient client = new GitClient(new GitConfig());
+        GitClient client = new GitClient();
         assertThat(client.getSchemaNames()).isEqualTo(Set.of("default"));
     }
 
