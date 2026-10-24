@@ -21,6 +21,7 @@ import io.airlift.configuration.LegacyConfig;
 import io.airlift.units.Duration;
 import io.airlift.units.MinDuration;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.io.File;
@@ -47,6 +48,7 @@ public class GitConfig
     private File cacheDirectory = Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile();
     private Duration fetchInterval = new Duration(1, MINUTES);
     private Duration timeout = new Duration(5, MINUTES);
+    private int commitsPerSplit = 1000;
 
     public URI getUrl()
     {
@@ -183,6 +185,20 @@ public class GitConfig
     public GitConfig setTimeout(Duration timeout)
     {
         this.timeout = timeout;
+        return this;
+    }
+
+    @Min(1)
+    public int getCommitsPerSplit()
+    {
+        return commitsPerSplit;
+    }
+
+    @Config("git.commits-per-split")
+    @ConfigDescription("Maximum number of commits read by one split of the commits, trees and diff_stats tables")
+    public GitConfig setCommitsPerSplit(int commitsPerSplit)
+    {
+        this.commitsPerSplit = commitsPerSplit;
         return this;
     }
 

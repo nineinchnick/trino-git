@@ -47,7 +47,8 @@ public class TestGitConfig
                 .setPassword(null)
                 .setCacheDirectory(Path.of(System.getProperty("java.io.tmpdir"), "trino-git").toFile())
                 .setFetchInterval(new Duration(1, MINUTES))
-                .setTimeout(new Duration(5, MINUTES)));
+                .setTimeout(new Duration(5, MINUTES))
+                .setCommitsPerSplit(1000));
     }
 
     @Test
@@ -61,6 +62,7 @@ public class TestGitConfig
                 .put("git.cache-directory", "/var/cache/trino-git")
                 .put("git.fetch-interval", "10m")
                 .put("git.timeout", "30s")
+                .put("git.commits-per-split", "50")
                 .buildOrThrow();
 
         GitConfig expected = new GitConfig()
@@ -70,7 +72,8 @@ public class TestGitConfig
                 .setPassword("secret")
                 .setCacheDirectory(Path.of("/var/cache/trino-git").toFile())
                 .setFetchInterval(new Duration(10, MINUTES))
-                .setTimeout(new Duration(30, SECONDS));
+                .setTimeout(new Duration(30, SECONDS))
+                .setCommitsPerSplit(50);
 
         assertFullMapping(properties, expected);
     }
