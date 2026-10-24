@@ -26,7 +26,7 @@ import static io.airlift.slice.SizeOf.instanceSize;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
-public record GitSplit(String schemaName, String tableName, Optional<List<String>> commitIds)
+public record GitSplit(String schemaName, String tableName, Optional<List<String>> commitIds, long refreshGeneration)
         implements ConnectorSplit
 {
     private static final int INSTANCE_SIZE = instanceSize(GitSplit.class);

@@ -75,13 +75,13 @@ public class TestGitBranches
                 .setUrl(source.toUri())
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("default", "branches", Optional.empty()),
+                new GitSplit("default", "branches", Optional.empty(), 0),
                 new GitTableHandle("default", "branches", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", VARCHAR, 0),
                         new GitColumnHandle("name", VARCHAR, 1),
                         new GitColumnHandle("is_merged", BOOLEAN, 2)),
-                repositoryManager.getRepository("default"));
+                repositoryManager.getRepository("default", 0));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

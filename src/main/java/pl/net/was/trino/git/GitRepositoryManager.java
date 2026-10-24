@@ -125,14 +125,15 @@ public class GitRepositoryManager
 
     /**
      * Returns the repository, cloning it first if necessary, and fetching new commits if the last fetch was more
-     * than git.fetch-interval ago. The repository is shared, so closing the returned object doesn't close it.
+     * than git.fetch-interval ago, or a refresh was requested since. The repository is shared, so closing the
+     * returned object doesn't close it.
      */
-    public Git getRepository(String schemaName)
+    public Git getRepository(String schemaName, long refreshGeneration)
     {
         URI url = repositories.get(schemaName);
         checkArgument(url != null, "Unknown repository: %s", schemaName);
         OpenRepository cached = openRepositories.get(schemaName);
-        if (cached != null && System.nanoTime() - cached.fetchedNanos() < fetchIntervalNanos) {
+        if (cached != null && cached.isFresh(fetchIntervalNanos, refreshGeneration)) {
             return Git.wrap(cached.repository());
         }
         Path localPath;
@@ -151,13 +152,13 @@ public class GitRepositoryManager
             long fetchedNanos = System.nanoTime();
             if (openRepository != null) {
                 // another thread could have fetched it while this one was waiting for the lock
-                if (fetchedNanos - openRepository.fetchedNanos() >= fetchIntervalNanos) {
+                if (!openRepository.isFresh(fetchIntervalNanos, refreshGeneration)) {
                     fetchExisting(Git.wrap(openRepository.repository()), url);
-                    openRepository = new OpenRepository(openRepository.repository(), fetchedNanos);
+                    openRepository = new OpenRepository(openRepository.repository(), fetchedNanos, refreshGeneration);
                 }
             }
             else {
-                openRepository = new OpenRepository(openOrClone(localPath, url).getRepository(), fetchedNanos);
+                openRepository = new OpenRepository(openOrClone(localPath, url).getRepository(), fetchedNanos, refreshGeneration);
             }
             openRepositories.put(schemaName, openRepository);
             return Git.wrap(openRepository.repository());
@@ -344,5 +345,11 @@ public class GitRepositoryManager
         }
     }
 
-    private record OpenRepository(Repository repository, long fetchedNanos) {}
+    private record OpenRepository(Repository repository, long fetchedNanos, long refreshGeneration)
+    {
+        boolean isFresh(long fetchIntervalNanos, long requestedRefreshGeneration)
+        {
+            return System.nanoTime() - fetchedNanos < fetchIntervalNanos && refreshGeneration >= requestedRefreshGeneration;
+        }
+    }
 }

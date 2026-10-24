@@ -16,7 +16,9 @@ package pl.net.was.trino.git;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
+import io.trino.spi.procedure.Procedure;
 
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class GitModule
@@ -31,6 +33,8 @@ public class GitModule
         binder.bind(GitSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(GitRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(GitRepositoryManager.class).in(Scopes.SINGLETON);
+        binder.bind(RefreshGenerations.class).in(Scopes.SINGLETON);
+        newSetBinder(binder, Procedure.class).addBinding().toProvider(RefreshProcedure.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(GitConfig.class);
     }
 }

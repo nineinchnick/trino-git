@@ -188,6 +188,12 @@ The connector also provides a view:
 * `commit_stats` - every column of `commits`, with the number of `added_lines`, `deleted_lines` and `changed_files`,
   the average `similarity_score` of renames and copies, and all `change_types` from `diff_stats`.
 
+# Procedures
+
+* `CALL git.system.refresh()` - makes every node fetch new commits the next time it reads a repository,
+  without waiting for `git.fetch-interval`. Pass a schema name, like `CALL git.system.refresh('default')`,
+  to refresh only that repository.
+
 # Limitations
 
 * Every worker clones the repositories into `git.cache-directory`, and keeps them there.

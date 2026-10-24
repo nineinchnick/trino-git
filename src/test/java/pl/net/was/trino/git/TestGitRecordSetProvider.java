@@ -50,7 +50,7 @@ public class TestGitRecordSetProvider
         RecordSet recordSet = recordSetProvider.getRecordSet(
                 GitTransactionHandle.INSTANCE,
                 SESSION,
-                new GitSplit("default", "commits", Optional.empty()),
+                new GitSplit("default", "commits", Optional.empty(), 0),
                 new GitTableHandle("default", "commits", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),

@@ -66,14 +66,14 @@ public class TestGitTags
                 .setUrl(source.toUri())
                 .setCacheDirectory(tempDir.resolve("cache").toFile()));
         GitRecordSet recordSet = new GitRecordSet(
-                new GitSplit("default", "tags", Optional.empty()),
+                new GitSplit("default", "tags", Optional.empty(), 0),
                 new GitTableHandle("default", "tags", TupleDomain.all()),
                 List.of(
                         new GitColumnHandle("object_id", VARCHAR, 0),
                         new GitColumnHandle("commit_id", VARCHAR, 1),
                         new GitColumnHandle("name", VARCHAR, 2),
                         new GitColumnHandle("tag_time", TIMESTAMP_TZ_SECONDS, 3)),
-                repositoryManager.getRepository("default"));
+                repositoryManager.getRepository("default", 0));
         List<List<Object>> rows = new ArrayList<>();
         try (RecordCursor cursor = recordSet.cursor()) {
             while (cursor.advanceNextPosition()) {

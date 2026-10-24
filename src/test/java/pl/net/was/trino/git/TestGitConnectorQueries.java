@@ -187,6 +187,30 @@ final class TestGitConnectorQueries
     }
 
     @Test
+    void testRefreshProcedure(@TempDir Path cacheDirectory)
+            throws Exception
+    {
+        try (TestingGitRepository upstream = new TestingGitRepository()) {
+            getQueryRunner().createCatalog("git_refreshed", "git", ImmutableMap.of(
+                    "git.url", upstream.getUri().toString(),
+                    "git.cache-directory", cacheDirectory.toString(),
+                    "git.fetch-interval", "1h"));
+            String mainBranch = "SELECT object_id FROM git_refreshed.default.branches WHERE name = 'refs/heads/main'";
+            RevCommit oldCommit = repository.getEmptyCommit();
+            assertThat(query(mainBranch)).skippingTypesCheck().matches("VALUES '%s'".formatted(id(oldCommit)));
+
+            RevCommit newCommit = upstream.addEmptyCommit("A commit pushed after the clone");
+            assertThat(query(mainBranch)).skippingTypesCheck().matches("VALUES '%s'".formatted(id(oldCommit)));
+
+            assertUpdate("CALL git_refreshed.system.refresh()");
+            assertThat(query(mainBranch)).skippingTypesCheck().matches("VALUES '%s'".formatted(id(newCommit)));
+
+            assertUpdate("CALL git_refreshed.system.refresh('default')");
+            assertQueryFails("CALL git_refreshed.system.refresh('unknown')", "Unknown schema: unknown");
+        }
+    }
+
+    @Test
     void testBranchesFollowUpstream(@TempDir Path cacheDirectory)
             throws Exception
     {
