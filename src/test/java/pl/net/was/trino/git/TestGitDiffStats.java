@@ -97,6 +97,51 @@ public class TestGitDiffStats
                 row(merge, main, "feature.txt", "added", 1));
     }
 
+    @Test
+    public void testCopies(@TempDir Path tempDir)
+            throws Exception
+    {
+        Path source = tempDir.resolve("source");
+        String contents = "a file long enough to be compared for similarity\n".repeat(10);
+        RevCommit copied;
+        RevCommit moved;
+        try (Git git = Git.init().setDirectory(source.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(source.resolve("original.txt"), contents);
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("original").setAuthor(ident(1)).setCommitter(ident(1)).setSign(false).call();
+            // copying a file that is kept is an added file
+            Files.writeString(source.resolve("copy.txt"), contents);
+            git.add().addFilepattern(".").call();
+            copied = git.commit().setMessage("copy").setAuthor(ident(2)).setCommitter(ident(2)).setSign(false).call();
+            // moving a file to more than one path is a rename and copies
+            Files.delete(source.resolve("original.txt"));
+            Files.writeString(source.resolve("first.txt"), contents);
+            Files.writeString(source.resolve("second.txt"), contents);
+            git.add().addFilepattern(".").call();
+            git.rm().addFilepattern("original.txt").call();
+            moved = git.commit().setMessage("move").setAuthor(ident(3)).setCommitter(ident(3)).setSign(false).call();
+        }
+        GitRepositoryManager manager = new GitRepositoryManager(new GitConfig()
+                .setUrl(source.toUri())
+                .setCacheDirectory(tempDir.resolve("cache").toFile()));
+        try (RecordCursor cursor = new DiffStatsTable().createCursor(
+                List.of(new GitColumnHandle("commit_id", VARCHAR, 0), new GitColumnHandle("path_name", VARCHAR, 1), new GitColumnHandle("change_type", VARCHAR, 2)),
+                manager.getRepository("default", Snapshot.latest(0)),
+                manager.getRepository("default", Snapshot.latest(0)).getRepository().getRefDatabase().getRefs(),
+                Optional.of(List.of(copied.getName(), moved.getName())),
+                Optional.empty())) {
+            List<List<Object>> rows = new ArrayList<>();
+            while (cursor.advanceNextPosition()) {
+                rows.add(List.of(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8(), cursor.getSlice(2).toStringUtf8()));
+            }
+            assertThat(rows).containsExactlyInAnyOrder(
+                    List.of(copied.getName(), "copy.txt", "added"),
+                    List.of(moved.getName(), "first.txt", "renamed"),
+                    List.of(moved.getName(), "second.txt", "copied"));
+        }
+        manager.close();
+    }
+
     private List<List<Object>> read(Optional<List<String>> commitIds)
     {
         GitRecordSet recordSet = new GitRecordSet(

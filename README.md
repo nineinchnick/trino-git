@@ -121,7 +121,8 @@ Time zone offsets that are out of range, which some old repositories have, like 
 Files changed in every commit compared with its first parent, with renames detected.
 Merge commits are compared only with their first parent, like `git log -p --first-parent`,
 and root commits with an empty tree, so all their files are added.
-Copies are not detected, so `change_type` is never `copied`.
+Copies are reported only for files moved to more than one path in the same commit: one is a rename, and the others
+are copies. Copying a file that is kept is an added file.
 
 | Column             | Type      | Description                                                         |
 |--------------------|-----------|---------------------------------------------------------------------|
