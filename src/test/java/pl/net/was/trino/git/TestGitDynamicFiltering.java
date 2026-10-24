@@ -18,7 +18,6 @@ import io.trino.testing.QueryRunner;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +29,7 @@ public class TestGitDynamicFiltering
             throws Exception
     {
         URI url = TestGitClient.setupRepo(URI.create("dynamic-filtering.invalid"));
-        return GitQueryRunner.createGitQueryRunner(Map.of(), Map.of("git.url", url.toString()));
+        return GitQueryRunner.builder(url).build();
     }
 
     @Test

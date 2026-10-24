@@ -21,9 +21,14 @@ import io.trino.plugin.memory.MemoryPlugin;
 import io.trino.plugin.tpch.TpchPlugin;
 import io.trino.testing.DistributedQueryRunner;
 
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.io.MoreFiles.deleteRecursively;
+import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static io.airlift.testing.Closeables.closeAllSuppress;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 import static java.util.Objects.requireNonNullElse;
@@ -32,41 +37,65 @@ public final class GitQueryRunner
 {
     private GitQueryRunner() {}
 
-    private static final String TPCH_SCHEMA = "tpch";
+    public static final String GIT_CATALOG = "git";
+    public static final String GIT_SCHEMA = "default";
 
-    public static DistributedQueryRunner createGitQueryRunner(
-            Map<String, String> extraProperties,
-            Map<String, String> connectorProperties)
-            throws Exception
+    public static Builder builder(URI repositoryUri)
     {
-        DistributedQueryRunner queryRunner = DistributedQueryRunner.builder(createSession())
-                .setExtraProperties(extraProperties)
-                .build();
-        try {
-            queryRunner.installPlugin(new MemoryPlugin());
-            queryRunner.createCatalog("memory", "memory");
+        return new Builder(repositoryUri);
+    }
 
-            queryRunner.installPlugin(new TpchPlugin());
-            queryRunner.createCatalog("tpch", "tpch");
+    public static final class Builder
+            extends DistributedQueryRunner.Builder<Builder>
+    {
+        private final Map<String, String> connectorProperties = new HashMap<>();
 
-            connectorProperties = new HashMap<>(Map.copyOf(connectorProperties));
-
-            queryRunner.installPlugin(new GitPlugin());
-            queryRunner.createCatalog("git", "git", connectorProperties);
-
-            return queryRunner;
+        private Builder(URI repositoryUri)
+        {
+            super(createSession());
+            connectorProperties.put("git.url", repositoryUri.toString());
         }
-        catch (Throwable e) {
-            closeAllSuppress(e, queryRunner);
-            throw e;
+
+        public Builder addConnectorProperty(String key, String value)
+        {
+            connectorProperties.put(key, value);
+            return this;
+        }
+
+        @Override
+        public DistributedQueryRunner build()
+                throws Exception
+        {
+            if (!connectorProperties.containsKey("git.cache-directory")) {
+                Path cacheDirectory = Files.createTempDirectory("trino-git-cache-");
+                registerResource(() -> deleteRecursively(cacheDirectory, ALLOW_INSECURE));
+                connectorProperties.put("git.cache-directory", cacheDirectory.toString());
+            }
+            DistributedQueryRunner queryRunner = super.build();
+            try {
+                queryRunner.installPlugin(new MemoryPlugin());
+                queryRunner.createCatalog("memory", "memory");
+
+                queryRunner.installPlugin(new TpchPlugin());
+                queryRunner.createCatalog("tpch", "tpch");
+
+                queryRunner.installPlugin(new GitPlugin());
+                queryRunner.createCatalog(GIT_CATALOG, "git", connectorProperties);
+
+                return queryRunner;
+            }
+            catch (Throwable e) {
+                closeAllSuppress(e, queryRunner);
+                throw e;
+            }
         }
     }
 
     private static Session createSession()
     {
         return testSessionBuilder()
-                .setCatalog("git")
-                .setSchema(TPCH_SCHEMA)
+                .setCatalog(GIT_CATALOG)
+                .setSchema(GIT_SCHEMA)
                 .build();
     }
 
@@ -83,9 +112,9 @@ public final class GitQueryRunner
             url = args[0];
         }
 
-        DistributedQueryRunner queryRunner = createGitQueryRunner(
-                Map.of("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081")),
-                Map.of("git.url", url));
+        DistributedQueryRunner queryRunner = builder(URI.create(url))
+                .addExtraProperty("http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8081"))
+                .build();
 
         Logger log = Logger.get(GitQueryRunner.class);
         log.info("======== SERVER STARTED ========");
