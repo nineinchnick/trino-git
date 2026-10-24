@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ConnectorSplit;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +25,7 @@ import static io.airlift.slice.SizeOf.instanceSize;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
-public record GitSplit(String tableName, URI uri, Optional<List<String>> commitIds)
+public record GitSplit(String tableName, Optional<List<String>> commitIds)
         implements ConnectorSplit
 {
     private static final int INSTANCE_SIZE = instanceSize(GitSplit.class);
@@ -34,7 +33,6 @@ public record GitSplit(String tableName, URI uri, Optional<List<String>> commitI
     public GitSplit
     {
         requireNonNull(tableName, "tableName is null");
-        requireNonNull(uri, "uri is null");
         commitIds = requireNonNull(commitIds, "commitIds is null").map(ImmutableList::copyOf);
     }
 
@@ -43,7 +41,6 @@ public record GitSplit(String tableName, URI uri, Optional<List<String>> commitI
     {
         return INSTANCE_SIZE
                 + estimatedSizeOf(tableName)
-                + estimatedSizeOf(uri.toString())
                 + sizeOf(commitIds, ids -> estimatedSizeOf(ids, SizeOf::estimatedSizeOf));
     }
 }

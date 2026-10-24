@@ -47,7 +47,7 @@ public class TestGitRecordSet
     @Test
     public void testGetColumnTypes()
     {
-        GitSplit split = new GitSplit("commits", uri, Optional.empty());
+        GitSplit split = new GitSplit("commits", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -72,7 +72,7 @@ public class TestGitRecordSet
     @Test
     public void testCommitsCursorSimple()
     {
-        GitSplit split = new GitSplit("commits", uri, Optional.empty());
+        GitSplit split = new GitSplit("commits", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "commits", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -97,7 +97,7 @@ public class TestGitRecordSet
     @Test
     public void testBranchesCursorSimple()
     {
-        GitSplit split = new GitSplit("branches", uri, Optional.empty());
+        GitSplit split = new GitSplit("branches", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "branches", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -119,7 +119,7 @@ public class TestGitRecordSet
     @Test
     public void testTagsCursorSimple()
     {
-        GitSplit split = new GitSplit("tags", uri, Optional.empty());
+        GitSplit split = new GitSplit("tags", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -143,7 +143,7 @@ public class TestGitRecordSet
     @Test
     public void testTagsCursorWithTagTime()
     {
-        GitSplit split = new GitSplit("tags", uri, Optional.empty());
+        GitSplit split = new GitSplit("tags", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "tags", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -171,7 +171,7 @@ public class TestGitRecordSet
     @Test
     public void testTreesCursorSimple()
     {
-        GitSplit split = new GitSplit("trees", uri, Optional.empty());
+        GitSplit split = new GitSplit("trees", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "trees", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
@@ -195,7 +195,7 @@ public class TestGitRecordSet
     @Test
     public void testObjectsCursorSimple()
     {
-        GitSplit split = new GitSplit("objects", uri, Optional.empty());
+        GitSplit split = new GitSplit("objects", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "objects", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),
@@ -221,7 +221,7 @@ public class TestGitRecordSet
     @Test
     public void testDiffStatsCursorSimple()
     {
-        GitSplit split = new GitSplit("diff_stats", uri, Optional.empty());
+        GitSplit split = new GitSplit("diff_stats", Optional.empty());
         GitTableHandle table = new GitTableHandle("default", "diff_stats", Optional.empty());
         RecordSet recordSet = createRecordSet(split, table, List.of(
                 new GitColumnHandle("commit_id", createUnboundedVarcharType(), 0),
@@ -257,6 +257,6 @@ public class TestGitRecordSet
 
     private static GitRecordSet createRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles)
     {
-        return new GitRecordSet(split, table, columnHandles, new GitRepositoryManager().getRepository(split.uri()));
+        return new GitRecordSet(split, table, columnHandles, new GitRepositoryManager(new GitConfig().setUrl(uri)).getRepository());
     }
 }

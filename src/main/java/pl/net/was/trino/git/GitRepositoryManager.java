@@ -14,12 +14,15 @@
 package pl.net.was.trino.git;
 
 import com.google.common.hash.Hashing;
+import com.google.inject.Inject;
 import io.trino.spi.TrinoException;
 import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
@@ -28,33 +31,41 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_FETCH_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
 
 public class GitRepositoryManager
 {
-    public Git getRepository(URI uri)
+    private final URI url;
+    private final Optional<CredentialsProvider> credentialsProvider;
+
+    @Inject
+    public GitRepositoryManager(GitConfig config)
     {
-        String url = uri.toString();
+        this.url = requireNonNull(config.getUrl(), "url is null");
+        this.credentialsProvider = config.getUsername()
+                .map(username -> new UsernamePasswordCredentialsProvider(username, config.getPassword().orElse("")));
+    }
+
+    public Git getRepository()
+    {
         Path localPath;
         try {
-            localPath = ensureDir(url);
+            localPath = ensureDir(url.toString());
         }
         catch (IOException e) {
             throw new TrinoException(GIT_OPEN_ERROR, "Failed to create the directory for the repository", e);
         }
         if (!Files.exists(localPath)) {
             CloneCommand repo = Git.cloneRepository()
-                    .setURI(url)
+                    .setURI(url.toString())
                     .setDirectory(localPath.toFile());
-            if (uri.getUserInfo() != null && !uri.getUserInfo().isEmpty()) {
-                String[] parts = uri.getUserInfo().split(":", 2);
-                UsernamePasswordCredentialsProvider credentials = new UsernamePasswordCredentialsProvider(parts[0], parts.length > 1 ? parts[1] : "");
-                repo.setCredentialsProvider(credentials);
-            }
+            credentialsProvider.ifPresent(repo::setCredentialsProvider);
             try {
                 return repo.call();
             }
@@ -75,7 +86,9 @@ public class GitRepositoryManager
         try {
             List<RemoteConfig> remotes = repo.remoteList().call();
             if (!remotes.isEmpty()) {
-                repo.fetch().setCheckFetchedObjects(true).call();
+                FetchCommand fetch = repo.fetch().setCheckFetchedObjects(true);
+                credentialsProvider.ifPresent(fetch::setCredentialsProvider);
+                fetch.call();
             }
         }
         catch (GitAPIException e) {

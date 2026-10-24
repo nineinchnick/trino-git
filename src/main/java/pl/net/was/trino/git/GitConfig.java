@@ -17,6 +17,7 @@ import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
 import io.airlift.configuration.ConfigSecuritySensitive;
 import io.airlift.configuration.LegacyConfig;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 import java.net.URI;
@@ -41,6 +42,16 @@ public class GitConfig
     {
         this.url = url;
         return this;
+    }
+
+    @AssertTrue(message = "git.url must not contain credentials, use git.username and git.password instead")
+    public boolean isUrlWithoutCredentials()
+    {
+        // usernames in SSH URLs, like ssh://git@example.com/repo.git, are not secret
+        if (url == null || url.getUserInfo() == null) {
+            return true;
+        }
+        return !"http".equalsIgnoreCase(url.getScheme()) && !"https".equalsIgnoreCase(url.getScheme()) && !url.getUserInfo().contains(":");
     }
 
     public Optional<String> getUsername()
