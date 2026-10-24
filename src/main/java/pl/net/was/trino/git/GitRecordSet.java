@@ -39,6 +39,7 @@ public class GitRecordSet
     private final Git repo;
     private final List<Ref> refs;
     private final Optional<List<String>> commitIds;
+    private final Optional<List<String>> paths;
 
     public GitRecordSet(GitSplit split, GitTableHandle table, List<GitColumnHandle> columnHandles, Git repo)
     {
@@ -52,6 +53,8 @@ public class GitRecordSet
         this.columnTypes = types.build();
         this.tableName = split.table().getTableName();
         this.commitIds = split.commitIds();
+        this.paths = GitClient.Table.fromName(tableName).getPathColumn()
+                .flatMap(pathColumn -> GitMetadata.getValues(table.constraint(), pathColumn));
         this.repo = requireNonNull(repo, "repo is null");
         try {
             this.refs = split.snapshot().getRefs(repo.getRepository());
@@ -71,15 +74,15 @@ public class GitRecordSet
     public RecordCursor cursor()
     {
         Map<String, RecordCursorProvider> map = Map.of(
-                "branches", (columnHandles, repo, refs, _) -> new BranchesRecordCursor(columnHandles, repo, refs),
-                "commits", CommitsRecordCursor::new,
+                "branches", (columnHandles, repo, refs, _, _) -> new BranchesRecordCursor(columnHandles, repo, refs),
+                "commits", (columnHandles, repo, refs, ids, _) -> new CommitsRecordCursor(columnHandles, repo, refs, ids),
                 "diff_stats", DiffStatsRecordCursor::new,
-                "idents", (columnHandles, repo, refs, _) -> new IdentsRecordCursor(columnHandles, repo, refs),
-                "objects", (columnHandles, repo, refs, _) -> new ObjectsRecordCursor(columnHandles, repo, refs),
-                "tags", (columnHandles, repo, refs, _) -> new TagsRecordCursor(columnHandles, repo, refs),
+                "idents", (columnHandles, repo, refs, _, _) -> new IdentsRecordCursor(columnHandles, repo, refs),
+                "objects", (columnHandles, repo, refs, ids, _) -> new ObjectsRecordCursor(columnHandles, repo, refs, ids),
+                "tags", (columnHandles, repo, refs, _, _) -> new TagsRecordCursor(columnHandles, repo, refs),
                 "trees", TreesRecordCursor::new);
         RecordCursorProvider recordCursorProvider = map.get(tableName);
         checkArgument(recordCursorProvider != null, "Unknown table: %s", tableName);
-        return recordCursorProvider.create(columnHandles, repo, refs, commitIds);
+        return recordCursorProvider.create(columnHandles, repo, refs, commitIds, paths);
     }
 }

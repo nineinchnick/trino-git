@@ -43,27 +43,48 @@ public class GitClient
 
     public enum Table
     {
-        BRANCHES(Optional.empty()),
-        COMMITS(Optional.of("object_id")),
-        DIFF_STATS(Optional.of("commit_id")),
-        IDENTS(Optional.empty()),
-        TAGS(Optional.empty()),
-        TREES(Optional.of("commit_id")),
-        OBJECTS(Optional.empty());
+        BRANCHES(Optional.empty(), false, Optional.empty()),
+        COMMITS(Optional.of("object_id"), true, Optional.empty()),
+        DIFF_STATS(Optional.of("commit_id"), true, Optional.of("path_name")),
+        IDENTS(Optional.empty(), false, Optional.empty()),
+        TAGS(Optional.empty(), false, Optional.empty()),
+        TREES(Optional.of("commit_id"), true, Optional.of("path_name")),
+        OBJECTS(Optional.of("object_id"), false, Optional.empty());
 
-        private final Optional<String> commitIdColumn;
+        private final Optional<String> idColumn;
+        private final boolean splitByCommits;
+        private final Optional<String> pathColumn;
 
-        Table(Optional<String> commitIdColumn)
+        Table(Optional<String> idColumn, boolean splitByCommits, Optional<String> pathColumn)
         {
-            this.commitIdColumn = commitIdColumn;
+            this.idColumn = idColumn;
+            this.splitByCommits = splitByCommits;
+            this.pathColumn = pathColumn;
         }
 
         /**
-         * Column with the id of the commit each row was read from, used to read only the commits matching a filter.
+         * Column with the id of the commit or object each row was read from, used to read only the ones matching a filter.
          */
-        public Optional<String> getCommitIdColumn()
+        public Optional<String> getIdColumn()
         {
-            return commitIdColumn;
+            return idColumn;
+        }
+
+        /**
+         * Whether the table reads every commit separately, so its scans can be divided into splits by commits.
+         */
+        public boolean isSplitByCommits()
+        {
+            return splitByCommits;
+        }
+
+        /**
+         * Column with the path of a file, used to skip other files, but not enforced, because directories or renames
+         * of matching files can be read too.
+         */
+        public Optional<String> getPathColumn()
+        {
+            return pathColumn;
         }
 
         public String getName()

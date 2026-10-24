@@ -24,6 +24,7 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Collections.emptyIterator;
 import static pl.net.was.trino.git.CommitWalks.walkCommits;
 import static pl.net.was.trino.git.GitErrorCode.GIT_READ_ERROR;
 
@@ -44,7 +46,7 @@ public class TreesRecordCursor
     private final Map<Integer, Function<TreeWalk, Integer>> intFieldGetters = new HashMap<>();
     private final Map<Integer, Function<TreesRecordCursor, String>> strFieldGetters = new HashMap<>();
 
-    private final Iterator<RevCommit> commits;
+    private Iterator<RevCommit> commits;
     private final RevWalk revWalk;
     private final TreeWalk treeWalk;
     private RevCommit commit;
@@ -56,7 +58,7 @@ public class TreesRecordCursor
             FileMode.GITLINK, "submodule",
             FileMode.TREE, "directory");
 
-    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds)
+    public TreesRecordCursor(List<GitColumnHandle> columnHandles, Git repo, List<Ref> refs, Optional<List<String>> commitIds, Optional<List<String>> paths)
     {
         this.columnHandles = columnHandles;
 
@@ -89,6 +91,22 @@ public class TreesRecordCursor
         commits = walkCommits(revWalk, refs, commitIds);
         // subtrees are entered explicitly, to return directories before their contents
         treeWalk = new TreeWalk(repo.getRepository());
+        // directories containing these paths are returned too, so the filter is not enforced
+        paths.map(TreesRecordCursor::getValidPaths).ifPresent(validPaths -> {
+            if (validPaths.isEmpty()) {
+                commits = emptyIterator();
+                return;
+            }
+            treeWalk.setFilter(PathFilterGroup.createFromStrings(validPaths));
+        });
+    }
+
+    private static List<String> getValidPaths(List<String> paths)
+    {
+        // paths that are empty, or start or end with a slash, can't match any file
+        return paths.stream()
+                .filter(path -> !path.isEmpty() && !path.startsWith("/") && !path.endsWith("/"))
+                .toList();
     }
 
     @Override

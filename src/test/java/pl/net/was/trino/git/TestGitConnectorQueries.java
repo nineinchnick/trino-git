@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static java.util.Locale.ENGLISH;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,6 +74,45 @@ final class TestGitConnectorQueries
                 .matches("VALUES BIGINT '30'");
         assertThat(query("SELECT author_time FROM commits WHERE object_id = '%s'".formatted(id(repository.getInitialCommit()))))
                 .matches("VALUES TIMESTAMP '2024-01-01 15:00:00 +05:30'");
+    }
+
+    @Test
+    void testPathPushdown()
+    {
+        // pushdown must not change results, compared with the same filter that can't be pushed down
+        for (String table : List.of("trees", "diff_stats")) {
+            for (String path : List.of(GUIDE, RENAMED_NEW, "docs", "missing.txt", "/invalid")) {
+                assertThat(query("SELECT * FROM %s WHERE path_name = '%s'".formatted(table, path)))
+                        .matches("SELECT * FROM %s WHERE path_name || '' = '%s'".formatted(table, path));
+            }
+        }
+        // renames are still detected
+        assertThat(query("SELECT change_type FROM diff_stats WHERE path_name = '%s'".formatted(RENAMED_NEW)))
+                .skippingTypesCheck()
+                .matches("VALUES 'renamed'");
+        assertQueryStats(
+                getSession(),
+                "SELECT * FROM trees WHERE path_name = '%s'".formatted(GUIDE),
+                queryStats -> assertThat(queryStats.getPhysicalInputPositions()).isLessThan((long) computeScalar("SELECT count(*) FROM trees")),
+                _ -> {});
+    }
+
+    @Test
+    void testObjectIdPushdown()
+            throws IOException
+    {
+        String blobId = blobId(repository.getInitialCommit(), README);
+        assertThat(query("SELECT object_id FROM objects WHERE object_id = '%s'".formatted(blobId)))
+                .skippingTypesCheck()
+                .matches("VALUES '%s'".formatted(blobId));
+        // ids of missing objects and of commits don't match any blob
+        assertThat(query("SELECT count(*) FROM objects WHERE object_id IN ('0123456789012345678901234567890123456789', '%s')".formatted(id(repository.getInitialCommit()))))
+                .matches("VALUES BIGINT '0'");
+        assertQueryStats(
+                getSession(),
+                "SELECT * FROM objects WHERE object_id = '%s'".formatted(blobId),
+                queryStats -> assertThat(queryStats.getPhysicalInputPositions()).isEqualTo(1),
+                _ -> {});
     }
 
     @Test

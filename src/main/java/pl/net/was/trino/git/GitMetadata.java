@@ -219,20 +219,22 @@ public class GitMetadata
     public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
     {
         GitTableHandle handle = (GitTableHandle) table;
-        Optional<String> commitIdColumn = GitClient.Table.fromName(handle.tableName()).getCommitIdColumn();
-        if (commitIdColumn.isEmpty()) {
+        GitClient.Table gitTable = GitClient.Table.fromName(handle.tableName());
+        if (gitTable.getIdColumn().isEmpty() && gitTable.getPathColumn().isEmpty()) {
             return Optional.empty();
         }
 
         TupleDomain<GitColumnHandle> summary = constraint.getSummary().transformKeys(GitColumnHandle.class::cast);
-        TupleDomain<GitColumnHandle> enforced = summary.filter((column, domain) -> isEnforceable(column, domain, commitIdColumn.orElseThrow()));
-        TupleDomain<GitColumnHandle> newConstraint = handle.constraint().intersect(enforced);
+        TupleDomain<GitColumnHandle> pushedDown = summary.filter((column, domain) ->
+                isEnforceable(column, domain, gitTable.getIdColumn()) || isEnforceable(column, domain, gitTable.getPathColumn()));
+        TupleDomain<GitColumnHandle> newConstraint = handle.constraint().intersect(pushedDown);
         if (newConstraint.equals(handle.constraint())) {
             return Optional.empty();
         }
 
+        // paths are only used to skip reading other files
         TupleDomain<ColumnHandle> unenforced = summary
-                .filter((column, domain) -> !isEnforceable(column, domain, commitIdColumn.orElseThrow()))
+                .filter((column, domain) -> !isEnforceable(column, domain, gitTable.getIdColumn()))
                 .transformKeys(ColumnHandle.class::cast);
         return Optional.of(new ConstraintApplicationResult<>(
                 new GitTableHandle(handle.schemaName(), handle.tableName(), newConstraint),
@@ -241,29 +243,37 @@ public class GitMetadata
                 true));
     }
 
-    public static Optional<List<String>> getCommitIds(TupleDomain<GitColumnHandle> constraint, String commitIdColumn)
+    public static Optional<List<String>> getIds(TupleDomain<GitColumnHandle> constraint, String idColumn)
     {
-        if (constraint.isNone()) {
-            return Optional.of(List.of());
-        }
-        Optional<Domain> domain = constraint.getDomains().orElseThrow().entrySet().stream()
-                .filter(entry -> entry.getKey().columnName().equals(commitIdColumn))
-                .map(Map.Entry::getValue)
-                .findFirst();
-        if (domain.isEmpty() || !domain.orElseThrow().isNullableDiscreteSet()) {
-            return Optional.empty();
-        }
-        // commit ids are never null, and always are lowercase, full length object ids,
+        Optional<List<String>> values = getValues(constraint, idColumn);
+        // ids are never null, and always are lowercase, full length object ids,
         // so other values can never match and can be ignored
-        return Optional.of(domain.orElseThrow().getNullableDiscreteSet().getNonNullValues().stream()
-                .map(value -> ((Slice) value).toStringUtf8())
+        return values.map(ids -> ids.stream()
                 .filter(OBJECT_ID)
                 .sorted()
                 .collect(toImmutableList()));
     }
 
-    private static boolean isEnforceable(GitColumnHandle column, Domain domain, String commitIdColumn)
+    public static Optional<List<String>> getValues(TupleDomain<GitColumnHandle> constraint, String column)
     {
-        return column.columnName().equals(commitIdColumn) && domain.isNullableDiscreteSet();
+        if (constraint.isNone()) {
+            return Optional.of(List.of());
+        }
+        Optional<Domain> domain = constraint.getDomains().orElseThrow().entrySet().stream()
+                .filter(entry -> entry.getKey().columnName().equals(column))
+                .map(Map.Entry::getValue)
+                .findFirst();
+        if (domain.isEmpty() || !domain.orElseThrow().isNullableDiscreteSet()) {
+            return Optional.empty();
+        }
+        // nulls can't be used to select commits, objects or files
+        return Optional.of(domain.orElseThrow().getNullableDiscreteSet().getNonNullValues().stream()
+                .map(value -> ((Slice) value).toStringUtf8())
+                .collect(toImmutableList()));
+    }
+
+    private static boolean isEnforceable(GitColumnHandle column, Domain domain, Optional<String> pushedDownColumn)
+    {
+        return pushedDownColumn.map(column.columnName()::equals).orElse(false) && domain.isNullableDiscreteSet();
     }
 }

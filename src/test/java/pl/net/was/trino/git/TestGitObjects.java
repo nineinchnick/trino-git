@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.VARCHAR;
@@ -74,7 +75,8 @@ public class TestGitObjects
         try (RecordCursor cursor = new ObjectsRecordCursor(
                 List.of(new GitColumnHandle("object_id", VARCHAR, 0), new GitColumnHandle("contents", VARBINARY, 1)),
                 git,
-                git.getRepository().getRefDatabase().getRefs())) {
+                git.getRepository().getRefDatabase().getRefs(),
+                Optional.empty())) {
             while (cursor.advanceNextPosition()) {
                 assertThat(cursor.isNull(1)).isFalse();
                 objects.put(cursor.getSlice(0).toStringUtf8(), cursor.getSlice(1).toStringUtf8());

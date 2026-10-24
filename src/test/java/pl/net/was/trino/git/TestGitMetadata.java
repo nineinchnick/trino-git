@@ -197,7 +197,7 @@ public class TestGitMetadata
         ConstraintApplicationResult<ConnectorTableHandle> second = metadata.applyFilter(SESSION, first.getHandle(), commitIdsConstraint(TREES_COMMIT_ID, COMMIT_B, COMMIT_C)).orElseThrow();
 
         TupleDomain<GitColumnHandle> constraint = ((GitTableHandle) second.getHandle()).constraint();
-        assertThat(GitMetadata.getCommitIds(constraint, "commit_id")).contains(List.of(COMMIT_B));
+        assertThat(GitMetadata.getIds(constraint, "commit_id")).contains(List.of(COMMIT_B));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class TestGitMetadata
 
         ConstraintApplicationResult<ConnectorTableHandle> result = metadata.applyFilter(SESSION, trees, constraint).orElseThrow();
         assertThat(result.getRemainingFilter()).isEqualTo(TupleDomain.withColumnDomains(Map.of(TREES_OBJECT_ID, objectId)));
-        assertThat(GitMetadata.getCommitIds(((GitTableHandle) result.getHandle()).constraint(), "commit_id")).contains(List.of(COMMIT_A));
+        assertThat(GitMetadata.getIds(((GitTableHandle) result.getHandle()).constraint(), "commit_id")).contains(List.of(COMMIT_A));
     }
 
     @Test
@@ -219,9 +219,9 @@ public class TestGitMetadata
     {
         TupleDomain<GitColumnHandle> constraint = TupleDomain.withColumnDomains(Map.of(
                 TREES_COMMIT_ID, multipleValues(VARCHAR, List.of(utf8Slice(COMMIT_A), utf8Slice(COMMIT_B.toUpperCase(ENGLISH)), utf8Slice(COMMIT_C.substring(0, 7))))));
-        assertThat(GitMetadata.getCommitIds(constraint, "commit_id")).contains(List.of(COMMIT_A));
-        assertThat(GitMetadata.getCommitIds(TupleDomain.none(), "commit_id")).contains(List.of());
-        assertThat(GitMetadata.getCommitIds(TupleDomain.all(), "commit_id")).isEmpty();
+        assertThat(GitMetadata.getIds(constraint, "commit_id")).contains(List.of(COMMIT_A));
+        assertThat(GitMetadata.getIds(TupleDomain.none(), "commit_id")).contains(List.of());
+        assertThat(GitMetadata.getIds(TupleDomain.all(), "commit_id")).isEmpty();
     }
 
     private static Constraint commitIdsConstraint(GitColumnHandle column, String... commitIds)
