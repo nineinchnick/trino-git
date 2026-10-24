@@ -19,6 +19,8 @@ import io.trino.spi.TrinoException;
 import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.NoRemoteRepositoryException;
+import org.eclipse.jgit.errors.TransportException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
@@ -36,6 +38,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
@@ -51,6 +54,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.google.common.base.Throwables.getCausalChain;
+import static com.google.common.base.Throwables.getRootCause;
 import static com.google.common.io.MoreFiles.deleteRecursively;
 import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -62,9 +67,11 @@ import static java.util.UUID.randomUUID;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_FETCH_SECTION;
 import static org.eclipse.jgit.lib.ConfigConstants.CONFIG_KEY_AUTOGC;
 import static org.eclipse.jgit.lib.Constants.HEAD;
+import static pl.net.was.trino.git.GitErrorCode.GIT_AUTHENTICATION_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_CLONE_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_FETCH_ERROR;
 import static pl.net.was.trino.git.GitErrorCode.GIT_OPEN_ERROR;
+import static pl.net.was.trino.git.GitErrorCode.GIT_REPOSITORY_NOT_FOUND;
 
 public class GitRepositoryManager
 {
@@ -76,6 +83,11 @@ public class GitRepositoryManager
             RefUpdate.Result.REJECTED_OTHER_REASON);
     private static final ConcurrentMap<Path, ReentrantLock> LOCKS = new ConcurrentHashMap<>();
     private static final String REMOTE = "origin";
+    // messages of TransportException from JGitText, which is not a public API
+    private static final List<String> AUTHENTICATION_ERRORS = List.of(
+            "not authorized",
+            "authentication not supported",
+            "Authentication is required but no CredentialsProvider has been registered");
     private static final List<RefSpec> REF_SPECS = List.of(
             new RefSpec("+refs/heads/*:refs/heads/*"),
             new RefSpec("+refs/tags/*:refs/tags/*"));
@@ -129,7 +141,7 @@ public class GitRepositoryManager
                 }
                 catch (GitAPIException e) {
                     repo.close();
-                    throw new TrinoException(GIT_FETCH_ERROR, "Failed to fetch the repository", e);
+                    throw repositoryError(GIT_FETCH_ERROR, "fetch", e);
                 }
                 catch (RuntimeException e) {
                     repo.close();
@@ -158,7 +170,7 @@ public class GitRepositoryManager
             Files.move(temporaryPath, localPath, ATOMIC_MOVE);
         }
         catch (GitAPIException | URISyntaxException e) {
-            throw new TrinoException(GIT_CLONE_ERROR, "Failed to clone the repository", e);
+            throw repositoryError(GIT_CLONE_ERROR, "clone", e);
         }
         finally {
             if (Files.exists(temporaryPath)) {
@@ -167,6 +179,32 @@ public class GitRepositoryManager
         }
         return openExisting(localPath)
                 .orElseThrow(() -> new TrinoException(GIT_OPEN_ERROR, "Failed to open the cloned repository"));
+    }
+
+    private TrinoException repositoryError(GitErrorCode errorCode, String action, Exception e)
+    {
+        // JGit exceptions are often wrapped multiple times, and only the innermost one says what is wrong
+        List<Throwable> causes = getCausalChain(e);
+        if (causes.stream().anyMatch(NoRemoteRepositoryException.class::isInstance)) {
+            return new TrinoException(GIT_REPOSITORY_NOT_FOUND, "Failed to %s %s: repository not found".formatted(action, url), e);
+        }
+        if (causes.stream().anyMatch(GitRepositoryManager::isAuthenticationError)) {
+            return new TrinoException(
+                    GIT_AUTHENTICATION_ERROR,
+                    "Failed to %s %s: authentication failed, check git.username and git.password".formatted(action, url),
+                    e);
+        }
+        Throwable rootCause = getRootCause(e);
+        String reason = rootCause instanceof UnknownHostException ? "unknown host " + rootCause.getMessage() : rootCause.getMessage();
+        return new TrinoException(errorCode, "Failed to %s %s: %s".formatted(action, url, reason), e);
+    }
+
+    private static boolean isAuthenticationError(Throwable throwable)
+    {
+        String message = throwable.getMessage();
+        return throwable instanceof TransportException
+                && message != null
+                && AUTHENTICATION_ERRORS.stream().anyMatch(message::contains);
     }
 
     private Optional<Git> openExisting(Path localPath)
