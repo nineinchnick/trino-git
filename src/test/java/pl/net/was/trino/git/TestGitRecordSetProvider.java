@@ -45,11 +45,11 @@ public class TestGitRecordSetProvider
     @Test
     public void testGetRecordSet()
     {
-        GitRecordSetProvider recordSetProvider = new GitRecordSetProvider(new GitRepositoryManager());
+        GitRecordSetProvider recordSetProvider = new GitRecordSetProvider(new GitRepositoryManager(new GitConfig().setUrl(uri)));
         RecordSet recordSet = recordSetProvider.getRecordSet(
                 GitTransactionHandle.INSTANCE,
                 SESSION,
-                new GitSplit("commits", uri, Optional.empty()),
+                new GitSplit("commits", Optional.empty()),
                 new GitTableHandle("default", "commits", Optional.empty()),
                 List.of(
                         new GitColumnHandle("object_id", createUnboundedVarcharType(), 0),

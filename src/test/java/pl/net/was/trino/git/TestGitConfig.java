@@ -14,6 +14,7 @@
 package pl.net.was.trino.git;
 
 import com.google.common.collect.ImmutableMap;
+import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -23,6 +24,8 @@ import static io.airlift.configuration.testing.ConfigAssertions.assertDeprecated
 import static io.airlift.configuration.testing.ConfigAssertions.assertFullMapping;
 import static io.airlift.configuration.testing.ConfigAssertions.assertRecordedDefaults;
 import static io.airlift.configuration.testing.ConfigAssertions.recordDefaults;
+import static io.airlift.testing.ValidationAssertions.assertFailsValidation;
+import static io.airlift.testing.ValidationAssertions.assertValidates;
 
 public class TestGitConfig
 {
@@ -59,5 +62,22 @@ public class TestGitConfig
                 GitConfig.class,
                 Map.of("git.url", "https://example.com/repo.git"),
                 Map.of("metadata-uri", "https://example.com/repo.git"));
+    }
+
+    @Test
+    public void testCredentialsInUrl()
+    {
+        assertFailsValidation(
+                new GitConfig().setUrl(URI.create("https://user:secret@example.com/repo.git")),
+                "urlWithoutCredentials",
+                "git.url must not contain credentials, use git.username and git.password instead",
+                AssertTrue.class);
+        assertFailsValidation(
+                new GitConfig().setUrl(URI.create("https://token@example.com/repo.git")),
+                "urlWithoutCredentials",
+                "git.url must not contain credentials, use git.username and git.password instead",
+                AssertTrue.class);
+        assertValidates(new GitConfig().setUrl(URI.create("ssh://git@example.com/repo.git")));
+        assertValidates(new GitConfig().setUrl(URI.create("https://example.com/repo.git")));
     }
 }

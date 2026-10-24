@@ -16,8 +16,6 @@ package pl.net.was.trino.git;
 import io.airlift.json.JsonCodec;
 import org.junit.jupiter.api.Test;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,19 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestGitSplit
 {
-    private final GitSplit split = new GitSplit("tableName", new URI("url.invalid"), Optional.empty());
-
-    public TestGitSplit()
-            throws URISyntaxException
-    {}
+    private final GitSplit split = new GitSplit("tableName", Optional.empty());
 
     @Test
     public void testAddresses()
-            throws URISyntaxException
     {
-        URI testURI = new URI("url.invalid");
-        GitSplit httpSplit = new GitSplit("tableName", testURI, Optional.empty());
-        assertThat(httpSplit.isRemotelyAccessible()).isTrue();
+        assertThat(split.isRemotelyAccessible()).isTrue();
     }
 
     @Test
@@ -48,6 +39,7 @@ public class TestGitSplit
         String json = codec.toJson(split);
         GitSplit copy = codec.fromJson(json);
         assertThat(copy).isEqualTo(split);
+        assertThat(json).doesNotContain("uri");
 
         assertThat(copy.isRemotelyAccessible()).isTrue();
     }
@@ -55,7 +47,7 @@ public class TestGitSplit
     @Test
     public void testRetainedSize()
     {
-        GitSplit withCommits = new GitSplit("tableName", split.uri(), Optional.of(List.of("a", "b")));
+        GitSplit withCommits = new GitSplit("tableName", Optional.of(List.of("a", "b")));
         assertThat(withCommits.getRetainedSizeInBytes()).isGreaterThan(split.getRetainedSizeInBytes());
     }
 }
